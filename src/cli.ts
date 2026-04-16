@@ -15,7 +15,8 @@ async function main(): Promise<void> {
   const [, , sub] = process.argv;
 
   if (sub === 'install') {
-    await installToClaude();
+    const force = process.argv.includes('--force');
+    await installToClaude(force);
     return;
   }
   if (sub === 'doctor') {

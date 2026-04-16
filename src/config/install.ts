@@ -8,7 +8,7 @@ function getClaudeSettingsPath(): string {
   return path.join(dir, 'settings.json');
 }
 
-export async function installToClaude(): Promise<void> {
+export async function installToClaude(force = false): Promise<void> {
   const settingsPath = getClaudeSettingsPath();
 
   let current: Record<string, unknown> = {};
@@ -19,8 +19,10 @@ export async function installToClaude(): Promise<void> {
     // file may not exist yet
   }
 
-  if (current.statusLine) {
+  if (current.statusLine && !force) {
     process.stdout.write(`${t('install.alreadySet')}\n`);
+    process.stdout.write(`  현재 설정: ${JSON.stringify(current.statusLine)}\n`);
+    process.stdout.write(`  덮어쓰려면: festatusline install --force\n`);
     return;
   }
 
@@ -31,7 +33,7 @@ export async function installToClaude(): Promise<void> {
 
   current.statusLine = {
     type: 'command',
-    command: 'npx -y festatusline',
+    command: 'npx -y cwstatusline',
   };
 
   await fs.promises.mkdir(path.dirname(settingsPath), { recursive: true });
