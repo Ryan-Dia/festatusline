@@ -9,6 +9,7 @@ export const ko = {
   'widget.sonnetWeeklyUsage': '소넷 주간 사용량',
   'widget.sonnetWeeklyReset': '소넷 주간 초기화',
   'widget.gptUsage': 'GPT 사용량',
+  'widget.rateLimit': '5시간 할당량',
   'reset.until': '까지',
   'reset.na': '–',
   'usage.tokens': '토큰',

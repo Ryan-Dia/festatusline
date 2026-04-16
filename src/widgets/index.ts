@@ -9,10 +9,12 @@ import { WeeklyResetTimerWidget } from './WeeklyResetTimer.js';
 import { SonnetWeeklyUsageWidget } from './SonnetWeeklyUsage.js';
 import { SonnetWeeklyResetTimerWidget } from './SonnetWeeklyResetTimer.js';
 import { GptUsageWidget } from './GptUsage.js';
+import { RateLimitWidget } from './RateLimit.js';
 
 export const ALL_WIDGETS: Widget[] = [
   ModelWidget,
   ContextWidget,
+  RateLimitWidget,
   PeakTimeWidget,
   DailyUsageWidget,
   DailyResetTimerWidget,
