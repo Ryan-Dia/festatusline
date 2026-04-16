@@ -1,12 +1,12 @@
-import chalk from "chalk";
-import type { RenderContext } from "../widgets/types.js";
-import { getWidget } from "../widgets/index.js";
-import type { WidgetCfg } from "../config/schema.js";
+import chalk from 'chalk';
+import type { RenderContext } from '../widgets/types.js';
+import { getWidget } from '../widgets/index.js';
+import type { WidgetCfg } from '../config/schema.js';
 
 export function renderLine(
   widgetCfgs: WidgetCfg[],
   ctx: RenderContext,
-  separator: string
+  separator: string,
 ): string {
   const parts: string[] = [];
 
@@ -26,10 +26,10 @@ export function renderLine(
 export function renderAllLines(
   lines: WidgetCfg[][],
   ctx: RenderContext,
-  separator: string
+  separator: string,
 ): string {
   return lines
     .map((line) => renderLine(line, ctx, separator))
     .filter(Boolean)
-    .join("\n");
+    .join('\n');
 }

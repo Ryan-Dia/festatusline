@@ -1,11 +1,11 @@
-import { readStdin } from "../data/stdin.js";
-import { getUsageSnapshot } from "../data/usage.js";
-import { getCodexSnapshot } from "../data/codex.js";
-import { loadSettings } from "../config/load.js";
-import { getTheme } from "../theme/index.js";
-import { t, setLocale, type Locale } from "../i18n/index.js";
-import { renderAllLines } from "./line.js";
-import type { RenderContext } from "../widgets/types.js";
+import { readStdin } from '../data/stdin.js';
+import { getUsageSnapshot } from '../data/usage.js';
+import { getCodexSnapshot } from '../data/codex.js';
+import { loadSettings } from '../config/load.js';
+import { getTheme } from '../theme/index.js';
+import { t, setLocale, type Locale } from '../i18n/index.js';
+import { renderAllLines } from './line.js';
+import type { RenderContext } from '../widgets/types.js';
 
 export async function renderFromStdin(): Promise<void> {
   const [stdin, settings] = await Promise.all([readStdin(), loadSettings()]);
@@ -30,6 +30,6 @@ export async function renderFromStdin(): Promise<void> {
 
   const output = renderAllLines(settings.lines, ctx, settings.separator);
   if (output) {
-    process.stdout.write(output + "\n");
+    process.stdout.write(`${output}\n`);
   }
 }

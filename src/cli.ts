@@ -1,22 +1,22 @@
-import { renderFromStdin } from "./render/index.js";
-import { runTui } from "./tui/index.js";
-import { installToClaude } from "./config/install.js";
-import { runDoctor } from "./config/doctor.js";
-import { loadSettings } from "./config/load.js";
-import { setLocale, type Locale } from "./i18n/index.js";
+import { renderFromStdin } from './render/index.js';
+import { runTui } from './tui/index.js';
+import { installToClaude } from './config/install.js';
+import { runDoctor } from './config/doctor.js';
+import { loadSettings } from './config/load.js';
+import { setLocale, type Locale } from './i18n/index.js';
 
 async function main(): Promise<void> {
   const settings = await loadSettings();
-  const envLocale = process.env["FESTATUSLINE_LOCALE"] as Locale | undefined;
-  setLocale(envLocale && ["ko", "en", "zh"].includes(envLocale) ? envLocale : (settings.locale as Locale));
+  const envLocale = process.env.FESTATUSLINE_LOCALE as Locale | undefined;
+  setLocale(envLocale && ['ko', 'en', 'zh'].includes(envLocale) ? envLocale : (settings.locale as Locale));
 
   const [, , sub] = process.argv;
 
-  if (sub === "install") {
+  if (sub === 'install') {
     await installToClaude();
     return;
   }
-  if (sub === "doctor") {
+  if (sub === 'doctor') {
     await runDoctor();
     return;
   }
