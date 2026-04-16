@@ -1,8 +1,8 @@
-import React from "react";
-import { Box, Text } from "ink";
-import SelectInput from "ink-select-input";
-import { THEME_NAMES, themes } from "../../theme/index.js";
-import { t } from "../../i18n/index.js";
+import React from 'react';
+import { Box, Text } from 'ink';
+import SelectInput from 'ink-select-input';
+import { THEME_NAMES, themes } from '../../theme/index.js';
+import { t } from '../../i18n/index.js';
 
 interface Props {
   current: string;
@@ -13,17 +13,17 @@ interface Props {
 export default function ThemeMenu({ current, onSelect, onBack }: Props): React.ReactElement {
   const items = [
     ...THEME_NAMES.map((name) => ({
-      label: `${name === current ? "✓ " : "  "}${name}`,
+      label: `${name === current ? '✓ ' : '  '}${name}`,
       value: name,
     })),
-    { label: "← 뒤로", value: "__back__" },
+    { label: '← 뒤로', value: '__back__' },
   ];
 
   const theme = themes[current];
 
   return (
     <Box flexDirection="column" padding={1}>
-      <Text bold>{t("tui.mainMenu.selectTheme")}</Text>
+      <Text bold>{t('tui.mainMenu.selectTheme')}</Text>
       {theme && (
         <Text color={theme.accent}>
           {`accent: ${theme.accent}  warn: ${theme.warn}  danger: ${theme.danger}`}
@@ -32,7 +32,7 @@ export default function ThemeMenu({ current, onSelect, onBack }: Props): React.R
       <SelectInput
         items={items}
         onSelect={async (item) => {
-          if (item.value === "__back__") {
+          if (item.value === '__back__') {
             onBack();
             return;
           }

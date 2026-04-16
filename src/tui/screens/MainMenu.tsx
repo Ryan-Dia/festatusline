@@ -1,7 +1,7 @@
-import React from "react";
-import { Box, Text } from "ink";
-import SelectInput from "ink-select-input";
-import { t } from "../../i18n/index.js";
+import React from 'react';
+import { Box } from 'ink';
+import SelectInput from 'ink-select-input';
+import { t } from '../../i18n/index.js';
 
 interface Props {
   onSelect: (action: string) => void;
@@ -9,11 +9,11 @@ interface Props {
 
 export default function MainMenu({ onSelect }: Props): React.ReactElement {
   const items = [
-    { label: t("tui.mainMenu.editWidgets"), value: "widgets" },
-    { label: t("tui.mainMenu.selectPreset"), value: "preset" },
-    { label: t("tui.mainMenu.selectTheme"), value: "theme" },
-    { label: t("tui.mainMenu.selectLanguage"), value: "language" },
-    { label: t("tui.mainMenu.quit"), value: "quit" },
+    { label: t('tui.mainMenu.editWidgets'), value: 'widgets' },
+    { label: t('tui.mainMenu.selectPreset'), value: 'preset' },
+    { label: t('tui.mainMenu.selectTheme'), value: 'theme' },
+    { label: t('tui.mainMenu.selectLanguage'), value: 'language' },
+    { label: t('tui.mainMenu.quit'), value: 'quit' },
   ];
 
   return (
