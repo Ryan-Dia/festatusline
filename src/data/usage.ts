@@ -1,4 +1,4 @@
-import { loadAllEntries, type UsageEntry } from "./jsonl.js";
+import { loadAllEntries, type UsageEntry } from './jsonl.js';
 
 export interface UsageSnapshot {
   dailyTokens: number;
@@ -15,8 +15,8 @@ const TOKEN_COST_PER_M_OUTPUT = 15.0;
 
 function entryToCost(e: UsageEntry): number {
   return (
-    (e.inputTokens / 1_000_000) * TOKEN_COST_PER_M_INPUT +
-    (e.outputTokens / 1_000_000) * TOKEN_COST_PER_M_OUTPUT
+    (e.inputTokens / 1_000_000) * TOKEN_COST_PER_M_INPUT
+    + (e.outputTokens / 1_000_000) * TOKEN_COST_PER_M_OUTPUT
   );
 }
 

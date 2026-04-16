@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from 'zod';
 
 const ModelSchema = z.object({
   id: z.string(),
@@ -38,9 +38,9 @@ export type ClaudeStdin = z.infer<typeof ClaudeStdinSchema>;
 export async function readStdin(): Promise<ClaudeStdin> {
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
-    process.stdin.on("data", (chunk: Buffer) => chunks.push(chunk));
-    process.stdin.on("end", () => {
-      const raw = Buffer.concat(chunks).toString("utf8").trim();
+    process.stdin.on('data', (chunk: Buffer) => chunks.push(chunk));
+    process.stdin.on('end', () => {
+      const raw = Buffer.concat(chunks).toString('utf8').trim();
       if (!raw) {
         resolve({});
         return;
@@ -52,6 +52,6 @@ export async function readStdin(): Promise<ClaudeStdin> {
         resolve({});
       }
     });
-    process.stdin.on("error", reject);
+    process.stdin.on('error', reject);
   });
 }

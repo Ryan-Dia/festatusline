@@ -1,7 +1,7 @@
-import fs from "fs";
-import path from "path";
-import os from "os";
-import readline from "readline";
+import fs from 'fs';
+import path from 'path';
+import os from 'os';
+import readline from 'readline';
 
 export interface CodexSnapshot {
   available: boolean;
@@ -10,14 +10,14 @@ export interface CodexSnapshot {
 }
 
 function getCodexDir(): string {
-  return process.env["CODEX_CONFIG_DIR"] ?? path.join(os.homedir(), ".codex");
+  return process.env.CODEX_CONFIG_DIR ?? path.join(os.homedir(), '.codex');
 }
 
 async function findHistoryFile(): Promise<string | null> {
   const base = getCodexDir();
   const candidates = [
-    path.join(base, "history.jsonl"),
-    path.join(base, "sessions"),
+    path.join(base, 'history.jsonl'),
+    path.join(base, 'sessions'),
   ];
   for (const c of candidates) {
     try {
@@ -49,7 +49,7 @@ export async function getCodexSnapshot(): Promise<CodexSnapshot> {
   let daily = 0;
   let weekly = 0;
 
-  const stream = fs.createReadStream(histPath, { encoding: "utf8" });
+  const stream = fs.createReadStream(histPath, { encoding: 'utf8' });
   const rl = readline.createInterface({ input: stream, crlfDelay: Infinity });
 
   for await (const line of rl) {
@@ -58,8 +58,8 @@ export async function getCodexSnapshot(): Promise<CodexSnapshot> {
     try {
       const obj = JSON.parse(trimmed);
       const ts = obj.timestamp ? new Date(obj.timestamp).getTime() : 0;
-      if (ts >= todayStart.getTime()) daily++;
-      if (ts >= weekStart) weekly++;
+      if (ts >= todayStart.getTime()) daily += 1;
+      if (ts >= weekStart) weekly += 1;
     } catch {
       // skip
     }
