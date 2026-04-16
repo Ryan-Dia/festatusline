@@ -1,0 +1,3 @@
+npm run typecheck --silent
+npx lint-staged
+npm test --silent
