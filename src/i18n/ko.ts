@@ -11,6 +11,7 @@ export const ko = {
   'widget.gptUsage': 'GPT 사용량',
   'widget.rateLimit': '5시간 할당량',
   'widget.weeklyRateLimit': '7일 할당량',
+  'widget.claudePeak': '클로드 피크',
   'reset.until': '까지',
   'reset.na': '–',
   'usage.tokens': '토큰',

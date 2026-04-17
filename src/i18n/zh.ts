@@ -13,6 +13,7 @@ export const zh: Record<I18nKey, string> = {
   'widget.gptUsage': 'GPT 用量',
   'widget.rateLimit': '5小时限额',
   'widget.weeklyRateLimit': '7天限额',
+  'widget.claudePeak': 'Claude高峰',
   'reset.until': '重置倒计时',
   'reset.na': '–',
   'usage.tokens': '令牌',

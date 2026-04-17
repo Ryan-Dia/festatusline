@@ -5,13 +5,14 @@ export const PRESETS: Record<string, Partial<Settings>> = {
     lines: [
       [{ id: 'dailyUsage' }, { id: 'context' }, { id: 'rateLimit' }],
       [{ id: 'weeklyUsage' }, { id: 'weeklyRateLimit' }],
-      [{ id: 'model' }],
+      [{ id: 'model' }, { id: 'claudePeak' }],
     ],
   },
   full: {
     lines: [
       [
         { id: 'model' },
+        { id: 'claudePeak' },
         { id: 'context' },
         { id: 'rateLimit' },
         { id: 'peakTime' },
@@ -30,6 +31,7 @@ export const PRESETS: Record<string, Partial<Settings>> = {
     lines: [
       [
         { id: 'model' },
+        { id: 'claudePeak' },
         { id: 'context' },
         { id: 'rateLimit' },
         { id: 'peakTime' },

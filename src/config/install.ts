@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
+import { fileURLToPath } from 'url';
 import { t } from '../i18n/index.js';
 
 function getClaudeSettingsPath(): string {
@@ -31,9 +32,10 @@ export async function installToClaude(force = false): Promise<void> {
     await fs.promises.writeFile(backup, `${JSON.stringify(current, null, 2)}\n`, 'utf8');
   }
 
+  const cliPath = fileURLToPath(import.meta.url);
   current.statusLine = {
     type: 'command',
-    command: 'npx -y cwstatusline',
+    command: `node ${cliPath}`,
   };
 
   await fs.promises.mkdir(path.dirname(settingsPath), { recursive: true });
