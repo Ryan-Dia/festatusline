@@ -9,13 +9,9 @@ export const SettingsSchema = z.object({
   lines: z
     .array(z.array(WidgetConfigSchema))
     .default([
-      [
-        { id: 'model' },
-        { id: 'context' },
-        { id: 'rateLimit' },
-        { id: 'weeklyRateLimit' },
-        { id: 'dailyUsage' },
-      ],
+      [{ id: 'dailyUsage' }, { id: 'context' }, { id: 'rateLimit' }],
+      [{ id: 'weeklyUsage' }, { id: 'weeklyRateLimit' }],
+      [{ id: 'model' }],
     ]),
   theme: z.string().default('default'),
   locale: z.enum(['ko', 'en', 'zh']).default('en'),
