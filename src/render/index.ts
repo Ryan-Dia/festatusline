@@ -16,10 +16,6 @@ const CACHE_DIR = process.env.XDG_CACHE_HOME
   : join(homedir(), '.cache', 'festatusline');
 const CACHE_PATH = join(CACHE_DIR, 'last.txt');
 
-async function readCache(): Promise<string> {
-  return fs.readFile(CACHE_PATH, 'utf8').catch(() => '');
-}
-
 async function writeCache(output: string): Promise<void> {
   await fs.mkdir(dirname(CACHE_PATH), { recursive: true }).catch(() => {});
   await fs.writeFile(CACHE_PATH, output, 'utf8').catch(() => {});
@@ -50,23 +46,11 @@ export async function renderFromStdin(): Promise<void> {
 
   const output = renderAllLines(settings.lines, ctx, settings.separator);
 
-  // Update cache only when Claude Code provides model data (active API session).
-  // On /clear or startup events stdin.model is absent, so we preserve the last
-  // rich cache instead of overwriting it with minimal widget output.
-  if (output && stdin.model) {
+  // Output always (widgets render placeholders when data is absent).
+  // Update the cache only when we have real API session data (context_window
+  // present), so /clear and startup events don't overwrite the last rich cache.
+  if (stdin.context_window) {
     await writeCache(output);
-    process.stdout.write(`${output}\n`);
-    return;
   }
-
-  const cached = await readCache();
-  if (cached) {
-    process.stdout.write(`${cached}\n`);
-    return;
-  }
-
-  // No cache yet (first ever start) — output whatever we can render.
-  if (output) {
-    process.stdout.write(`${output}\n`);
-  }
+  process.stdout.write(`${output}\n`);
 }

@@ -18,7 +18,8 @@ function createRateLimitWidget(params: RateLimitParams): Widget {
     labelKey,
     render(ctx: RenderContext, _cfg: WidgetConfig): string | null {
       const slot = ctx.stdin.rate_limits?.[period];
-      if (slot?.used_percentage == null || !slot?.resets_at) return null;
+      if (slot?.used_percentage == null || !slot?.resets_at)
+        return `${prefix} ${buildBar(0, color)}  ?%`;
 
       const pct = Math.round(slot.used_percentage);
       const remainingMs = slot.resets_at * 1000 - ctx.now.getTime();

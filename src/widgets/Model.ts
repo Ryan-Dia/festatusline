@@ -12,7 +12,7 @@ export const ModelWidget: Widget = {
   labelKey: 'widget.model',
   render(ctx: RenderContext, _cfg: WidgetConfig): string | null {
     const name = ctx.stdin.model?.display_name ?? ctx.stdin.model?.id ?? null;
-    if (!name) return null;
+    if (!name) return '?';
     const effort = ctx.effortLevel;
     if (effort && effort !== 'normal') {
       const label = EFFORT_LABELS[effort] ?? effort;

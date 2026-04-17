@@ -7,7 +7,7 @@ export const ContextWidget: Widget = {
   labelKey: 'widget.context',
   render(ctx: RenderContext, _cfg: WidgetConfig): string | null {
     const cw = ctx.stdin.context_window;
-    if (!cw?.context_window_size) return null;
+    if (!cw?.context_window_size) return `Ctx ${buildBar(0, '#22d3ee')}  ?%`;
 
     const usage = cw.current_usage;
     const used =

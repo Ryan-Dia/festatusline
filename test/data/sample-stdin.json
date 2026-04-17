@@ -3,19 +3,32 @@
   "model": {
     "id": "claude-sonnet-4-6",
     "display_name": "Claude Sonnet 4.6",
-    "max_output_tokens": 8192,
-    "context_window": 200000
+    "max_output_tokens": 8192
   },
   "session_id": "sample-session-001",
   "transcript_path": "/tmp/sample.jsonl",
   "cost": {
     "total_cost_usd": 0.0042
   },
-  "usage": {
-    "input_tokens": 12000,
-    "output_tokens": 800,
-    "cache_creation_input_tokens": 0,
-    "cache_read_input_tokens": 45000
+  "context_window": {
+    "context_window_size": 200000,
+    "used_percentage": 23,
+    "current_usage": {
+      "input_tokens": 12000,
+      "output_tokens": 800,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 34000
+    }
+  },
+  "rate_limits": {
+    "five_hour": {
+      "used_percentage": 29,
+      "resets_at": 9999999999
+    },
+    "seven_day": {
+      "used_percentage": 25,
+      "resets_at": 9999999999
+    }
   },
   "workspace": {
     "current_dir": "/Users/wonmac/code/festatusline"
