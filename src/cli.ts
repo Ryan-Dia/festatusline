@@ -1,9 +1,12 @@
+import chalk from 'chalk';
 import { renderFromStdin } from './render/index.js';
 import { runTui } from './tui/index.js';
 import { installToClaude } from './config/install.js';
 import { runDoctor } from './config/doctor.js';
 import { loadSettings } from './config/load.js';
 import { setLocale, type Locale } from './i18n/index.js';
+
+chalk.level = 3;
 
 async function main(): Promise<void> {
   const settings = await loadSettings();
