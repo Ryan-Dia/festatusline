@@ -1,29 +1,44 @@
 import type { Widget, RenderContext, WidgetConfig } from './types.js';
+import type { I18nKey } from '../i18n/index.js';
 import { buildBar, fmtPct } from '../utils/bar.js';
 import { formatRemainingHM } from '../utils/duration.js';
 
-export const RateLimitWidget: Widget = {
+interface RateLimitParams {
+  id: string;
+  labelKey: I18nKey;
+  prefix: string;
+  color: string;
+  period: 'five_hour' | 'seven_day';
+}
+
+function createRateLimitWidget(params: RateLimitParams): Widget {
+  const { id, labelKey, prefix, color, period } = params;
+  return {
+    id,
+    labelKey,
+    render(ctx: RenderContext, _cfg: WidgetConfig): string | null {
+      const slot = ctx.stdin.rate_limits?.[period];
+      if (slot?.used_percentage == null || !slot?.resets_at) return null;
+
+      const pct = Math.round(slot.used_percentage);
+      const remainingMs = slot.resets_at * 1000 - ctx.now.getTime();
+      return `${prefix} ${buildBar(pct, color)} ${fmtPct(pct)} (${formatRemainingHM(remainingMs)})`;
+    },
+  };
+}
+
+export const RateLimitWidget: Widget = createRateLimitWidget({
   id: 'rateLimit',
   labelKey: 'widget.rateLimit',
-  render(ctx: RenderContext, _cfg: WidgetConfig): string | null {
-    const fiveHour = ctx.stdin.rate_limits?.five_hour;
-    if (fiveHour?.used_percentage == null || !fiveHour?.resets_at) return null;
+  prefix: '5h',
+  color: '#ffd93d',
+  period: 'five_hour',
+});
 
-    const pct = Math.round(fiveHour.used_percentage);
-    const remainingMs = fiveHour.resets_at * 1000 - ctx.now.getTime();
-    return `5h ${buildBar(pct, '#ffd93d')} ${fmtPct(pct)} (${formatRemainingHM(remainingMs)})`;
-  },
-};
-
-export const WeeklyRateLimitWidget: Widget = {
+export const WeeklyRateLimitWidget: Widget = createRateLimitWidget({
   id: 'weeklyRateLimit',
   labelKey: 'widget.weeklyRateLimit',
-  render(ctx: RenderContext, _cfg: WidgetConfig): string | null {
-    const sevenDay = ctx.stdin.rate_limits?.seven_day;
-    if (sevenDay?.used_percentage == null || !sevenDay?.resets_at) return null;
-
-    const pct = Math.round(sevenDay.used_percentage);
-    const remainingMs = sevenDay.resets_at * 1000 - ctx.now.getTime();
-    return `All ${buildBar(pct, '#6bcb77')} ${fmtPct(pct)} (${formatRemainingHM(remainingMs)})`;
-  },
-};
+  prefix: 'All',
+  color: '#6bcb77',
+  period: 'seven_day',
+});
