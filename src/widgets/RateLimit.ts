@@ -21,9 +21,10 @@ function createRateLimitWidget(params: RateLimitParams): Widget {
       if (slot?.used_percentage == null || !slot?.resets_at)
         return `${prefix} ${buildBar(0, color)}  ?%`;
 
-      const pct = Math.round(slot.used_percentage);
       const remainingMs = slot.resets_at * 1000 - ctx.now.getTime();
-      return `${prefix} ${buildBar(pct, color)} ${fmtPct(pct)} (${formatRemainingHM(remainingMs)})`;
+      const pct = remainingMs <= 0 ? 0 : Math.round(slot.used_percentage);
+      const timeStr = remainingMs <= 0 ? 'reset' : formatRemainingHM(remainingMs);
+      return `${prefix} ${buildBar(pct, color)} ${fmtPct(pct)} (${timeStr})`;
     },
   };
 }

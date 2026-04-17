@@ -38,9 +38,15 @@ async function writeRateLimitsCache(rateLimits: RateLimitsCache): Promise<void> 
   await fs.writeFile(RATE_LIMITS_CACHE_PATH, JSON.stringify(rateLimits), 'utf8').catch(() => {});
 }
 
+const STALE_THRESHOLD_MS = 5 * 60 * 1000;
+
 async function readCache(): Promise<string | null> {
   try {
-    const content = await fs.readFile(CACHE_PATH, 'utf8');
+    const [content, stat] = await Promise.all([
+      fs.readFile(CACHE_PATH, 'utf8'),
+      fs.stat(CACHE_PATH),
+    ]);
+    if (Date.now() - stat.mtimeMs > STALE_THRESHOLD_MS) return null;
     return content.trim() || null;
   } catch {
     return null;
