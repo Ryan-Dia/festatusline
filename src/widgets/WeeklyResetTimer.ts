@@ -1,11 +1,9 @@
-import type { Widget, RenderContext, WidgetConfig } from './types.js';
 import { getWeeklyReset } from '../data/reset.js';
+import { createResetTimerWidget } from './resetTimerFactory.js';
 
-export const WeeklyResetTimerWidget: Widget = {
+export const WeeklyResetTimerWidget = createResetTimerWidget({
   id: 'weeklyReset',
   labelKey: 'widget.weeklyReset',
-  render(ctx: RenderContext, _cfg: WidgetConfig): string | null {
-    const timer = getWeeklyReset(ctx.weeklyAnchorDay, ctx.now);
-    return `↺ ${timer.label}`;
-  },
-};
+  prefix: '↺',
+  getTimer: (ctx) => getWeeklyReset(ctx.weeklyAnchorDay, ctx.now),
+});
