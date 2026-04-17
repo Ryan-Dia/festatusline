@@ -49,13 +49,24 @@ export async function renderFromStdin(): Promise<void> {
   };
 
   const output = renderAllLines(settings.lines, ctx, settings.separator);
-  if (output) {
+
+  // Update cache only when Claude Code provides model data (active API session).
+  // On /clear or startup events stdin.model is absent, so we preserve the last
+  // rich cache instead of overwriting it with minimal widget output.
+  if (output && stdin.model) {
     await writeCache(output);
     process.stdout.write(`${output}\n`);
-  } else {
-    const cached = await readCache();
-    if (cached) {
-      process.stdout.write(`${cached}\n`);
-    }
+    return;
+  }
+
+  const cached = await readCache();
+  if (cached) {
+    process.stdout.write(`${cached}\n`);
+    return;
+  }
+
+  // No cache yet (first ever start) — output whatever we can render.
+  if (output) {
+    process.stdout.write(`${output}\n`);
   }
 }
