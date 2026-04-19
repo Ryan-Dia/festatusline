@@ -13,6 +13,8 @@ export interface RenderContext {
   now: Date;
   weeklyAnchorDay: number | null;
   effortLevel?: string;
+  cacheTtlCreatedAt: number | null;
+  cacheTtlMs: number;
 }
 
 export interface WidgetConfig {

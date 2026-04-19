@@ -10,6 +10,8 @@ export interface UsageEntry {
   outputTokens: number;
   cacheCreationTokens: number;
   cacheReadTokens: number;
+  ephemeral5mTokens: number;
+  ephemeral1hTokens: number;
 }
 
 interface MtimeCache {
@@ -46,6 +48,7 @@ async function parseJsonlFile(filePath: string): Promise<UsageEntry[]> {
       if (!usage) continue;
       const timestamp: number = obj.timestamp ? new Date(obj.timestamp).getTime() : Date.now();
       const model: string = msg.model ?? obj.model ?? '';
+      const cacheCreation = usage.cache_creation;
       entries.push({
         timestamp,
         model,
@@ -53,6 +56,8 @@ async function parseJsonlFile(filePath: string): Promise<UsageEntry[]> {
         outputTokens: usage.output_tokens ?? 0,
         cacheCreationTokens: usage.cache_creation_input_tokens ?? 0,
         cacheReadTokens: usage.cache_read_input_tokens ?? 0,
+        ephemeral5mTokens: cacheCreation?.ephemeral_5m_input_tokens ?? 0,
+        ephemeral1hTokens: cacheCreation?.ephemeral_1h_input_tokens ?? 0,
       });
     } catch {
       // skip malformed lines
@@ -92,4 +97,17 @@ export async function loadAllEntries(): Promise<UsageEntry[]> {
     }),
   );
   return all;
+}
+
+export async function getLastCacheCreation(): Promise<{ timestamp: number; ttlMs: number } | null> {
+  const entries = await loadAllEntries();
+  let latest: UsageEntry | null = null;
+  for (const e of entries) {
+    if (e.cacheCreationTokens > 0) {
+      if (!latest || e.timestamp > latest.timestamp) latest = e;
+    }
+  }
+  if (!latest) return null;
+  const ttlMs = latest.ephemeral1hTokens > 0 ? 3_600_000 : 300_000;
+  return { timestamp: latest.timestamp, ttlMs };
 }

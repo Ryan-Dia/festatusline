@@ -14,6 +14,9 @@ import { ClaudePeakWidget } from './ClaudePeak.js';
 import { CodexRateLimitWidget, CodexWeeklyRateLimitWidget } from './CodexRateLimit.js';
 import { SpacerWidget } from './Spacer.js';
 import { CodexModelWidget } from './CodexModel.js';
+import { SessionCostWidget } from './SessionCost.js';
+import { CacheHitWidget } from './CacheHit.js';
+import { CacheTtlWidget } from './CacheTtl.js';
 
 export const ALL_WIDGETS: Widget[] = [
   ModelWidget,
@@ -33,6 +36,9 @@ export const ALL_WIDGETS: Widget[] = [
   CodexWeeklyRateLimitWidget,
   SpacerWidget,
   CodexModelWidget,
+  SessionCostWidget,
+  CacheHitWidget,
+  CacheTtlWidget,
 ];
 
 const registry = new Map<string, Widget>(ALL_WIDGETS.map((w) => [w.id, w]));
