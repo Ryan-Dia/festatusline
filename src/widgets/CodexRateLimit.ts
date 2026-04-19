@@ -63,5 +63,7 @@ export const CodexWeeklyRateLimitWidget: Widget = createCodexRateLimitWidget({
   prefix: '7d',
   color: '#48dbfb',
   period: 'secondary',
-  timeFormat: 'abs',
+  timeFormat: 'remaining',
+  prefixWidth: 3,
+  timeExprWidth: 11,
 });
