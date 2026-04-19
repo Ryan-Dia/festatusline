@@ -1,0 +1,18 @@
+{
+  "name": "festatusline",
+  "version": "0.1.0",
+  "description": "Customizable statusline for Claude Code with i18n (ko/en/zh), themes, and multi-CLI usage widgets",
+  "author": {
+    "name": "ryan-dia"
+  },
+  "repository": "https://github.com/ryan-dia/festatusline",
+  "license": "MIT",
+  "keywords": [
+    "statusline",
+    "i18n",
+    "korean",
+    "usage",
+    "codex",
+    "themes"
+  ]
+}

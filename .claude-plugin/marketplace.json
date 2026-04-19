@@ -1,0 +1,29 @@
+{
+  "name": "festatusline",
+  "owner": {
+    "name": "ryan-dia",
+    "email": "macwon30@gmail.com"
+  },
+  "metadata": {
+    "description": "Customizable statusline with i18n (ko/en/zh), 5 themes, and multi-CLI usage widgets",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "festatusline",
+      "source": "./",
+      "description": "Status line showing model, context usage, daily/weekly token stats, peak time, and Codex CLI usage. Supports i18n (Korean/English/Chinese) with 5 built-in themes.",
+      "category": "monitoring",
+      "tags": [
+        "statusline",
+        "monitoring",
+        "i18n",
+        "korean",
+        "usage",
+        "codex",
+        "themes"
+      ]
+    }
+  ],
+  "version": "0.1.0"
+}

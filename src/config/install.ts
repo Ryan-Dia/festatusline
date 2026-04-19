@@ -9,6 +9,30 @@ function getClaudeSettingsPath(): string {
   return path.join(dir, 'settings.json');
 }
 
+async function resolveCliPath(): Promise<string> {
+  const pluginCacheBase = path.join(
+    os.homedir(),
+    '.claude',
+    'plugins',
+    'cache',
+    'festatusline',
+    'festatusline',
+  );
+  try {
+    const versions = await fs.promises.readdir(pluginCacheBase);
+    const sorted = versions
+      .filter((v) => /^\d+\.\d+\.\d+$/.test(v))
+      .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+    const latest = sorted.at(-1);
+    if (latest) {
+      return path.join(pluginCacheBase, latest, 'dist', 'cli.js');
+    }
+  } catch {
+    // not installed as plugin — fall through to local path
+  }
+  return fileURLToPath(import.meta.url);
+}
+
 export async function installToClaude(force = false): Promise<void> {
   const settingsPath = getClaudeSettingsPath();
 
@@ -32,7 +56,7 @@ export async function installToClaude(force = false): Promise<void> {
     await fs.promises.writeFile(backup, `${JSON.stringify(current, null, 2)}\n`, 'utf8');
   }
 
-  const cliPath = fileURLToPath(import.meta.url);
+  const cliPath = await resolveCliPath();
   current.statusLine = {
     type: 'command',
     command: `node ${cliPath}`,
