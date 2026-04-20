@@ -473,6 +473,8 @@ var ko = {
   "widget.cacheHit": "\uCE90\uC2DC \uC801\uC911\uB960",
   "widget.cacheTtl": "\uCE90\uC2DC \uC720\uD6A8\uC2DC\uAC04",
   "widget.claudePeak": "\uD074\uB85C\uB4DC \uD53C\uD06C",
+  "widget.gitBranch": "Git \uBE0C\uB79C\uCE58",
+  "widget.gitRepo": "Git \uB808\uD3EC",
   "reset.until": "\uAE4C\uC9C0",
   "reset.na": "\u2013",
   "usage.tokens": "\uD1A0\uD070",
@@ -525,6 +527,8 @@ var en = {
   "widget.cacheHit": "Cache Hit",
   "widget.cacheTtl": "Cache TTL",
   "widget.claudePeak": "Claude Peak",
+  "widget.gitBranch": "Git Branch",
+  "widget.gitRepo": "Git Repo",
   "reset.until": "until reset",
   "reset.na": "\u2013",
   "usage.tokens": "tokens",
@@ -577,6 +581,8 @@ var zh = {
   "widget.cacheHit": "\u7F13\u5B58\u547D\u4E2D\u7387",
   "widget.cacheTtl": "\u7F13\u5B58\u6709\u6548\u671F",
   "widget.claudePeak": "Claude\u9AD8\u5CF0",
+  "widget.gitBranch": "Git \u5206\u652F",
+  "widget.gitRepo": "Git \u4ED3\u5E93",
   "reset.until": "\u91CD\u7F6E\u5012\u8BA1\u65F6",
   "reset.na": "\u2013",
   "usage.tokens": "\u4EE4\u724C",
@@ -1055,6 +1061,38 @@ var CacheTtlWidget = {
   }
 };
 
+// src/widgets/GitInfo.ts
+import { execFileSync } from "child_process";
+import { basename } from "path";
+function gitCommand(args, cwd) {
+  try {
+    return execFileSync("git", args, {
+      cwd,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"]
+    }).trim();
+  } catch {
+    return null;
+  }
+}
+var GitBranchWidget = {
+  id: "gitBranch",
+  labelKey: "widget.gitBranch",
+  render(ctx, _cfg) {
+    const cwd = ctx.stdin.cwd ?? process.cwd();
+    return gitCommand(["rev-parse", "--abbrev-ref", "HEAD"], cwd);
+  }
+};
+var GitRepoWidget = {
+  id: "gitRepo",
+  labelKey: "widget.gitRepo",
+  render(ctx, _cfg) {
+    const cwd = ctx.stdin.cwd ?? process.cwd();
+    const topLevel = gitCommand(["rev-parse", "--show-toplevel"], cwd);
+    return topLevel ? basename(topLevel) : null;
+  }
+};
+
 // src/widgets/index.ts
 var ALL_WIDGETS = [
   ModelWidget,
@@ -1076,7 +1114,9 @@ var ALL_WIDGETS = [
   CodexModelWidget,
   SessionCostWidget,
   CacheHitWidget,
-  CacheTtlWidget
+  CacheTtlWidget,
+  GitBranchWidget,
+  GitRepoWidget
 ];
 var registry = new Map(ALL_WIDGETS.map((w) => [w.id, w]));
 function getWidget(id) {
@@ -1245,35 +1285,34 @@ var PRESETS = {
     lines: [[{ id: "model" }, { id: "dailyUsage" }, { id: "gptUsage" }]]
   },
   lite: {
-    lines: [[
-      { id: "model" },
-      { id: "claudePeak" },
-      { id: "dailyUsage" },
-      { id: "weeklyUsage" }
-    ]]
+    lines: [[{ id: "model" }, { id: "claudePeak" }, { id: "dailyUsage" }, { id: "weeklyUsage" }]]
   },
   plus: {
-    lines: [[
-      { id: "model" },
-      { id: "claudePeak" },
-      { id: "dailyUsage" },
-      { id: "weeklyUsage" },
-      { id: "cacheHit" },
-      { id: "cacheTtl" },
-      { id: "sessionCost" }
-    ]]
+    lines: [
+      [
+        { id: "model" },
+        { id: "claudePeak" },
+        { id: "dailyUsage" },
+        { id: "weeklyUsage" },
+        { id: "cacheHit" },
+        { id: "cacheTtl" },
+        { id: "sessionCost" }
+      ]
+    ]
   },
   pro: {
-    lines: [[
-      { id: "model" },
-      { id: "claudePeak" },
-      { id: "dailyUsage" },
-      { id: "weeklyUsage" },
-      { id: "cacheHit" },
-      { id: "cacheTtl" },
-      { id: "sessionCost" },
-      { id: "gptUsage" }
-    ]]
+    lines: [
+      [
+        { id: "model" },
+        { id: "claudePeak" },
+        { id: "dailyUsage" },
+        { id: "weeklyUsage" },
+        { id: "cacheHit" },
+        { id: "cacheTtl" },
+        { id: "sessionCost" },
+        { id: "gptUsage" }
+      ]
+    ]
   }
 };
 var PRESET_NAMES = Object.keys(PRESETS);
@@ -1350,7 +1389,12 @@ import React4 from "react";
 import { Box as Box4, Text as Text3 } from "ink";
 import SelectInput4 from "ink-select-input";
 var LOCALES = ["ko", "en", "zh"];
-function LanguageSelect({ current, onSelect, onBack, hideBack = false }) {
+function LanguageSelect({
+  current,
+  onSelect,
+  onBack,
+  hideBack = false
+}) {
   const localeItems = LOCALES.map((l) => ({
     label: `${l === current ? "\u2713 " : "  "}${t(`tui.lang.${l}`)}`,
     value: l

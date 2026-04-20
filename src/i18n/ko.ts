@@ -19,6 +19,8 @@ export const ko = {
   'widget.cacheHit': '캐시 적중률',
   'widget.cacheTtl': '캐시 유효시간',
   'widget.claudePeak': '클로드 피크',
+  'widget.gitBranch': 'Git 브랜치',
+  'widget.gitRepo': 'Git 레포',
   'reset.until': '까지',
   'reset.na': '–',
   'usage.tokens': '토큰',

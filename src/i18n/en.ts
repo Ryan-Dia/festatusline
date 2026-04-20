@@ -21,6 +21,8 @@ export const en: Record<I18nKey, string> = {
   'widget.cacheHit': 'Cache Hit',
   'widget.cacheTtl': 'Cache TTL',
   'widget.claudePeak': 'Claude Peak',
+  'widget.gitBranch': 'Git Branch',
+  'widget.gitRepo': 'Git Repo',
   'reset.until': 'until reset',
   'reset.na': '–',
   'usage.tokens': 'tokens',

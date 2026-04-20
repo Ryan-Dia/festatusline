@@ -21,6 +21,8 @@ export const zh: Record<I18nKey, string> = {
   'widget.cacheHit': '缓存命中率',
   'widget.cacheTtl': '缓存有效期',
   'widget.claudePeak': 'Claude高峰',
+  'widget.gitBranch': 'Git 分支',
+  'widget.gitRepo': 'Git 仓库',
   'reset.until': '重置倒计时',
   'reset.na': '–',
   'usage.tokens': '令牌',

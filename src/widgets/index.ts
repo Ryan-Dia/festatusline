@@ -17,6 +17,7 @@ import { CodexModelWidget } from './CodexModel.js';
 import { SessionCostWidget } from './SessionCost.js';
 import { CacheHitWidget } from './CacheHit.js';
 import { CacheTtlWidget } from './CacheTtl.js';
+import { GitBranchWidget, GitRepoWidget } from './GitInfo.js';
 
 export const ALL_WIDGETS: Widget[] = [
   ModelWidget,
@@ -39,6 +40,8 @@ export const ALL_WIDGETS: Widget[] = [
   SessionCostWidget,
   CacheHitWidget,
   CacheTtlWidget,
+  GitBranchWidget,
+  GitRepoWidget,
 ];
 
 const registry = new Map<string, Widget>(ALL_WIDGETS.map((w) => [w.id, w]));
