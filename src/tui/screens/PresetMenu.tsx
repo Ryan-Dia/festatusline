@@ -16,6 +16,9 @@ const PRESET_LABEL_KEYS: Record<string, string> = {
   full: 'tui.preset.full',
   'korean-dev': 'tui.preset.koreanDev',
   'multi-cli': 'tui.preset.multiCli',
+  lite: 'tui.preset.lite',
+  plus: 'tui.preset.plus',
+  pro: 'tui.preset.pro',
 };
 
 export default function PresetMenu({

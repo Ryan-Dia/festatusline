@@ -1,6 +1,7 @@
 import chalk from 'chalk';
 import { renderFromStdin } from './render/index.js';
 import { runTui } from './tui/index.js';
+import { runSetupWizard } from './tui/setup.js';
 import { installToClaude } from './config/install.js';
 import { runDoctor } from './config/doctor.js';
 import { loadSettings } from './config/load.js';
@@ -17,6 +18,10 @@ async function main(): Promise<void> {
 
   const [, , sub] = process.argv;
 
+  if (sub === 'setup') {
+    await runSetupWizard();
+    return;
+  }
   if (sub === 'install') {
     const force = process.argv.includes('--force');
     await installToClaude(force);

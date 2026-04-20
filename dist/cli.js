@@ -489,6 +489,9 @@ var ko = {
   "tui.preset.full": "\uC804\uCCB4",
   "tui.preset.koreanDev": "\uD55C\uAD6D \uAC1C\uBC1C\uC790",
   "tui.preset.multiCli": "\uBA40\uD2F0 CLI",
+  "tui.preset.lite": "Lite",
+  "tui.preset.plus": "Plus",
+  "tui.preset.pro": "Pro",
   "tui.lang.ko": "\uD55C\uAD6D\uC5B4",
   "tui.lang.en": "English",
   "tui.lang.zh": "\u4E2D\u6587",
@@ -538,6 +541,9 @@ var en = {
   "tui.preset.full": "Full",
   "tui.preset.koreanDev": "Korean Dev",
   "tui.preset.multiCli": "Multi CLI",
+  "tui.preset.lite": "Lite",
+  "tui.preset.plus": "Plus",
+  "tui.preset.pro": "Pro",
   "tui.lang.ko": "\uD55C\uAD6D\uC5B4",
   "tui.lang.en": "English",
   "tui.lang.zh": "\u4E2D\u6587",
@@ -587,6 +593,9 @@ var zh = {
   "tui.preset.full": "\u5B8C\u6574",
   "tui.preset.koreanDev": "\u97E9\u56FD\u5F00\u53D1\u8005",
   "tui.preset.multiCli": "\u591A CLI",
+  "tui.preset.lite": "Lite",
+  "tui.preset.plus": "Plus",
+  "tui.preset.pro": "Pro",
   "tui.lang.ko": "\uD55C\uAD6D\uC5B4",
   "tui.lang.en": "English",
   "tui.lang.zh": "\u4E2D\u6587",
@@ -1234,6 +1243,37 @@ var PRESETS = {
   },
   "multi-cli": {
     lines: [[{ id: "model" }, { id: "dailyUsage" }, { id: "gptUsage" }]]
+  },
+  lite: {
+    lines: [[
+      { id: "model" },
+      { id: "claudePeak" },
+      { id: "dailyUsage" },
+      { id: "weeklyUsage" }
+    ]]
+  },
+  plus: {
+    lines: [[
+      { id: "model" },
+      { id: "claudePeak" },
+      { id: "dailyUsage" },
+      { id: "weeklyUsage" },
+      { id: "cacheHit" },
+      { id: "cacheTtl" },
+      { id: "sessionCost" }
+    ]]
+  },
+  pro: {
+    lines: [[
+      { id: "model" },
+      { id: "claudePeak" },
+      { id: "dailyUsage" },
+      { id: "weeklyUsage" },
+      { id: "cacheHit" },
+      { id: "cacheTtl" },
+      { id: "sessionCost" },
+      { id: "gptUsage" }
+    ]]
   }
 };
 var PRESET_NAMES = Object.keys(PRESETS);
@@ -1243,7 +1283,10 @@ var PRESET_LABEL_KEYS = {
   minimal: "tui.preset.minimal",
   full: "tui.preset.full",
   "korean-dev": "tui.preset.koreanDev",
-  "multi-cli": "tui.preset.multiCli"
+  "multi-cli": "tui.preset.multiCli",
+  lite: "tui.preset.lite",
+  plus: "tui.preset.plus",
+  pro: "tui.preset.pro"
 };
 function PresetMenu({
   currentSettings,
@@ -1307,14 +1350,12 @@ import React4 from "react";
 import { Box as Box4, Text as Text3 } from "ink";
 import SelectInput4 from "ink-select-input";
 var LOCALES = ["ko", "en", "zh"];
-function LanguageSelect({ current, onSelect, onBack }) {
-  const items = [
-    ...LOCALES.map((l) => ({
-      label: `${l === current ? "\u2713 " : "  "}${t(`tui.lang.${l}`)}`,
-      value: l
-    })),
-    { label: "\u2190 \uB4A4\uB85C", value: "__back__" }
-  ];
+function LanguageSelect({ current, onSelect, onBack, hideBack = false }) {
+  const localeItems = LOCALES.map((l) => ({
+    label: `${l === current ? "\u2713 " : "  "}${t(`tui.lang.${l}`)}`,
+    value: l
+  }));
+  const items = hideBack ? localeItems : [...localeItems, { label: "\u2190 \uB4A4\uB85C", value: "__back__" }];
   return /* @__PURE__ */ React4.createElement(Box4, { flexDirection: "column", padding: 1 }, /* @__PURE__ */ React4.createElement(Text3, { bold: true }, t("tui.mainMenu.selectLanguage")), /* @__PURE__ */ React4.createElement(
     SelectInput4,
     {
@@ -1497,6 +1538,74 @@ async function runTui() {
   await waitUntilExit();
 }
 
+// src/tui/setup.ts
+import React9 from "react";
+import { render as render2 } from "ink";
+
+// src/tui/screens/SetupWizard.tsx
+import React8, { useState as useState3 } from "react";
+import { Box as Box7, Text as Text6, useApp as useApp2 } from "ink";
+import SelectInput6 from "ink-select-input";
+var SETUP_PRESET_NAMES = ["lite", "plus", "pro"];
+var SETUP_PRESET_LABEL_KEYS = {
+  lite: "tui.preset.lite",
+  plus: "tui.preset.plus",
+  pro: "tui.preset.pro"
+};
+function SetupWizard({ initialSettings, onSave }) {
+  const { exit } = useApp2();
+  const [step, setStep] = useState3("language");
+  const [settings, setSettings] = useState3(initialSettings);
+  if (step === "language") {
+    return /* @__PURE__ */ React8.createElement(
+      LanguageSelect,
+      {
+        current: settings.locale,
+        hideBack: true,
+        onSelect: (locale) => {
+          setLocale(locale);
+          setSettings((prev) => ({ ...prev, locale }));
+          setStep("preset");
+        },
+        onBack: () => {
+        }
+      }
+    );
+  }
+  const items = [
+    ...SETUP_PRESET_NAMES.map((name) => ({
+      label: t(SETUP_PRESET_LABEL_KEYS[name] ?? name),
+      value: name
+    })),
+    { label: "\u2190 \uB4A4\uB85C", value: "__back__" }
+  ];
+  return /* @__PURE__ */ React8.createElement(Box7, { flexDirection: "column", padding: 1 }, /* @__PURE__ */ React8.createElement(Text6, { bold: true }, t("tui.mainMenu.selectPreset")), /* @__PURE__ */ React8.createElement(
+    SelectInput6,
+    {
+      items,
+      onSelect: async (item) => {
+        if (item.value === "__back__") {
+          setStep("language");
+          return;
+        }
+        const preset = PRESETS[item.value] ?? {};
+        const next = SettingsSchema.parse({ ...settings, ...preset });
+        await onSave(next);
+        exit();
+      }
+    }
+  ));
+}
+
+// src/tui/setup.ts
+async function runSetupWizard() {
+  const settings = await loadSettings();
+  const { waitUntilExit } = render2(
+    React9.createElement(SetupWizard, { initialSettings: settings, onSave: saveSettings })
+  );
+  await waitUntilExit();
+}
+
 // src/config/install.ts
 import fs7 from "fs";
 import path6 from "path";
@@ -1596,6 +1705,10 @@ async function main() {
     envLocale && ["ko", "en", "zh"].includes(envLocale) ? envLocale : settings.locale
   );
   const [, , sub] = process.argv;
+  if (sub === "setup") {
+    await runSetupWizard();
+    return;
+  }
   if (sub === "install") {
     const force = process.argv.includes("--force");
     await installToClaude(force);

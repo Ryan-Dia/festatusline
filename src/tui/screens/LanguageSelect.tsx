@@ -8,18 +8,24 @@ interface Props {
   current: string;
   onSelect: (locale: Locale) => void;
   onBack: () => void;
+  hideBack?: boolean;
 }
 
 const LOCALES: Locale[] = ['ko', 'en', 'zh'];
 
-export default function LanguageSelect({ current, onSelect, onBack }: Props): React.ReactElement {
-  const items = [
-    ...LOCALES.map((l) => ({
-      label: `${l === current ? '✓ ' : '  '}${t(`tui.lang.${l}` as Parameters<typeof t>[0])}`,
-      value: l,
-    })),
-    { label: '← 뒤로', value: '__back__' as Locale | '__back__' },
-  ];
+export default function LanguageSelect({
+  current,
+  onSelect,
+  onBack,
+  hideBack = false,
+}: Props): React.ReactElement {
+  const localeItems = LOCALES.map((l) => ({
+    label: `${l === current ? '✓ ' : '  '}${t(`tui.lang.${l}` as Parameters<typeof t>[0])}`,
+    value: l as Locale | '__back__',
+  }));
+  const items = hideBack
+    ? localeItems
+    : [...localeItems, { label: '← 뒤로', value: '__back__' as Locale | '__back__' }];
 
   return (
     <Box flexDirection="column" padding={1}>

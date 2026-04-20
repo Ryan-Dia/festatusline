@@ -48,6 +48,36 @@ export const PRESETS: Record<string, Partial<Settings>> = {
   'multi-cli': {
     lines: [[{ id: 'model' }, { id: 'dailyUsage' }, { id: 'gptUsage' }]],
   },
+  lite: {
+    lines: [[{ id: 'model' }, { id: 'claudePeak' }, { id: 'dailyUsage' }, { id: 'weeklyUsage' }]],
+  },
+  plus: {
+    lines: [
+      [
+        { id: 'model' },
+        { id: 'claudePeak' },
+        { id: 'dailyUsage' },
+        { id: 'weeklyUsage' },
+        { id: 'cacheHit' },
+        { id: 'cacheTtl' },
+        { id: 'sessionCost' },
+      ],
+    ],
+  },
+  pro: {
+    lines: [
+      [
+        { id: 'model' },
+        { id: 'claudePeak' },
+        { id: 'dailyUsage' },
+        { id: 'weeklyUsage' },
+        { id: 'cacheHit' },
+        { id: 'cacheTtl' },
+        { id: 'sessionCost' },
+        { id: 'gptUsage' },
+      ],
+    ],
+  },
 };
 
 export const PRESET_NAMES = Object.keys(PRESETS);

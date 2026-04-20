@@ -46,6 +46,9 @@ module.exports = {
     // Prop types handled by TypeScript
     'react/prop-types': 'off',
 
+    // Default props handled by TypeScript default parameters
+    'react/require-default-props': 'off',
+
     // Allow _prefixed unused parameters (common in interface implementations)
     '@typescript-eslint/no-unused-vars': ['error', {
       argsIgnorePattern: '^_',
