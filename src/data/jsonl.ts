@@ -2,7 +2,33 @@ import fs from 'fs';
 import path from 'path';
 import readline from 'readline';
 import os from 'os';
+import { z } from 'zod';
 import { createMtimeCache } from './cache.js';
+
+const UsageSchema = z.object({
+  input_tokens: z.number().optional().default(0),
+  output_tokens: z.number().optional().default(0),
+  cache_creation_input_tokens: z.number().optional().default(0),
+  cache_read_input_tokens: z.number().optional().default(0),
+  cache_creation: z
+    .object({
+      ephemeral_5m_input_tokens: z.number().optional().default(0),
+      ephemeral_1h_input_tokens: z.number().optional().default(0),
+    })
+    .optional(),
+});
+
+const JsonlLineSchema = z.object({
+  timestamp: z.string().optional(),
+  model: z.string().optional(),
+  message: z
+    .object({
+      model: z.string().optional(),
+      usage: UsageSchema.optional(),
+    })
+    .optional(),
+  usage: UsageSchema.optional(),
+});
 
 export interface UsageEntry {
   timestamp: number;
@@ -31,20 +57,22 @@ async function parseJsonlFile(filePath: string): Promise<UsageEntry[]> {
       const trimmed = line.trim();
       if (!trimmed) continue;
       try {
-        const obj = JSON.parse(trimmed);
-        const msg = obj?.message ?? obj;
-        const usage = msg?.usage;
+        const raw = JSON.parse(trimmed);
+        const result = JsonlLineSchema.safeParse(raw);
+        if (!result.success) continue;
+        const obj = result.data;
+        const usage = obj.message?.usage ?? obj.usage;
         if (!usage) continue;
-        const timestamp: number = obj.timestamp ? new Date(obj.timestamp).getTime() : Date.now();
-        const model: string = msg.model ?? obj.model ?? '';
+        const timestamp = obj.timestamp ? new Date(obj.timestamp).getTime() : Date.now();
+        const model = obj.message?.model ?? obj.model ?? '';
         const cacheCreation = usage.cache_creation;
         entries.push({
           timestamp,
           model,
-          inputTokens: usage.input_tokens ?? 0,
-          outputTokens: usage.output_tokens ?? 0,
-          cacheCreationTokens: usage.cache_creation_input_tokens ?? 0,
-          cacheReadTokens: usage.cache_read_input_tokens ?? 0,
+          inputTokens: usage.input_tokens,
+          outputTokens: usage.output_tokens,
+          cacheCreationTokens: usage.cache_creation_input_tokens,
+          cacheReadTokens: usage.cache_read_input_tokens,
           ephemeral5mTokens: cacheCreation?.ephemeral_5m_input_tokens ?? 0,
           ephemeral1hTokens: cacheCreation?.ephemeral_1h_input_tokens ?? 0,
         });

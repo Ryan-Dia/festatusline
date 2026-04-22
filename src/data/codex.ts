@@ -2,7 +2,24 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import readline from 'readline';
+import { z } from 'zod';
 import { createTtlCache } from './cache.js';
+
+const RateLimitSlotSchema = z.object({
+  used_percent: z.number().optional().default(0),
+  resets_at: z.number(),
+});
+
+const CodexEventSchema = z.object({
+  type: z.literal('event_msg'),
+  payload: z.object({
+    type: z.literal('token_count'),
+    rate_limits: z.object({
+      primary: RateLimitSlotSchema,
+      secondary: RateLimitSlotSchema,
+    }),
+  }),
+});
 
 export interface CodexRateLimits {
   primary: { usedPercent: number; resetsAt: number };
@@ -82,22 +99,13 @@ async function readLastRateLimits(filePath: string): Promise<CodexRateLimits | n
     const trimmed = line.trim();
     if (!trimmed) continue;
     try {
-      const obj = JSON.parse(trimmed);
-      if (obj.type === 'event_msg' && obj.payload?.type === 'token_count') {
-        const r = obj.payload.rate_limits;
-        if (r?.primary?.resets_at != null && r?.secondary?.resets_at != null) {
-          last = {
-            primary: {
-              usedPercent: r.primary.used_percent ?? 0,
-              resetsAt: r.primary.resets_at,
-            },
-            secondary: {
-              usedPercent: r.secondary.used_percent ?? 0,
-              resetsAt: r.secondary.resets_at,
-            },
-          };
-        }
-      }
+      const result = CodexEventSchema.safeParse(JSON.parse(trimmed));
+      if (!result.success) continue;
+      const { rate_limits: r } = result.data.payload;
+      last = {
+        primary: { usedPercent: r.primary.used_percent, resetsAt: r.primary.resets_at },
+        secondary: { usedPercent: r.secondary.used_percent, resetsAt: r.secondary.resets_at },
+      };
     } catch (_e) {
       // skip malformed lines
     }

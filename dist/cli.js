@@ -91,6 +91,7 @@ import fs2 from "fs";
 import path from "path";
 import readline from "readline";
 import os from "os";
+import { z as z2 } from "zod";
 
 // src/data/cache.ts
 import { promises as fs } from "fs";
@@ -129,6 +130,25 @@ function createMtimeCache() {
 }
 
 // src/data/jsonl.ts
+var UsageSchema = z2.object({
+  input_tokens: z2.number().optional().default(0),
+  output_tokens: z2.number().optional().default(0),
+  cache_creation_input_tokens: z2.number().optional().default(0),
+  cache_read_input_tokens: z2.number().optional().default(0),
+  cache_creation: z2.object({
+    ephemeral_5m_input_tokens: z2.number().optional().default(0),
+    ephemeral_1h_input_tokens: z2.number().optional().default(0)
+  }).optional()
+});
+var JsonlLineSchema = z2.object({
+  timestamp: z2.string().optional(),
+  model: z2.string().optional(),
+  message: z2.object({
+    model: z2.string().optional(),
+    usage: UsageSchema.optional()
+  }).optional(),
+  usage: UsageSchema.optional()
+});
 var fileCache = createMtimeCache();
 function getClaudeDir() {
   return process.env.CLAUDE_CONFIG_DIR ?? path.join(os.homedir(), ".claude");
@@ -142,20 +162,22 @@ async function parseJsonlFile(filePath) {
       const trimmed = line.trim();
       if (!trimmed) continue;
       try {
-        const obj = JSON.parse(trimmed);
-        const msg = obj?.message ?? obj;
-        const usage = msg?.usage;
+        const raw = JSON.parse(trimmed);
+        const result = JsonlLineSchema.safeParse(raw);
+        if (!result.success) continue;
+        const obj = result.data;
+        const usage = obj.message?.usage ?? obj.usage;
         if (!usage) continue;
         const timestamp = obj.timestamp ? new Date(obj.timestamp).getTime() : Date.now();
-        const model = msg.model ?? obj.model ?? "";
+        const model = obj.message?.model ?? obj.model ?? "";
         const cacheCreation = usage.cache_creation;
         entries.push({
           timestamp,
           model,
-          inputTokens: usage.input_tokens ?? 0,
-          outputTokens: usage.output_tokens ?? 0,
-          cacheCreationTokens: usage.cache_creation_input_tokens ?? 0,
-          cacheReadTokens: usage.cache_read_input_tokens ?? 0,
+          inputTokens: usage.input_tokens,
+          outputTokens: usage.output_tokens,
+          cacheCreationTokens: usage.cache_creation_input_tokens,
+          cacheReadTokens: usage.cache_read_input_tokens,
           ephemeral5mTokens: cacheCreation?.ephemeral_5m_input_tokens ?? 0,
           ephemeral1hTokens: cacheCreation?.ephemeral_1h_input_tokens ?? 0
         });
@@ -249,6 +271,21 @@ import fs3 from "fs";
 import path2 from "path";
 import os2 from "os";
 import readline2 from "readline";
+import { z as z3 } from "zod";
+var RateLimitSlotSchema = z3.object({
+  used_percent: z3.number().optional().default(0),
+  resets_at: z3.number()
+});
+var CodexEventSchema = z3.object({
+  type: z3.literal("event_msg"),
+  payload: z3.object({
+    type: z3.literal("token_count"),
+    rate_limits: z3.object({
+      primary: RateLimitSlotSchema,
+      secondary: RateLimitSlotSchema
+    })
+  })
+});
 function getCodexDir() {
   return process.env.CODEX_CONFIG_DIR ?? path2.join(os2.homedir(), ".codex");
 }
@@ -301,22 +338,13 @@ async function readLastRateLimits(filePath) {
     const trimmed = line.trim();
     if (!trimmed) continue;
     try {
-      const obj = JSON.parse(trimmed);
-      if (obj.type === "event_msg" && obj.payload?.type === "token_count") {
-        const r = obj.payload.rate_limits;
-        if (r?.primary?.resets_at != null && r?.secondary?.resets_at != null) {
-          last = {
-            primary: {
-              usedPercent: r.primary.used_percent ?? 0,
-              resetsAt: r.primary.resets_at
-            },
-            secondary: {
-              usedPercent: r.secondary.used_percent ?? 0,
-              resetsAt: r.secondary.resets_at
-            }
-          };
-        }
-      }
+      const result = CodexEventSchema.safeParse(JSON.parse(trimmed));
+      if (!result.success) continue;
+      const { rate_limits: r } = result.data.payload;
+      last = {
+        primary: { usedPercent: r.primary.used_percent, resetsAt: r.primary.resets_at },
+        secondary: { usedPercent: r.secondary.used_percent, resetsAt: r.secondary.resets_at }
+      };
     } catch (_e) {
     }
   }
@@ -327,7 +355,13 @@ async function getCodexSnapshot() {
   return codexCache.get(async () => {
     const histPath = await findHistoryFile();
     if (!histPath) {
-      return { available: false, dailyRequests: 0, weeklyRequests: 0, rateLimits: null, model: null };
+      return {
+        available: false,
+        dailyRequests: 0,
+        weeklyRequests: 0,
+        rateLimits: null,
+        model: null
+      };
     }
     const [stat, latestSession, model] = await Promise.all([
       fs3.promises.stat(histPath),
@@ -365,15 +399,17 @@ async function getCodexSnapshot() {
 import fs4 from "fs";
 import path3 from "path";
 import os3 from "os";
+import { z as z4 } from "zod";
+var ClaudeSettingsSchema = z4.object({
+  effortLevel: z4.string().optional()
+});
 async function readClaudeSettings() {
   const dir = process.env.CLAUDE_CONFIG_DIR ?? path3.join(os3.homedir(), ".claude");
   const settingsPath = path3.join(dir, "settings.json");
   try {
     const raw = await fs4.promises.readFile(settingsPath, "utf8");
-    const parsed = JSON.parse(raw);
-    return {
-      effortLevel: typeof parsed.effortLevel === "string" ? parsed.effortLevel : void 0
-    };
+    const result = ClaudeSettingsSchema.safeParse(JSON.parse(raw));
+    return result.success ? result.data : {};
   } catch {
     return {};
   }
@@ -385,21 +421,21 @@ import path4 from "path";
 import os4 from "os";
 
 // src/config/schema.ts
-import { z as z2 } from "zod";
-var WidgetConfigSchema = z2.object({
-  id: z2.string(),
-  color: z2.string().optional()
+import { z as z5 } from "zod";
+var WidgetConfigSchema = z5.object({
+  id: z5.string(),
+  color: z5.string().optional()
 });
-var SettingsSchema = z2.object({
-  lines: z2.array(z2.array(WidgetConfigSchema)).default([
+var SettingsSchema = z5.object({
+  lines: z5.array(z5.array(WidgetConfigSchema)).default([
     [{ id: "dailyUsage" }, { id: "context" }, { id: "rateLimit" }],
     [{ id: "weeklyUsage" }, { id: "weeklyRateLimit" }],
     [{ id: "model" }, { id: "claudePeak" }]
   ]),
-  theme: z2.string().default("default"),
-  locale: z2.enum(["ko", "en", "zh"]).default("en"),
-  weeklyAnchorDay: z2.number().min(0).max(6).nullable().default(null),
-  separator: z2.string().default(" \u2502 ")
+  theme: z5.string().default("default"),
+  locale: z5.enum(["ko", "en", "zh"]).default("en"),
+  weeklyAnchorDay: z5.number().min(0).max(6).nullable().default(null),
+  separator: z5.string().default(" \u2502 ")
 });
 
 // src/config/load.ts
