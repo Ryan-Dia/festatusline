@@ -47,6 +47,8 @@ export const en: Record<I18nKey, string> = {
   'tui.lang.zh': '中文',
   'install.success': 'Registered festatusline in Claude Code settings.',
   'install.alreadySet': 'Already registered.',
+  'install.currentConfig': '  Current config:',
+  'install.overwriteHint': '  To overwrite: festatusline install --force',
   'doctor.claudeDir': 'Claude data dir',
   'doctor.codexDir': 'Codex dir',
   'doctor.found': 'found',

@@ -45,6 +45,8 @@ export const ko = {
   'tui.lang.zh': '中文',
   'install.success': 'Claude Code 설정에 festatusline 을 등록했습니다.',
   'install.alreadySet': '이미 등록되어 있습니다.',
+  'install.currentConfig': '  현재 설정:',
+  'install.overwriteHint': '  덮어쓰려면: festatusline install --force',
   'doctor.claudeDir': 'Claude 데이터 경로',
   'doctor.codexDir': 'Codex 경로',
   'doctor.found': '발견됨',

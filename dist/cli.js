@@ -562,6 +562,8 @@ var ko = {
   "tui.lang.zh": "\u4E2D\u6587",
   "install.success": "Claude Code \uC124\uC815\uC5D0 festatusline \uC744 \uB4F1\uB85D\uD588\uC2B5\uB2C8\uB2E4.",
   "install.alreadySet": "\uC774\uBBF8 \uB4F1\uB85D\uB418\uC5B4 \uC788\uC2B5\uB2C8\uB2E4.",
+  "install.currentConfig": "  \uD604\uC7AC \uC124\uC815:",
+  "install.overwriteHint": "  \uB36E\uC5B4\uC4F0\uB824\uBA74: festatusline install --force",
   "doctor.claudeDir": "Claude \uB370\uC774\uD130 \uACBD\uB85C",
   "doctor.codexDir": "Codex \uACBD\uB85C",
   "doctor.found": "\uBC1C\uACAC\uB428",
@@ -616,6 +618,8 @@ var en = {
   "tui.lang.zh": "\u4E2D\u6587",
   "install.success": "Registered festatusline in Claude Code settings.",
   "install.alreadySet": "Already registered.",
+  "install.currentConfig": "  Current config:",
+  "install.overwriteHint": "  To overwrite: festatusline install --force",
   "doctor.claudeDir": "Claude data dir",
   "doctor.codexDir": "Codex dir",
   "doctor.found": "found",
@@ -670,6 +674,8 @@ var zh = {
   "tui.lang.zh": "\u4E2D\u6587",
   "install.success": "\u5DF2\u5C06 festatusline \u6CE8\u518C\u5230 Claude Code \u8BBE\u7F6E\u3002",
   "install.alreadySet": "\u5DF2\u6CE8\u518C\u3002",
+  "install.currentConfig": "  \u5F53\u524D\u914D\u7F6E\uFF1A",
+  "install.overwriteHint": "  \u8986\u76D6\u65B9\u6CD5\uFF1Afestatusline install --force",
   "doctor.claudeDir": "Claude \u6570\u636E\u76EE\u5F55",
   "doctor.codexDir": "Codex \u76EE\u5F55",
   "doctor.found": "\u5DF2\u627E\u5230",
@@ -1786,9 +1792,9 @@ async function installToClaude(force = false) {
   if (current.statusLine && !force) {
     process.stdout.write(`${t("install.alreadySet")}
 `);
-    process.stdout.write(`  \uD604\uC7AC \uC124\uC815: ${JSON.stringify(current.statusLine)}
+    process.stdout.write(`${t("install.currentConfig")} ${JSON.stringify(current.statusLine)}
 `);
-    process.stdout.write(`  \uB36E\uC5B4\uC4F0\uB824\uBA74: festatusline install --force
+    process.stdout.write(`${t("install.overwriteHint")}
 `);
     return;
   }

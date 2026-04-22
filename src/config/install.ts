@@ -46,8 +46,8 @@ export async function installToClaude(force = false): Promise<void> {
 
   if (current.statusLine && !force) {
     process.stdout.write(`${t('install.alreadySet')}\n`);
-    process.stdout.write(`  현재 설정: ${JSON.stringify(current.statusLine)}\n`);
-    process.stdout.write(`  덮어쓰려면: festatusline install --force\n`);
+    process.stdout.write(`${t('install.currentConfig')} ${JSON.stringify(current.statusLine)}\n`);
+    process.stdout.write(`${t('install.overwriteHint')}\n`);
     return;
   }
 

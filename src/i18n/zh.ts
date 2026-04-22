@@ -47,6 +47,8 @@ export const zh: Record<I18nKey, string> = {
   'tui.lang.zh': '中文',
   'install.success': '已将 festatusline 注册到 Claude Code 设置。',
   'install.alreadySet': '已注册。',
+  'install.currentConfig': '  当前配置：',
+  'install.overwriteHint': '  覆盖方法：festatusline install --force',
   'doctor.claudeDir': 'Claude 数据目录',
   'doctor.codexDir': 'Codex 目录',
   'doctor.found': '已找到',
