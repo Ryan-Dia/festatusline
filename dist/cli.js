@@ -692,6 +692,9 @@ function setLocale(locale) {
 function t(key) {
   return bundles[currentLocale][key] ?? bundles.en[key] ?? key;
 }
+function createTranslator(locale) {
+  return (key) => bundles[locale][key] ?? bundles.en[key] ?? key;
+}
 
 // src/render/line.ts
 import chalk3 from "chalk";
@@ -1257,7 +1260,7 @@ async function renderFromStdin() {
     readRateLimitsCache(),
     getLastCacheCreation().catch(() => null)
   ]);
-  setLocale(settings.locale);
+  const t2 = createTranslator(settings.locale);
   if (stdin.rate_limits) {
     writeRateLimitsCache(stdin.rate_limits).catch(() => {
     });
@@ -1274,7 +1277,7 @@ async function renderFromStdin() {
     usage,
     codex,
     theme,
-    t,
+    t: t2,
     now: /* @__PURE__ */ new Date(),
     weeklyAnchorDay: settings.weeklyAnchorDay,
     effortLevel: claudeSettings.effortLevel,
@@ -1828,12 +1831,13 @@ async function runDoctor() {
 
 // src/cli.ts
 chalk4.level = 3;
+function isLocale(v) {
+  return v === "ko" || v === "en" || v === "zh";
+}
 async function main() {
   const settings = await loadSettings();
   const envLocale = process.env.FESTATUSLINE_LOCALE;
-  setLocale(
-    envLocale && ["ko", "en", "zh"].includes(envLocale) ? envLocale : settings.locale
-  );
+  setLocale(isLocale(envLocale) ? envLocale : settings.locale);
   const [, , sub] = process.argv;
   if (sub === "setup") {
     await runSetupWizard();

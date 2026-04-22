@@ -9,12 +9,14 @@ import { setLocale, type Locale } from './i18n/index.js';
 
 chalk.level = 3;
 
+function isLocale(v: string | undefined): v is Locale {
+  return v === 'ko' || v === 'en' || v === 'zh';
+}
+
 async function main(): Promise<void> {
   const settings = await loadSettings();
-  const envLocale = process.env.FESTATUSLINE_LOCALE as Locale | undefined;
-  setLocale(
-    envLocale && ['ko', 'en', 'zh'].includes(envLocale) ? envLocale : (settings.locale as Locale),
-  );
+  const envLocale = process.env.FESTATUSLINE_LOCALE;
+  setLocale(isLocale(envLocale) ? envLocale : settings.locale);
 
   const [, , sub] = process.argv;
 

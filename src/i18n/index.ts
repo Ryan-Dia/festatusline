@@ -30,4 +30,8 @@ export function t(key: I18nKey): string {
   return bundles[currentLocale][key] ?? bundles.en[key] ?? key;
 }
 
+export function createTranslator(locale: Locale): (key: I18nKey) => string {
+  return (key) => bundles[locale][key] ?? bundles.en[key] ?? key;
+}
+
 export { type I18nKey };

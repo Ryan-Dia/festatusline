@@ -8,7 +8,7 @@ import { readClaudeSettings } from '../data/claude-settings.js';
 import { getLastCacheCreation } from '../data/jsonl.js';
 import { loadSettings } from '../config/load.js';
 import { getTheme } from '../theme/index.js';
-import { t, setLocale, type Locale } from '../i18n/index.js';
+import { createTranslator } from '../i18n/index.js';
 import { renderAllLines } from './line.js';
 import type { RenderContext } from '../widgets/types.js';
 
@@ -45,7 +45,7 @@ export async function renderFromStdin(): Promise<void> {
       getLastCacheCreation().catch(() => null),
     ]);
 
-  setLocale(settings.locale as Locale);
+  const t = createTranslator(settings.locale);
 
   if (stdin.rate_limits) {
     writeRateLimitsCache(stdin.rate_limits).catch(() => {});
