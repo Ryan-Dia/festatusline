@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import { t } from '../i18n/index.js';
+import { getClaudeDir } from './load.js';
 
 async function exists(p: string): Promise<boolean> {
   try {
@@ -13,7 +14,7 @@ async function exists(p: string): Promise<boolean> {
 }
 
 export async function runDoctor(): Promise<void> {
-  const claudeDir = process.env.CLAUDE_CONFIG_DIR ?? path.join(os.homedir(), '.claude');
+  const claudeDir = getClaudeDir();
   const codexDir = process.env.CODEX_CONFIG_DIR ?? path.join(os.homedir(), '.codex');
 
   const claudeOk = await exists(claudeDir);

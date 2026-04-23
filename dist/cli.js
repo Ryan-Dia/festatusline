@@ -440,6 +440,9 @@ var SettingsSchema = z5.object({
 });
 
 // src/config/load.ts
+function getClaudeDir2() {
+  return process.env.CLAUDE_CONFIG_DIR ?? path4.join(os4.homedir(), ".claude");
+}
 function getConfigPath() {
   const dir = process.env.XDG_CONFIG_HOME ?? path4.join(os4.homedir(), ".config");
   return path4.join(dir, "festatusline", "settings.json");
@@ -1784,21 +1787,12 @@ async function runSetupWizard() {
 // src/config/install.ts
 import fs8 from "fs";
 import path6 from "path";
-import os5 from "os";
 import { fileURLToPath } from "url";
 function getClaudeSettingsPath() {
-  const dir = process.env.CLAUDE_CONFIG_DIR ?? path6.join(os5.homedir(), ".claude");
-  return path6.join(dir, "settings.json");
+  return path6.join(getClaudeDir2(), "settings.json");
 }
 async function resolveCliPath() {
-  const pluginCacheBase = path6.join(
-    os5.homedir(),
-    ".claude",
-    "plugins",
-    "cache",
-    "festatusline",
-    "festatusline"
-  );
+  const pluginCacheBase = path6.join(getClaudeDir2(), "plugins", "cache", "festatusline", "festatusline");
   try {
     const versions = await fs8.promises.readdir(pluginCacheBase);
     const sorted = versions.filter((v) => /^\d+\.\d+\.\d+$/.test(v)).sort((a, b) => a.localeCompare(b, void 0, { numeric: true }));
@@ -1848,7 +1842,7 @@ async function installToClaude(force = false) {
 // src/config/doctor.ts
 import fs9 from "fs";
 import path7 from "path";
-import os6 from "os";
+import os5 from "os";
 async function exists(p) {
   try {
     await fs9.promises.access(p);
@@ -1858,8 +1852,8 @@ async function exists(p) {
   }
 }
 async function runDoctor() {
-  const claudeDir = process.env.CLAUDE_CONFIG_DIR ?? path7.join(os6.homedir(), ".claude");
-  const codexDir = process.env.CODEX_CONFIG_DIR ?? path7.join(os6.homedir(), ".codex");
+  const claudeDir = getClaudeDir2();
+  const codexDir = process.env.CODEX_CONFIG_DIR ?? path7.join(os5.homedir(), ".codex");
   const claudeOk = await exists(claudeDir);
   const codexOk = await exists(codexDir);
   process.stdout.write(

@@ -1,18 +1,16 @@
 import fs from 'fs';
 import path from 'path';
-import os from 'os';
 import { fileURLToPath } from 'url';
 import { t } from '../i18n/index.js';
+import { getClaudeDir } from './load.js';
 
 function getClaudeSettingsPath(): string {
-  const dir = process.env.CLAUDE_CONFIG_DIR ?? path.join(os.homedir(), '.claude');
-  return path.join(dir, 'settings.json');
+  return path.join(getClaudeDir(), 'settings.json');
 }
 
 async function resolveCliPath(): Promise<string> {
   const pluginCacheBase = path.join(
-    os.homedir(),
-    '.claude',
+    getClaudeDir(),
     'plugins',
     'cache',
     'festatusline',
