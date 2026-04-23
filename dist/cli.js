@@ -1792,7 +1792,13 @@ function getClaudeSettingsPath() {
   return path6.join(getClaudeDir2(), "settings.json");
 }
 async function resolveCliPath() {
-  const pluginCacheBase = path6.join(getClaudeDir2(), "plugins", "cache", "festatusline", "festatusline");
+  const pluginCacheBase = path6.join(
+    getClaudeDir2(),
+    "plugins",
+    "cache",
+    "festatusline",
+    "festatusline"
+  );
   try {
     const versions = await fs8.promises.readdir(pluginCacheBase);
     const sorted = versions.filter((v) => /^\d+\.\d+\.\d+$/.test(v)).sort((a, b) => a.localeCompare(b, void 0, { numeric: true }));

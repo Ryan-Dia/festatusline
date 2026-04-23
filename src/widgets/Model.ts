@@ -8,7 +8,7 @@ const EFFORT_LABELS: Record<string, string> = {
 };
 
 /** "Claude Sonnet 4.6" → "Sonnet 4.6", "claude-sonnet-4-6" → "Sonnet 4.6" */
-function shortName(raw: string): string {
+export function shortName(raw: string): string {
   // Strip "Claude " prefix from display names
   const stripped = raw.replace(/^Claude\s+/i, '');
   if (stripped !== raw) return stripped;
