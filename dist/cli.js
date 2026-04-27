@@ -794,7 +794,7 @@ function getClaudePeakInfo(now = Date.now()) {
   const utcSecsOfDay = d.getUTCHours() * 3600 + d.getUTCMinutes() * 60 + d.getUTCSeconds();
   const utcMsOfDay = utcSecsOfDay * 1e3 + d.getUTCMilliseconds();
   const peakStartMs = 13 * 3600 * 1e3;
-  const peakEndMs = 20 * 3600 * 1e3;
+  const peakEndMs = 19 * 3600 * 1e3;
   const dayMs = 24 * 3600 * 1e3;
   const isPeak = utcMsOfDay >= peakStartMs && utcMsOfDay < peakEndMs;
   let remainingMs;

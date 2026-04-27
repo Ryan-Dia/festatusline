@@ -5,14 +5,14 @@ export interface ClaudePeakInfo {
   remainingMs: number;
 }
 
-/** Peak = UTC 13:00–20:00 (KST 22:00–05:00) */
+/** Peak = UTC 13:00–19:00 (KST 22:00–04:00) */
 export function getClaudePeakInfo(now = Date.now()): ClaudePeakInfo {
   const d = new Date(now);
   const utcSecsOfDay = d.getUTCHours() * 3600 + d.getUTCMinutes() * 60 + d.getUTCSeconds();
   const utcMsOfDay = utcSecsOfDay * 1000 + d.getUTCMilliseconds();
 
   const peakStartMs = 13 * 3600 * 1000;
-  const peakEndMs = 20 * 3600 * 1000;
+  const peakEndMs = 19 * 3600 * 1000;
   const dayMs = 24 * 3600 * 1000;
 
   const isPeak = utcMsOfDay >= peakStartMs && utcMsOfDay < peakEndMs;
