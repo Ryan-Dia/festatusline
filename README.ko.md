@@ -80,7 +80,7 @@ Sonnet 4.6 [high] │ 🟢 Off-Peak (7h 46m) │ 📁 festatusline(main)
 ```jsonc
 {
   "lines": [
-    [{ "id": "dailyUsage" }, { "id": "context" }, { "id": "rateLimit" }],
+    [{ "id": "dailyUsage" }, { "id": "context" }],
     [{ "id": "weeklyUsage" }, { "id": "weeklyRateLimit" }],
     [{ "id": "model" }, { "id": "claudePeak" }, { "id": "gitRepo" }]
   ],
@@ -106,8 +106,7 @@ Sonnet 4.6 [high] │ 🟢 Off-Peak (7h 46m) │ 📁 festatusline(main)
 |---|---|---|
 | `model` | `Sonnet 4.6` / `Sonnet 4.6 [high]` | 현재 모델명(축약). 노력 레벨이 보통이 아니면 괄호로 표시. |
 | `context` | `Ctx ■■□□□□□□□□  23% (47K/200K)` | 컨텍스트 창 바 + 비율 + 토큰 수 |
-| `rateLimit` | `5h ■■■□□□□□□□  29% (2h 14m)` | 5시간 레이트 리밋 바 + 리셋까지 남은 시간 |
-| `weeklyRateLimit` | `All ■■□□□□□□□□  25% (6d 10h)` | 7일 전체 모델 레이트 리밋 + 리셋까지 남은 시간 |
+| `weeklyRateLimit` | `7d ■■□□□□□□□□  25% (6d 10h)` | 7일 전체 모델 레이트 리밋 + 리셋까지 남은 시간 |
 | `peakTime` | `22:00–05:00` | 최근 14일 기준 피크 사용 시간대 (jsonl 이력 분석) |
 | `dailyUsage` | `Daily  ` | 오늘 사용량용 레이블 (다른 위젯과 함께 배치) |
 | `dailyReset` | `↺ 04:32` | 자정 기준 일간 리셋까지 카운트다운 |
@@ -125,8 +124,7 @@ Sonnet 4.6 [high] │ 🟢 Off-Peak (7h 46m) │ 📁 festatusline(main)
 | id | 출력 예시 | 설명 |
 |---|---|---|
 | `gptUsage` | `GPT:12req` | 오늘 Codex CLI 요청 수 (`~/.codex/history.jsonl` 기반) |
-| `codexModel` | `gpt-5.5` | Codex 모델명 (`~/.codex/config.toml`, 앞 7자) |
-| `codexRateLimit` | `5h ■□□□□□□□□□  0% (reset)` | Codex 5시간 레이트 리밋 (최근 세션 기반) |
+| `codexModel` | `Codex gpt-5.5` | Codex 모델명 (`~/.codex/config.toml`, 앞 7자), "Codex" 접두어 포함 |
 | `codexWeeklyRateLimit` | `7d ■□□□□□□□□□  10% (1d 1h)` | Codex 7일 레이트 리밋 |
 
 > `~/.codex` 디렉터리가 없으면 Codex 위젯은 자동으로 숨겨집니다.
@@ -164,9 +162,9 @@ TUI 에서 테마를 바꾸거나 settings.json 의 `"theme"` 필드를 직접 �
 
 | 프리셋 | 라인 수 | 주요 구성 |
 |---|---|---|
-| `lite` | 3 | `dailyUsage` + `context` + `rateLimit` / `weeklyUsage` + `weeklyRateLimit` / `model` + `claudePeak` + `gitRepo` |
+| `lite` | 3 | `dailyUsage` + `context` / `weeklyUsage` + `weeklyRateLimit` / `model` + `claudePeak` + `gitRepo` |
 | `plus` | 5 | lite + spacer + `cacheHit`, `cacheTtl`, `sessionCost` 행 추가 |
-| `pro` | 6 | plus + Codex 행(`codexModel`, `codexRateLimit`, `codexWeeklyRateLimit`) 추가 |
+| `pro` | 6 | plus + Codex 행(`codexModel`, `codexWeeklyRateLimit`) 추가 |
 
 Claude Code 에서 `/festatusline:setup` 으로 적용할 수 있습니다.
 

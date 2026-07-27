@@ -80,7 +80,7 @@ Settings are stored at `~/.config/festatusline/settings.json` (respects `$XDG_CO
 ```jsonc
 {
   "lines": [
-    [{ "id": "dailyUsage" }, { "id": "context" }, { "id": "rateLimit" }],
+    [{ "id": "dailyUsage" }, { "id": "context" }],
     [{ "id": "weeklyUsage" }, { "id": "weeklyRateLimit" }],
     [{ "id": "model" }, { "id": "claudePeak" }, { "id": "gitRepo" }]
   ],
@@ -106,8 +106,7 @@ Edit manually or use `/festatusline:setup` in Claude Code to reconfigure.
 |---|---|---|
 | `model` | `Sonnet 4.6` / `Sonnet 4.6 [high]` | Current model name, shortened. Appends effort level if non-normal. |
 | `context` | `Ctx ■■□□□□□□□□  23% (47K/200K)` | Context window bar + percentage + token counts |
-| `rateLimit` | `5h ■■■□□□□□□□  29% (2h 14m)` | 5-hour rate limit progress bar + reset time |
-| `weeklyRateLimit` | `All ■■□□□□□□□□  25% (6d 10h)` | 7-day all-model rate limit + reset time |
+| `weeklyRateLimit` | `7d ■■□□□□□□□□  25% (6d 10h)` | 7-day all-model rate limit + reset time |
 | `peakTime` | `22:00–05:00` | Peak usage hour range (last 14 days, from jsonl history) |
 | `dailyUsage` | `Daily  ` | Static label for today's usage (pairs with other widgets) |
 | `dailyReset` | `↺ 04:32` | Countdown to local-midnight daily reset |
@@ -125,8 +124,7 @@ Edit manually or use `/festatusline:setup` in Claude Code to reconfigure.
 | id | Example output | Description |
 |---|---|---|
 | `gptUsage` | `GPT:12req` | Today's Codex CLI request count (from `~/.codex/history.jsonl`) |
-| `codexModel` | `gpt-5.5` | Codex model ID from `~/.codex/config.toml` (first 7 chars) |
-| `codexRateLimit` | `5h ■□□□□□□□□□  0% (reset)` | Codex 5-hour rate limit (from latest Codex session) |
+| `codexModel` | `Codex gpt-5.5` | Codex model ID from `~/.codex/config.toml` (first 7 chars), prefixed with "Codex" |
 | `codexWeeklyRateLimit` | `7d ■□□□□□□□□□  10% (1d 1h)` | Codex 7-day rate limit |
 
 > Codex widgets are hidden automatically when `~/.codex` is absent.
@@ -164,9 +162,9 @@ Select a theme in the TUI or set `"theme"` in settings.json.
 
 | Preset | Lines | Highlights |
 |---|---|---|
-| `lite` | 3 | `dailyUsage` + `context` + `rateLimit` / `weeklyUsage` + `weeklyRateLimit` / `model` + `claudePeak` + `gitRepo` |
+| `lite` | 3 | `dailyUsage` + `context` / `weeklyUsage` + `weeklyRateLimit` / `model` + `claudePeak` + `gitRepo` |
 | `plus` | 5 | lite + spacer + `cacheHit`, `cacheTtl`, `sessionCost` row |
-| `pro` | 6 | plus + Codex row (`codexModel`, `codexRateLimit`, `codexWeeklyRateLimit`) |
+| `pro` | 6 | plus + Codex row (`codexModel`, `codexWeeklyRateLimit`) |
 
 Apply a preset via `/festatusline:setup` in Claude Code.
 

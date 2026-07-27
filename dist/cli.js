@@ -142,7 +142,7 @@ var WidgetConfigSchema = z2.object({
 });
 var SettingsSchema = z2.object({
   lines: z2.array(z2.array(WidgetConfigSchema)).default([
-    [{ id: "dailyUsage" }, { id: "context" }, { id: "rateLimit" }],
+    [{ id: "dailyUsage" }, { id: "context" }],
     [{ id: "weeklyUsage" }, { id: "weeklyRateLimit" }],
     [{ id: "model" }]
   ]),
@@ -545,11 +545,9 @@ var ko = {
   "widget.sonnetWeeklyUsage": "\uC18C\uB137 \uC8FC\uAC04 \uC0AC\uC6A9\uB7C9",
   "widget.sonnetWeeklyReset": "\uC18C\uB137 \uC8FC\uAC04 \uCD08\uAE30\uD654",
   "widget.gptUsage": "GPT \uC0AC\uC6A9\uB7C9",
-  "widget.codexRateLimit": "Codex 5h \uD55C\uB3C4",
   "widget.codexWeeklyRateLimit": "Codex 7\uC77C \uD55C\uB3C4",
   "widget.spacer": "\uACF5\uBC31",
   "widget.codexModel": "Codex \uBAA8\uB378",
-  "widget.rateLimit": "5\uC2DC\uAC04 \uD560\uB2F9\uB7C9",
   "widget.weeklyRateLimit": "7\uC77C \uD560\uB2F9\uB7C9",
   "widget.sessionCost": "\uC138\uC158 \uBE44\uC6A9",
   "widget.cacheHit": "\uCE90\uC2DC \uC801\uC911\uB960",
@@ -598,11 +596,9 @@ var en = {
   "widget.sonnetWeeklyUsage": "Sonnet Weekly",
   "widget.sonnetWeeklyReset": "Sonnet Weekly Reset",
   "widget.gptUsage": "GPT Usage",
-  "widget.codexRateLimit": "Codex 5h Limit",
   "widget.codexWeeklyRateLimit": "Codex 7d Limit",
   "widget.spacer": "Spacer",
   "widget.codexModel": "Codex Model",
-  "widget.rateLimit": "5h Limit",
   "widget.weeklyRateLimit": "7d Limit",
   "widget.sessionCost": "Session Cost",
   "widget.cacheHit": "Cache Hit",
@@ -651,11 +647,9 @@ var zh = {
   "widget.sonnetWeeklyUsage": "Sonnet \u5468\u7528\u91CF",
   "widget.sonnetWeeklyReset": "Sonnet \u5468\u91CD\u7F6E",
   "widget.gptUsage": "GPT \u7528\u91CF",
-  "widget.codexRateLimit": "Codex 5\u5C0F\u65F6\u9650\u989D",
   "widget.codexWeeklyRateLimit": "Codex 7\u5929\u9650\u989D",
   "widget.spacer": "\u95F4\u9694",
   "widget.codexModel": "Codex \u6A21\u578B",
-  "widget.rateLimit": "5\u5C0F\u65F6\u9650\u989D",
   "widget.weeklyRateLimit": "7\u5929\u9650\u989D",
   "widget.sessionCost": "\u4F1A\u8BDD\u8D39\u7528",
   "widget.cacheHit": "\u7F13\u5B58\u547D\u4E2D\u7387",
@@ -972,21 +966,10 @@ function createRateLimitWidget(params) {
 }
 
 // src/widgets/RateLimit.ts
-var RateLimitWidget = createRateLimitWidget({
-  id: "rateLimit",
-  labelKey: "widget.rateLimit",
-  prefix: "5h",
-  color: "#ffd93d",
-  getSlot: (ctx) => {
-    const s = ctx.stdin.rate_limits?.five_hour;
-    if (!s || s.resets_at == null) return null;
-    return { usedPercent: s.used_percentage ?? 0, resetsAt: s.resets_at };
-  }
-});
 var WeeklyRateLimitWidget = createRateLimitWidget({
   id: "weeklyRateLimit",
   labelKey: "widget.weeklyRateLimit",
-  prefix: "All",
+  prefix: "7d",
   color: "#6bcb77",
   getSlot: (ctx) => {
     const s = ctx.stdin.rate_limits?.seven_day;
@@ -998,16 +981,6 @@ var WeeklyRateLimitWidget = createRateLimitWidget({
 // src/widgets/CodexRateLimit.ts
 var PREFIX_WIDTH = 3;
 var TIME_EXPR_WIDTH = 11;
-var CodexRateLimitWidget = createRateLimitWidget({
-  id: "codexRateLimit",
-  labelKey: "widget.codexRateLimit",
-  prefix: "5h",
-  color: "#ff9f43",
-  getSlot: (ctx) => ctx.codex?.rateLimits?.primary ?? null,
-  timeFormat: "remaining",
-  prefixWidth: PREFIX_WIDTH,
-  timeExprWidth: TIME_EXPR_WIDTH
-});
 var CodexWeeklyRateLimitWidget = createRateLimitWidget({
   id: "codexWeeklyRateLimit",
   labelKey: "widget.codexWeeklyRateLimit",
@@ -1035,7 +1008,7 @@ var CodexModelWidget = {
   render(ctx, _cfg) {
     if (!ctx.codex?.available) return null;
     const name = ctx.codex.model ?? "Codex";
-    return name.slice(0, 7).padEnd(7);
+    return `Codex ${name.slice(0, 7).padEnd(7)}`;
   }
 };
 
@@ -1131,7 +1104,6 @@ var GitRepoWidget = {
 var ALL_WIDGETS = [
   ModelWidget,
   ContextWidget,
-  RateLimitWidget,
   WeeklyRateLimitWidget,
   DailyUsageWidget,
   DailyResetTimerWidget,
@@ -1140,7 +1112,6 @@ var ALL_WIDGETS = [
   SonnetWeeklyUsageWidget,
   SonnetWeeklyResetTimerWidget,
   GptUsageWidget,
-  CodexRateLimitWidget,
   CodexWeeklyRateLimitWidget,
   SpacerWidget,
   CodexModelWidget,
@@ -1285,7 +1256,7 @@ import SelectInput2 from "ink-select-input";
 var PRESETS = {
   minimal: {
     lines: [
-      [{ id: "dailyUsage" }, { id: "context" }, { id: "rateLimit" }],
+      [{ id: "dailyUsage" }, { id: "context" }],
       [{ id: "weeklyUsage" }, { id: "weeklyRateLimit" }],
       [{ id: "model" }]
     ]
@@ -1295,7 +1266,6 @@ var PRESETS = {
       [
         { id: "model" },
         { id: "context" },
-        { id: "rateLimit" },
         { id: "dailyUsage" },
         { id: "dailyReset" },
         { id: "weeklyUsage" },
@@ -1312,7 +1282,6 @@ var PRESETS = {
       [
         { id: "model" },
         { id: "context" },
-        { id: "rateLimit" },
         { id: "dailyUsage" },
         { id: "dailyReset" },
         { id: "weeklyUsage" },
@@ -1328,14 +1297,14 @@ var PRESETS = {
   },
   lite: {
     lines: [
-      [{ id: "dailyUsage" }, { id: "context" }, { id: "rateLimit" }],
+      [{ id: "dailyUsage" }, { id: "context" }],
       [{ id: "weeklyUsage" }, { id: "weeklyRateLimit" }],
       [{ id: "model" }, { id: "gitRepo" }]
     ]
   },
   plus: {
     lines: [
-      [{ id: "dailyUsage" }, { id: "context" }, { id: "rateLimit" }],
+      [{ id: "dailyUsage" }, { id: "context" }],
       [{ id: "weeklyUsage" }, { id: "weeklyRateLimit" }],
       [{ id: "spacer" }],
       [{ id: "cacheHit" }, { id: "cacheTtl" }, { id: "sessionCost" }],
@@ -1344,9 +1313,9 @@ var PRESETS = {
   },
   pro: {
     lines: [
-      [{ id: "dailyUsage" }, { id: "context" }, { id: "rateLimit" }],
+      [{ id: "dailyUsage" }, { id: "context" }],
       [{ id: "weeklyUsage" }, { id: "weeklyRateLimit" }],
-      [{ id: "codexModel" }, { id: "codexRateLimit" }, { id: "codexWeeklyRateLimit" }],
+      [{ id: "codexModel" }, { id: "codexWeeklyRateLimit" }],
       [{ id: "spacer" }],
       [{ id: "cacheHit" }, { id: "cacheTtl" }, { id: "sessionCost" }],
       [{ id: "model" }, { id: "gitRepo" }]

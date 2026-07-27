@@ -3,7 +3,7 @@ import type { Settings } from './schema.js';
 export const PRESETS: Record<string, Partial<Settings>> = {
   minimal: {
     lines: [
-      [{ id: 'dailyUsage' }, { id: 'context' }, { id: 'rateLimit' }],
+      [{ id: 'dailyUsage' }, { id: 'context' }],
       [{ id: 'weeklyUsage' }, { id: 'weeklyRateLimit' }],
       [{ id: 'model' }],
     ],
@@ -13,7 +13,6 @@ export const PRESETS: Record<string, Partial<Settings>> = {
       [
         { id: 'model' },
         { id: 'context' },
-        { id: 'rateLimit' },
         { id: 'dailyUsage' },
         { id: 'dailyReset' },
         { id: 'weeklyUsage' },
@@ -30,7 +29,6 @@ export const PRESETS: Record<string, Partial<Settings>> = {
       [
         { id: 'model' },
         { id: 'context' },
-        { id: 'rateLimit' },
         { id: 'dailyUsage' },
         { id: 'dailyReset' },
         { id: 'weeklyUsage' },
@@ -46,14 +44,14 @@ export const PRESETS: Record<string, Partial<Settings>> = {
   },
   lite: {
     lines: [
-      [{ id: 'dailyUsage' }, { id: 'context' }, { id: 'rateLimit' }],
+      [{ id: 'dailyUsage' }, { id: 'context' }],
       [{ id: 'weeklyUsage' }, { id: 'weeklyRateLimit' }],
       [{ id: 'model' }, { id: 'gitRepo' }],
     ],
   },
   plus: {
     lines: [
-      [{ id: 'dailyUsage' }, { id: 'context' }, { id: 'rateLimit' }],
+      [{ id: 'dailyUsage' }, { id: 'context' }],
       [{ id: 'weeklyUsage' }, { id: 'weeklyRateLimit' }],
       [{ id: 'spacer' }],
       [{ id: 'cacheHit' }, { id: 'cacheTtl' }, { id: 'sessionCost' }],
@@ -62,9 +60,9 @@ export const PRESETS: Record<string, Partial<Settings>> = {
   },
   pro: {
     lines: [
-      [{ id: 'dailyUsage' }, { id: 'context' }, { id: 'rateLimit' }],
+      [{ id: 'dailyUsage' }, { id: 'context' }],
       [{ id: 'weeklyUsage' }, { id: 'weeklyRateLimit' }],
-      [{ id: 'codexModel' }, { id: 'codexRateLimit' }, { id: 'codexWeeklyRateLimit' }],
+      [{ id: 'codexModel' }, { id: 'codexWeeklyRateLimit' }],
       [{ id: 'spacer' }],
       [{ id: 'cacheHit' }, { id: 'cacheTtl' }, { id: 'sessionCost' }],
       [{ id: 'model' }, { id: 'gitRepo' }],

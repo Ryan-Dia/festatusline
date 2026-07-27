@@ -9,7 +9,7 @@ export const SettingsSchema = z.object({
   lines: z
     .array(z.array(WidgetConfigSchema))
     .default([
-      [{ id: 'dailyUsage' }, { id: 'context' }, { id: 'rateLimit' }],
+      [{ id: 'dailyUsage' }, { id: 'context' }],
       [{ id: 'weeklyUsage' }, { id: 'weeklyRateLimit' }],
       [{ id: 'model' }],
     ]),

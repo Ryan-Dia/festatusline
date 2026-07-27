@@ -66,7 +66,6 @@ src/
 |---|---|
 | `model` | 현재 Claude 모델명 |
 | `context` | 컨텍스트 사용률 바 + % |
-| `rateLimit` | Claude 5시간 할당량 바 |
 | `weeklyRateLimit` | Claude 7일 할당량 바 |
 | `dailyUsage` | 오늘 총 토큰 수 |
 | `dailyReset` | 일간 리셋까지 남은 시간 |
@@ -75,7 +74,6 @@ src/
 | `sonnetWeeklyUsage` | 최근 7일 Sonnet 모델 토큰 수 |
 | `sonnetWeeklyReset` | Sonnet 주간 리셋까지 남은 시간 |
 | `gptUsage` | 오늘 Codex CLI 요청 수 |
-| `codexRateLimit` | Codex 5시간 한도 바 |
 | `codexWeeklyRateLimit` | Codex 7일 한도 바 |
 | `codexModel` | 현재 Codex 모델명 |
 | `sessionCost` | 현재 세션 비용 |

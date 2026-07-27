@@ -8,8 +8,8 @@ import { WeeklyResetTimerWidget } from './WeeklyResetTimer.js';
 import { SonnetWeeklyUsageWidget } from './SonnetWeeklyUsage.js';
 import { SonnetWeeklyResetTimerWidget } from './SonnetWeeklyResetTimer.js';
 import { GptUsageWidget } from './GptUsage.js';
-import { RateLimitWidget, WeeklyRateLimitWidget } from './RateLimit.js';
-import { CodexRateLimitWidget, CodexWeeklyRateLimitWidget } from './CodexRateLimit.js';
+import { WeeklyRateLimitWidget } from './RateLimit.js';
+import { CodexWeeklyRateLimitWidget } from './CodexRateLimit.js';
 import { SpacerWidget } from './Spacer.js';
 import { CodexModelWidget } from './CodexModel.js';
 import { SessionCostWidget } from './SessionCost.js';
@@ -20,7 +20,6 @@ import { GitBranchWidget, GitRepoWidget } from './GitInfo.js';
 export const ALL_WIDGETS: Widget[] = [
   ModelWidget,
   ContextWidget,
-  RateLimitWidget,
   WeeklyRateLimitWidget,
   DailyUsageWidget,
   DailyResetTimerWidget,
@@ -29,7 +28,6 @@ export const ALL_WIDGETS: Widget[] = [
   SonnetWeeklyUsageWidget,
   SonnetWeeklyResetTimerWidget,
   GptUsageWidget,
-  CodexRateLimitWidget,
   CodexWeeklyRateLimitWidget,
   SpacerWidget,
   CodexModelWidget,

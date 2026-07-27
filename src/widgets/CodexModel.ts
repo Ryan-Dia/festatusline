@@ -6,6 +6,6 @@ export const CodexModelWidget: Widget = {
   render(ctx: RenderContext, _cfg: WidgetConfig): string | null {
     if (!ctx.codex?.available) return null;
     const name = ctx.codex.model ?? 'Codex';
-    return name.slice(0, 7).padEnd(7);
+    return `Codex ${name.slice(0, 7).padEnd(7)}`;
   },
 };
