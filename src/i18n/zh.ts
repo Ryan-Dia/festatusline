@@ -13,6 +13,7 @@ export const zh: Record<I18nKey, string> = {
   'widget.codexWeeklyRateLimit': 'Codex 7天限额',
   'widget.spacer': '间隔',
   'widget.codexModel': 'Codex 模型',
+  'widget.sessionRateLimit': '当前会话限额',
   'widget.weeklyRateLimit': '7天限额',
   'widget.sessionCost': '会话费用',
   'widget.cacheHit': '缓存命中率',

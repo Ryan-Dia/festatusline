@@ -13,6 +13,7 @@ export const en: Record<I18nKey, string> = {
   'widget.codexWeeklyRateLimit': 'Codex 7d Limit',
   'widget.spacer': 'Spacer',
   'widget.codexModel': 'Codex Model',
+  'widget.sessionRateLimit': 'Current Session Limit',
   'widget.weeklyRateLimit': '7d Limit',
   'widget.sessionCost': 'Session Cost',
   'widget.cacheHit': 'Cache Hit',

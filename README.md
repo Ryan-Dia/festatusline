@@ -61,7 +61,7 @@ The setup command writes the following into `~/.claude/settings.json`:
 ## 🎨 Demo
 
 ```
-Daily   │ Ctx ■■■■■■■■■■  23% (47K/200K)
+Daily   │ Ctx ■■■■■■■■■■  23% (47K/200K)  │ Session ■■■■■■■■■■  30% (3h 41m)
 Weekly  │ 7d ■■■■■■■■■■  25% (4d 0h)
 Codex   │ 7d ■■■■■■■■■■  10% (1d 1h)
 
@@ -106,6 +106,7 @@ Edit manually or use `/festatusline:setup` in Claude Code to reconfigure.
 |---|---|---|
 | `model` | `Sonnet 4.6` / `Sonnet 4.6 [high]` | Current model name, shortened. Appends effort level if non-normal. |
 | `context` | `Ctx ■■□□□□□□□□  23% (47K/200K)` | Context window bar + percentage + token counts |
+| `sessionRateLimit` | `Now ■■■□□□□□□□  30% (3h 41m)` | Current session (rolling ~5h) usage bar + reset time |
 | `weeklyRateLimit` | `7d ■■□□□□□□□□  25% (6d 10h)` | 7-day all-model rate limit + reset time |
 | `peakTime` | `22:00–05:00` | Peak usage hour range (last 14 days, from jsonl history) |
 | `dailyUsage` | `Daily  ` | Static label for today's usage (pairs with other widgets) |

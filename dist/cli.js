@@ -548,6 +548,7 @@ var ko = {
   "widget.codexWeeklyRateLimit": "Codex 7\uC77C \uD55C\uB3C4",
   "widget.spacer": "\uACF5\uBC31",
   "widget.codexModel": "Codex \uBAA8\uB378",
+  "widget.sessionRateLimit": "\uD604\uC7AC \uC138\uC158 \uD55C\uB3C4",
   "widget.weeklyRateLimit": "7\uC77C \uD560\uB2F9\uB7C9",
   "widget.sessionCost": "\uC138\uC158 \uBE44\uC6A9",
   "widget.cacheHit": "\uCE90\uC2DC \uC801\uC911\uB960",
@@ -599,6 +600,7 @@ var en = {
   "widget.codexWeeklyRateLimit": "Codex 7d Limit",
   "widget.spacer": "Spacer",
   "widget.codexModel": "Codex Model",
+  "widget.sessionRateLimit": "Current Session Limit",
   "widget.weeklyRateLimit": "7d Limit",
   "widget.sessionCost": "Session Cost",
   "widget.cacheHit": "Cache Hit",
@@ -650,6 +652,7 @@ var zh = {
   "widget.codexWeeklyRateLimit": "Codex 7\u5929\u9650\u989D",
   "widget.spacer": "\u95F4\u9694",
   "widget.codexModel": "Codex \u6A21\u578B",
+  "widget.sessionRateLimit": "\u5F53\u524D\u4F1A\u8BDD\u9650\u989D",
   "widget.weeklyRateLimit": "7\u5929\u9650\u989D",
   "widget.sessionCost": "\u4F1A\u8BDD\u8D39\u7528",
   "widget.cacheHit": "\u7F13\u5B58\u547D\u4E2D\u7387",
@@ -966,6 +969,17 @@ function createRateLimitWidget(params) {
 }
 
 // src/widgets/RateLimit.ts
+var SessionRateLimitWidget = createRateLimitWidget({
+  id: "sessionRateLimit",
+  labelKey: "widget.sessionRateLimit",
+  prefix: "Session",
+  color: "#ffd93d",
+  getSlot: (ctx) => {
+    const s = ctx.stdin.rate_limits?.five_hour;
+    if (!s || s.resets_at == null) return null;
+    return { usedPercent: s.used_percentage ?? 0, resetsAt: s.resets_at };
+  }
+});
 var WeeklyRateLimitWidget = createRateLimitWidget({
   id: "weeklyRateLimit",
   labelKey: "widget.weeklyRateLimit",
@@ -1102,6 +1116,7 @@ var GitRepoWidget = {
 var ALL_WIDGETS = [
   ModelWidget,
   ContextWidget,
+  SessionRateLimitWidget,
   WeeklyRateLimitWidget,
   DailyUsageWidget,
   DailyResetTimerWidget,

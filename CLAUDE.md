@@ -66,6 +66,7 @@ src/
 |---|---|
 | `model` | 현재 Claude 모델명 |
 | `context` | 컨텍스트 사용률 바 + % |
+| `sessionRateLimit` | 현재 세션(약 5시간 롤링) 한도 바 |
 | `weeklyRateLimit` | Claude 7일 할당량 바 |
 | `dailyUsage` | 오늘 총 토큰 수 |
 | `dailyReset` | 일간 리셋까지 남은 시간 |

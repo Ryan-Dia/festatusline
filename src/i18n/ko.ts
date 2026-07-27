@@ -11,6 +11,7 @@ export const ko = {
   'widget.codexWeeklyRateLimit': 'Codex 7일 한도',
   'widget.spacer': '공백',
   'widget.codexModel': 'Codex 모델',
+  'widget.sessionRateLimit': '현재 세션 한도',
   'widget.weeklyRateLimit': '7일 할당량',
   'widget.sessionCost': '세션 비용',
   'widget.cacheHit': '캐시 적중률',
