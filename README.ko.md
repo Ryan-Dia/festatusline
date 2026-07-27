@@ -6,7 +6,7 @@
 [![Node ≥18](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org)
 [![i18n](https://img.shields.io/badge/i18n-ko%20%7C%20en%20%7C%20zh-orange)](./README.md)
 
-> Claude Code 상태바(statusline) 도구. 다국어(ko/en/zh), 5종 테마, 7종 프리셋, 22개 위젯, Codex CLI 통합을 지원합니다.
+> Claude Code 상태바(statusline) 도구. 다국어(ko/en/zh), 5종 테마, 7종 프리셋, 19개 위젯, Codex CLI 통합을 지원합니다.
 
 [ccstatusline](https://github.com/sirmalloc/ccstatusline) 을 참고한 파생 버전입니다.
 
@@ -16,7 +16,7 @@
 
 - **다국어 지원** — 한국어·영어·중국어를 `FESTATUSLINE_LOCALE` 또는 `$LANG` 으로 자동 감지
 - **5종 테마 내장** — default, dracula, nord, gruvbox, tokyo-night
-- **22개 위젯** — Claude 사용량, Codex CLI, Git 정보, 피크 시간, 세션 비용, 캐시 통계
+- **19개 위젯** — Claude 사용량, Codex CLI, Git 정보, 세션 비용, 캐시 통계
 - **Codex CLI 통합** — `~/.codex` 파싱으로 GPT 요청 수·레이트 리밋·모델 표시
 - **7종 프리셋 + 인터랙티브 셋업** — `/festatusline:setup` 으로 제로 설정 완료
 - **Node ≥18 전용** — Bun API 미사용
@@ -25,24 +25,35 @@
 
 ## 🚀 빠른 시작
 
-**Claude Code 플러그인으로 설치:**
+**1. 마켓플레이스 등록** (최초 1회 — festatusline은 Claude 공식 플러그인 카탈로그에 없습니다):
 
 ```
-/plugin install festatusline
+/plugin marketplace add Ryan-Dia/festatusline
 ```
 
-**인터랙티브 셋업** (프리셋·테마·언어 선택 → statusLine 자동 등록):
+**2. 플러그인 설치:**
+
+```
+/plugin install festatusline@festatusline
+```
+
+**3. 인터랙티브 셋업** (프리셋·테마·언어 선택 → statusLine 자동 등록):
 
 ```
 /festatusline:setup
 ```
 
-**플러그인 업그레이드 후** 경로 갱신:
+**플러그인 업그레이드 후**, 먼저 마켓플레이스 캐시를 갱신하세요 — 안 그러면 `/plugin update`가
+실제로는 최신이 아닌데도 "이미 최신 버전"이라고 보고합니다:
 
 ```
-/plugin update festatusline
+/plugin marketplace update festatusline
+/plugin update festatusline@festatusline
 /festatusline:update
 ```
+
+이후 Claude Code(또는 터미널 세션)를 재시작하세요 — statusLine 커맨드는 세션 시작 시
+한 번만 읽어옵니다.
 
 셋업 후 `~/.claude/settings.json` 에 기록되는 내용:
 

@@ -1,7 +1,5 @@
 import chalk from 'chalk';
 import { renderFromStdin } from './render/index.js';
-import { runTui } from './tui/index.js';
-import { runSetupWizard } from './tui/setup.js';
 import { installToClaude } from './config/install.js';
 import { runDoctor } from './config/doctor.js';
 import { loadSettings } from './config/load.js';
@@ -15,8 +13,14 @@ function isLocale(v: string | undefined): v is Locale {
 
 type Command = (args: string[]) => Promise<void>;
 
+// Dynamically imported so the statusline render path (the hot path, invoked
+// on every message) never has to resolve ink/react — only the interactive
+// TUI and setup wizard do.
 const commands: Record<string, Command> = {
-  setup: () => runSetupWizard(),
+  setup: async () => {
+    const { runSetupWizard } = await import('./tui/setup.js');
+    return runSetupWizard();
+  },
   install: (args) => installToClaude(args.includes('--force')),
   doctor: () => runDoctor(),
 };
@@ -32,6 +36,7 @@ async function dispatch(argv: string[]): Promise<void> {
     await renderFromStdin();
     return;
   }
+  const { runTui } = await import('./tui/index.js');
   await runTui();
 }
 

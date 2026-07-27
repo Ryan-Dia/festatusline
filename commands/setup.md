@@ -20,6 +20,7 @@ Configure the festatusline status line plugin.
 |---|---|
 | `model` | Current model name |
 | `context` | Context usage bar + % |
+| `sessionRateLimit` | Current session (rolling ~5h) usage bar + reset time |
 | `dailyUsage` | Today's total tokens |
 | `dailyReset` | Time until daily reset |
 | `weeklyUsage` | Last 7 days total tokens |
@@ -145,4 +146,5 @@ Show what was configured:
 - Preset and locale selected
 - Theme applied
 - Settings file path: `~/.config/festatusline/settings.json`
-- Note: status line updates on the next message
+- Note: restart Claude Code (or the terminal session) to activate the statusline — it's
+  resolved once at session start, not on the next message

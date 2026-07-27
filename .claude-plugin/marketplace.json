@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Customizable statusline with i18n (ko/en/zh), 5 themes, and multi-CLI usage widgets",
-    "version": "0.2.3"
+    "version": "0.2.5"
   },
   "plugins": [
     {
@@ -25,5 +25,5 @@
       ]
     }
   ],
-  "version": "0.2.3"
+  "version": "0.2.5"
 }

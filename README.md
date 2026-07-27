@@ -6,7 +6,7 @@
 [![Node ≥18](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org)
 [![i18n](https://img.shields.io/badge/i18n-ko%20%7C%20en%20%7C%20zh-orange)](./README.ko.md)
 
-> Customizable [Claude Code](https://claude.ai/code) statusline with multilingual support (ko/en/zh), 5 themes, 7 presets, and 22 widgets including Codex CLI integration.
+> Customizable [Claude Code](https://claude.ai/code) statusline with multilingual support (ko/en/zh), 5 themes, 7 presets, and 19 widgets including Codex CLI integration.
 
 Inspired by [ccstatusline](https://github.com/sirmalloc/ccstatusline).
 
@@ -16,7 +16,7 @@ Inspired by [ccstatusline](https://github.com/sirmalloc/ccstatusline).
 
 - **Multilingual** — Korean, English, Chinese auto-detected from `FESTATUSLINE_LOCALE` or `$LANG`
 - **5 Built-in themes** — default, dracula, nord, gruvbox, tokyo-night
-- **22 widgets** — Claude usage, Codex CLI, Git info, peak-time, session cost, cache stats
+- **19 widgets** — Claude usage, Codex CLI, Git info, session cost, cache stats
 - **Codex CLI integration** — reads `~/.codex` for GPT request counts, rate limits, and model
 - **7 Presets + interactive setup** — zero-config via `/festatusline:setup`
 - **Node ≥18 only** — no Bun dependency
@@ -25,24 +25,35 @@ Inspired by [ccstatusline](https://github.com/sirmalloc/ccstatusline).
 
 ## 🚀 Quick Start
 
-**Install as a Claude Code plugin:**
+**1. Add the marketplace** (one-time — festatusline isn't in Claude's official plugin catalog):
 
 ```
-/plugin install festatusline
+/plugin marketplace add Ryan-Dia/festatusline
 ```
 
-**Run interactive setup** (pick preset, theme, locale — registers the statusline automatically):
+**2. Install the plugin:**
+
+```
+/plugin install festatusline@festatusline
+```
+
+**3. Run interactive setup** (pick preset, theme, locale — registers the statusline automatically):
 
 ```
 /festatusline:setup
 ```
 
-**After upgrading the plugin**, update the registered path:
+**After upgrading the plugin**, refresh the marketplace cache before updating — otherwise
+`/plugin update` reports "already at the latest version" even when it isn't:
 
 ```
-/plugin update festatusline
+/plugin marketplace update festatusline
+/plugin update festatusline@festatusline
 /festatusline:update
 ```
+
+Restart Claude Code (or your terminal session) afterward — the statusline command is
+resolved once at session start.
 
 The setup command writes the following into `~/.claude/settings.json`:
 

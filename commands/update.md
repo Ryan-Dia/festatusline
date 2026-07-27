@@ -7,7 +7,13 @@ allowed-tools: Read, Bash(jq:*), Bash(ls:*), Bash(sort:*), Bash(tail:*), Bash(mv
 
 Update the statusLine path in settings.json to point to the latest cached plugin version.
 
-Run this command after updating the plugin via `/plugin update festatusline`.
+Run this after refreshing and updating the plugin:
+```
+/plugin marketplace update festatusline
+/plugin update festatusline@festatusline
+```
+(The marketplace refresh is required first — otherwise `/plugin update` reports "already at
+the latest version" even when a newer commit is available.)
 
 ## Task
 
@@ -24,4 +30,5 @@ jq --arg path "node ~/.claude/plugins/cache/festatusline/festatusline/${LATEST_V
 
 3. Show the user what was updated:
    - New version and path
-   - Reminder that the status line updates on the next message
+   - Reminder to restart Claude Code (or the terminal session) — the statusLine command is
+     resolved once at session start, so it won't pick up the new path mid-session
