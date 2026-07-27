@@ -61,12 +61,12 @@ The setup command writes the following into `~/.claude/settings.json`:
 ## 🎨 Demo
 
 ```
-Daily   │ Ctx ■■■■■■■■■■  23% (47K/200K)  │ 5h ■■■■■■■■■■  29% (2h 0m)
-7days   │ All ■■■■■■■■■■  25% (4d 0h)
-gpt-5.5 │ 5h  ■■■■■■■■■■   0% (reset)     │ 7d  ■■■■■■■■■■  10% (1d 1h)
+Daily   │ Ctx ■■■■■■■■■■  23% (47K/200K)
+Weekly  │ 7d ■■■■■■■■■■  25% (4d 0h)
+Codex   │ 7d ■■■■■■■■■■  10% (1d 1h)
 
 ⚡74% │ ⏱ 1h 0m │ $0.0042
-Sonnet 4.6 [high] │ 🟢 Off-Peak (7h 46m) │ 📁 festatusline(main)
+Sonnet 4.6 [high] │ 📁 festatusline(main)
 ```
 
 Colors are rendered with truecolor ANSI — dim/bright bars, accent text. Output varies by preset and locale.
@@ -110,7 +110,7 @@ Edit manually or use `/festatusline:setup` in Claude Code to reconfigure.
 | `peakTime` | `22:00–05:00` | Peak usage hour range (last 14 days, from jsonl history) |
 | `dailyUsage` | `Daily  ` | Static label for today's usage (pairs with other widgets) |
 | `dailyReset` | `↺ 04:32` | Countdown to local-midnight daily reset |
-| `weeklyUsage` | `7days  ` | Static label for weekly usage |
+| `weeklyUsage` | `Weekly ` | Static label for weekly usage |
 | `weeklyReset` | `↺ 2d 3h` | Countdown to weekly reset anchor |
 | `sonnetWeeklyUsage` | `S:42K` / `S:1.3M` | Sonnet model tokens consumed this week |
 | `sonnetWeeklyReset` | `S↺ 2d 3h` | Countdown to Sonnet weekly reset |
@@ -127,7 +127,8 @@ Edit manually or use `/festatusline:setup` in Claude Code to reconfigure.
 | `codexModel` | `Codex  ` | Static "Codex" label marking the Codex/GPT row |
 | `codexWeeklyRateLimit` | `7d ■□□□□□□□□□  10% (1d 1h)` | Codex 7-day rate limit |
 
-> Codex widgets are hidden automatically when `~/.codex` is absent.
+> `gptUsage` is hidden until Codex CLI has been used at least once. `codexModel` is a static
+> label shown regardless, so the Codex row is visible even before first use.
 
 ### Git (2)
 

@@ -61,12 +61,12 @@
 ## 🎨 데모
 
 ```
-Daily   │ Ctx ■■■■■■■■■■  23% (47K/200K)  │ 5h ■■■■■■■■■■  29% (2h 0m)
-7days   │ All ■■■■■■■■■■  25% (4d 0h)
-gpt-5.5 │ 5h  ■■■■■■■■■■   0% (reset)     │ 7d  ■■■■■■■■■■  10% (1d 1h)
+Daily   │ Ctx ■■■■■■■■■■  23% (47K/200K)
+Weekly  │ 7d ■■■■■■■■■■  25% (4d 0h)
+Codex   │ 7d ■■■■■■■■■■  10% (1d 1h)
 
 ⚡74% │ ⏱ 1h 0m │ $0.0042
-Sonnet 4.6 [high] │ 🟢 Off-Peak (7h 46m) │ 📁 festatusline(main)
+Sonnet 4.6 [high] │ 📁 festatusline(main)
 ```
 
 실제 출력에는 트루컬러 ANSI 색상이 적용됩니다 (밝음/어두움 바, 강조 텍스트). 프리셋과 로케일에 따라 결과가 달라집니다.
@@ -110,7 +110,7 @@ Sonnet 4.6 [high] │ 🟢 Off-Peak (7h 46m) │ 📁 festatusline(main)
 | `peakTime` | `22:00–05:00` | 최근 14일 기준 피크 사용 시간대 (jsonl 이력 분석) |
 | `dailyUsage` | `Daily  ` | 오늘 사용량용 레이블 (다른 위젯과 함께 배치) |
 | `dailyReset` | `↺ 04:32` | 자정 기준 일간 리셋까지 카운트다운 |
-| `weeklyUsage` | `7days  ` | 주간 사용량용 레이블 |
+| `weeklyUsage` | `Weekly ` | 주간 사용량용 레이블 |
 | `weeklyReset` | `↺ 2d 3h` | 주간 리셋 앵커까지 카운트다운 |
 | `sonnetWeeklyUsage` | `S:42K` / `S:1.3M` | 이번 주 Sonnet 모델 누적 토큰 수 |
 | `sonnetWeeklyReset` | `S↺ 2d 3h` | Sonnet 주간 리셋까지 카운트다운 |
@@ -127,7 +127,8 @@ Sonnet 4.6 [high] │ 🟢 Off-Peak (7h 46m) │ 📁 festatusline(main)
 | `codexModel` | `Codex  ` | Codex/GPT 행임을 나타내는 고정 라벨 |
 | `codexWeeklyRateLimit` | `7d ■□□□□□□□□□  10% (1d 1h)` | Codex 7일 레이트 리밋 |
 
-> `~/.codex` 디렉터리가 없으면 Codex 위젯은 자동으로 숨겨집니다.
+> `gptUsage`는 Codex CLI를 한 번이라도 사용하기 전까지 숨겨집니다. `codexModel`은 고정
+> 라벨이라 처음 사용하기 전에도 Codex 행이 항상 표시됩니다.
 
 ### Git (2개)
 

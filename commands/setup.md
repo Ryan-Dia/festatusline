@@ -53,14 +53,14 @@ Ask all questions in a single AskUserQuestion call:
      preview (use actual newlines \n between lines):
      ```
      Daily  │ Ctx ████  31% (63K/200K)
-     7days  │ 7d ████  6% (6d 21h)
+     Weekly │ 7d ████  6% (6d 21h)
      Sonnet 4.6 [high] │ 📁 my-repo (main)
      ```
    - `plus` (5 lines, recommended): lite + spacer + cache/cost line
      preview:
      ```
      Daily  │ Ctx ████  31% (63K/200K)
-     7days  │ 7d ████  6% (6d 21h)
+     Weekly │ 7d ████  6% (6d 21h)
 
      ⚡100% │ ⏰ 1h 0m │ $1.56
      Sonnet 4.6 [high] │ 📁 my-repo (main)
@@ -69,7 +69,7 @@ Ask all questions in a single AskUserQuestion call:
      preview:
      ```
      Daily  │ Ctx ████  31% (63K/200K)
-     7days  │ 7d ████  6% (6d 21h)
+     Weekly │ 7d ████  6% (6d 21h)
      Codex  │ 7d ████   0% (reset)
 
      ⚡100% │ ⏰ 1h 0m │ $1.56

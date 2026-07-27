@@ -877,7 +877,7 @@ var DailyResetTimerWidget = createResetTimerWidget({
 });
 
 // src/widgets/WeeklyUsage.ts
-var WeeklyUsageWidget = staticLabel("weeklyUsage", "widget.weeklyUsage", "7days  ");
+var WeeklyUsageWidget = staticLabel("weeklyUsage", "widget.weeklyUsage", "Weekly ");
 
 // src/widgets/WeeklyResetTimer.ts
 var WeeklyResetTimerWidget = createResetTimerWidget({
@@ -1005,8 +1005,7 @@ var SpacerWidget = {
 var CodexModelWidget = {
   id: "codexModel",
   labelKey: "widget.codexModel",
-  render(ctx, _cfg) {
-    if (!ctx.codex?.available) return null;
+  render(_ctx, _cfg) {
     return "Codex  ";
   }
 };
