@@ -1007,8 +1007,7 @@ var CodexModelWidget = {
   labelKey: "widget.codexModel",
   render(ctx, _cfg) {
     if (!ctx.codex?.available) return null;
-    const name = ctx.codex.model ?? "Codex";
-    return `Codex ${name.slice(0, 7).padEnd(7)}`;
+    return "Codex  ";
   }
 };
 

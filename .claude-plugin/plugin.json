@@ -1,6 +1,6 @@
 {
   "name": "festatusline",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Customizable statusline for Claude Code with i18n (ko/en/zh), themes, and multi-CLI usage widgets",
   "author": {
     "name": "ryan-dia"

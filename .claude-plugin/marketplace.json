@@ -6,13 +6,13 @@
   },
   "metadata": {
     "description": "Customizable statusline with i18n (ko/en/zh), 5 themes, and multi-CLI usage widgets",
-    "version": "0.2.0"
+    "version": "0.2.1"
   },
   "plugins": [
     {
       "name": "festatusline",
       "source": "./",
-      "description": "Status line showing model, context usage, daily/weekly token stats, peak time, and Codex CLI usage. Supports i18n (Korean/English/Chinese) with 5 built-in themes.",
+      "description": "Status line showing model, context usage, daily/weekly token stats, and Codex CLI usage. Supports i18n (Korean/English/Chinese) with 5 built-in themes.",
       "category": "monitoring",
       "tags": [
         "statusline",
@@ -25,5 +25,5 @@
       ]
     }
   ],
-  "version": "0.2.0"
+  "version": "0.2.1"
 }

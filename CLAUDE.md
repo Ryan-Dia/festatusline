@@ -75,7 +75,7 @@ src/
 | `sonnetWeeklyReset` | Sonnet 주간 리셋까지 남은 시간 |
 | `gptUsage` | 오늘 Codex CLI 요청 수 |
 | `codexWeeklyRateLimit` | Codex 7일 한도 바 |
-| `codexModel` | 현재 Codex 모델명 |
+| `codexModel` | Codex/GPT 행 고정 라벨 ("Codex") |
 | `sessionCost` | 현재 세션 비용 |
 | `cacheHit` | 프롬프트 캐시 적중률 |
 | `cacheTtl` | 캐시 TTL 잔여 시간 |

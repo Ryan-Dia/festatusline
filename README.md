@@ -124,7 +124,7 @@ Edit manually or use `/festatusline:setup` in Claude Code to reconfigure.
 | id | Example output | Description |
 |---|---|---|
 | `gptUsage` | `GPT:12req` | Today's Codex CLI request count (from `~/.codex/history.jsonl`) |
-| `codexModel` | `Codex gpt-5.5` | Codex model ID from `~/.codex/config.toml` (first 7 chars), prefixed with "Codex" |
+| `codexModel` | `Codex  ` | Static "Codex" label marking the Codex/GPT row |
 | `codexWeeklyRateLimit` | `7d ■□□□□□□□□□  10% (1d 1h)` | Codex 7-day rate limit |
 
 > Codex widgets are hidden automatically when `~/.codex` is absent.

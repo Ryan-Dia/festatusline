@@ -124,7 +124,7 @@ Sonnet 4.6 [high] │ 🟢 Off-Peak (7h 46m) │ 📁 festatusline(main)
 | id | 출력 예시 | 설명 |
 |---|---|---|
 | `gptUsage` | `GPT:12req` | 오늘 Codex CLI 요청 수 (`~/.codex/history.jsonl` 기반) |
-| `codexModel` | `Codex gpt-5.5` | Codex 모델명 (`~/.codex/config.toml`, 앞 7자), "Codex" 접두어 포함 |
+| `codexModel` | `Codex  ` | Codex/GPT 행임을 나타내는 고정 라벨 |
 | `codexWeeklyRateLimit` | `7d ■□□□□□□□□□  10% (1d 1h)` | Codex 7일 레이트 리밋 |
 
 > `~/.codex` 디렉터리가 없으면 Codex 위젯은 자동으로 숨겨집니다.
