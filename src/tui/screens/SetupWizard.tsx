@@ -5,14 +5,15 @@ import { SettingsSchema, type Settings } from '../../config/schema.js';
 import { t, setLocale } from '../../i18n/index.js';
 import { PRESETS } from '../../config/presets.js';
 import LanguageSelect from './LanguageSelect.js';
+import PresetPreview from './PresetPreview.js';
 
 type Step = 'language' | 'preset';
 
-const SETUP_PRESET_NAMES = ['lite', 'plus', 'pro'] as const;
+const SETUP_PRESET_NAMES = ['basic', 'pro', 'max'] as const;
 const SETUP_PRESET_LABEL_KEYS: Record<string, string> = {
-  lite: 'tui.preset.lite',
-  plus: 'tui.preset.plus',
+  basic: 'tui.preset.basic',
   pro: 'tui.preset.pro',
+  max: 'tui.preset.max',
 };
 
 interface Props {
@@ -24,6 +25,7 @@ export default function SetupWizard({ initialSettings, onSave }: Props): React.R
   const { exit } = useApp();
   const [step, setStep] = useState<Step>('language');
   const [settings, setSettings] = useState<Settings>(initialSettings);
+  const [highlighted, setHighlighted] = useState<string>(SETUP_PRESET_NAMES[0]);
 
   if (step === 'language') {
     return (
@@ -53,6 +55,7 @@ export default function SetupWizard({ initialSettings, onSave }: Props): React.R
       <Text bold>{t('tui.mainMenu.selectPreset')}</Text>
       <SelectInput
         items={items}
+        onHighlight={(item) => setHighlighted(item.value)}
         onSelect={async (item) => {
           if (item.value === '__back__') {
             setStep('language');
@@ -64,6 +67,7 @@ export default function SetupWizard({ initialSettings, onSave }: Props): React.R
           exit();
         }}
       />
+      <PresetPreview name={highlighted} settings={settings} />
     </Box>
   );
 }

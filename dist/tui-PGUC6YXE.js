@@ -1,28 +1,27 @@
 #!/usr/bin/env node
 import {
-  ALL_WIDGETS,
-  THEME_NAMES,
-  themes
-} from "./chunk-KA63TBK7.js";
-import {
   LanguageSelect,
   PRESETS,
   PRESET_NAMES,
+  PresetPreview,
   saveSettings
-} from "./chunk-BZNV6SZX.js";
+} from "./chunk-YJXLBNTA.js";
 import {
+  ALL_WIDGETS,
   SettingsSchema,
+  THEME_NAMES,
   loadSettings,
   setLocale,
-  t
-} from "./chunk-YFNHIZ7Z.js";
+  t,
+  themes
+} from "./chunk-AGLANR4T.js";
 
 // src/tui/index.ts
 import React6 from "react";
 import { render } from "ink";
 
 // src/tui/App.tsx
-import React5, { useState as useState2 } from "react";
+import React5, { useState as useState3 } from "react";
 import { Box as Box5, Text as Text4, useApp } from "ink";
 
 // src/tui/screens/MainMenu.tsx
@@ -41,7 +40,7 @@ function MainMenu({ onSelect }) {
 }
 
 // src/tui/screens/PresetMenu.tsx
-import React2 from "react";
+import React2, { useState } from "react";
 import { Box as Box2, Text } from "ink";
 import SelectInput2 from "ink-select-input";
 var PRESET_LABEL_KEYS = {
@@ -49,15 +48,16 @@ var PRESET_LABEL_KEYS = {
   full: "tui.preset.full",
   "korean-dev": "tui.preset.koreanDev",
   "multi-cli": "tui.preset.multiCli",
-  lite: "tui.preset.lite",
-  plus: "tui.preset.plus",
-  pro: "tui.preset.pro"
+  basic: "tui.preset.basic",
+  pro: "tui.preset.pro",
+  max: "tui.preset.max"
 };
 function PresetMenu({
   currentSettings,
   onSelect,
   onBack
 }) {
+  const [highlighted, setHighlighted] = useState(PRESET_NAMES[0] ?? "");
   const items = [
     ...PRESET_NAMES.map((name) => ({
       label: t(PRESET_LABEL_KEYS[name] ?? name),
@@ -69,6 +69,7 @@ function PresetMenu({
     SelectInput2,
     {
       items,
+      onHighlight: (item) => setHighlighted(item.value),
       onSelect: async (item) => {
         if (item.value === "__back__") {
           onBack();
@@ -79,7 +80,7 @@ function PresetMenu({
         await onSelect(next);
       }
     }
-  ));
+  ), /* @__PURE__ */ React2.createElement(PresetPreview, { name: highlighted, settings: currentSettings }));
 }
 
 // src/tui/screens/ThemeMenu.tsx
@@ -111,7 +112,7 @@ function ThemeMenu({ current, onSelect, onBack }) {
 }
 
 // src/tui/screens/WidgetEditor.tsx
-import React4, { useState } from "react";
+import React4, { useState as useState2 } from "react";
 import { Box as Box4, Text as Text3 } from "ink";
 import SelectInput4 from "ink-select-input";
 function WidgetAddMode({ firstLine, onCommit, onBack }) {
@@ -160,8 +161,8 @@ function WidgetRemoveMode({ firstLine, onCommit, onBack }) {
   ));
 }
 function WidgetEditor({ lines, onSave, onBack }) {
-  const [currentLines, setCurrentLines] = useState(lines);
-  const [mode, setMode] = useState("view");
+  const [currentLines, setCurrentLines] = useState2(lines);
+  const [mode, setMode] = useState2("view");
   const firstLine = currentLines[0] ?? [];
   const commitFirstLine = (updated) => {
     setCurrentLines([updated, ...currentLines.slice(1)]);
@@ -219,9 +220,9 @@ function WidgetEditor({ lines, onSave, onBack }) {
 // src/tui/App.tsx
 function App({ initialSettings, onSave }) {
   const { exit } = useApp();
-  const [settings, setSettings] = useState2(initialSettings);
-  const [screen, setScreen] = useState2("main");
-  const [saved, setSaved] = useState2(false);
+  const [settings, setSettings] = useState3(initialSettings);
+  const [screen, setScreen] = useState3("main");
+  const [saved, setSaved] = useState3(false);
   async function handleSave(next) {
     setSettings(next);
     await onSave(next);
@@ -306,4 +307,4 @@ async function runTui() {
 export {
   runTui
 };
-//# sourceMappingURL=tui-NS3HCL37.js.map
+//# sourceMappingURL=tui-PGUC6YXE.js.map

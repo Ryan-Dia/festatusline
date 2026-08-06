@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Box, Text } from 'ink';
 import SelectInput from 'ink-select-input';
 import { PRESETS, PRESET_NAMES } from '../../config/presets.js';
 import { SettingsSchema, type Settings } from '../../config/schema.js';
 import { t } from '../../i18n/index.js';
+import PresetPreview from './PresetPreview.js';
 
 interface Props {
   currentSettings: Settings;
@@ -16,9 +17,9 @@ const PRESET_LABEL_KEYS: Record<string, string> = {
   full: 'tui.preset.full',
   'korean-dev': 'tui.preset.koreanDev',
   'multi-cli': 'tui.preset.multiCli',
-  lite: 'tui.preset.lite',
-  plus: 'tui.preset.plus',
+  basic: 'tui.preset.basic',
   pro: 'tui.preset.pro',
+  max: 'tui.preset.max',
 };
 
 export default function PresetMenu({
@@ -26,6 +27,7 @@ export default function PresetMenu({
   onSelect,
   onBack,
 }: Props): React.ReactElement {
+  const [highlighted, setHighlighted] = useState<string>(PRESET_NAMES[0] ?? '');
   const items = [
     ...PRESET_NAMES.map((name) => ({
       label: t((PRESET_LABEL_KEYS[name] ?? name) as Parameters<typeof t>[0]),
@@ -39,6 +41,7 @@ export default function PresetMenu({
       <Text bold>{t('tui.mainMenu.selectPreset')}</Text>
       <SelectInput
         items={items}
+        onHighlight={(item) => setHighlighted(item.value)}
         onSelect={async (item) => {
           if (item.value === '__back__') {
             onBack();
@@ -49,6 +52,7 @@ export default function PresetMenu({
           await onSelect(next);
         }}
       />
+      <PresetPreview name={highlighted} settings={currentSettings} />
     </Box>
   );
 }

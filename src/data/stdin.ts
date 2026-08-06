@@ -27,6 +27,8 @@ const RateLimitPeriodSchema = z.object({
   resets_at: z.number().optional(),
 });
 
+// Claude Code only emits five_hour / seven_day on the statusline payload. Per-model
+// buckets (Opus, Sonnet, Fable) are tracked internally but never handed to statuslines.
 const RateLimitsSchema = z.object({
   five_hour: RateLimitPeriodSchema.optional(),
   seven_day: RateLimitPeriodSchema.optional(),

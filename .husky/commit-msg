@@ -41,8 +41,8 @@ if [ "$LAST_CHAR" = "." ]; then
 fi
 
 MSG_LENGTH=${#COMMIT_MSG}
-if [ "$MSG_LENGTH" -gt 50 ]; then
-  echo "  ⚠ WARNING — First line is $MSG_LENGTH chars (recommended max: 50)"
+if [ "$MSG_LENGTH" -gt 100 ]; then
+  echo "  ⚠ WARNING — First line is $MSG_LENGTH chars (recommended max: 100)"
 fi
 
 exit 0

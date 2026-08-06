@@ -72,15 +72,17 @@
 ## 🎨 데모
 
 ```
-Daily   │ Ctx ■■■■■■■■■■  23% (47K/200K)  │ Session ■■■■■■■■■■  30% (3h 41m)
-Weekly  │ 7d ■■■■■■■■■■  25% (4d 0h)
-Codex   │ 7d ■■■■■■■■■■  10% (1d 1h)
+Daily   │ Ctx ■■■■■■■■■■  38% (75K/200K)  │ Session ■■■■■■■■■■  30% (3h 0m)
+Weekly  │ all ■■■■■■■■■■  25% (4d 0h)
+Codex   │ 7d  ■■■■■■■■■■  10% (1d 0h)
 
-⚡74% │ ⏱ 1h 0m │ $0.0042
-Sonnet 4.6 [high] │ 📁 festatusline(main)
+⚡70% │ ⏱ 30m │ $0.420
+Opus 5 [high] │ 📁 festatusline(main)
 ```
 
-실제 출력에는 트루컬러 ANSI 색상이 적용됩니다 (밝음/어두움 바, 강조 텍스트). 프리셋과 로케일에 따라 결과가 달라집니다.
+`max` 프리셋 기준입니다. 실제 출력에는 트루컬러 ANSI 색상이 적용됩니다 — 채운 칸과 빈 칸이 같은
+`■` 문자에 밝기만 다르게 표시되므로, 색을 벗기면 바가 꽉 찬 것처럼 보입니다. 프리셋과 로케일에
+따라 결과가 달라집니다.
 
 ---
 
@@ -93,7 +95,7 @@ Sonnet 4.6 [high] │ 📁 festatusline(main)
   "lines": [
     [{ "id": "dailyUsage" }, { "id": "context" }],
     [{ "id": "weeklyUsage" }, { "id": "weeklyRateLimit" }],
-    [{ "id": "model" }, { "id": "claudePeak" }, { "id": "gitRepo" }]
+    [{ "id": "model" }, { "id": "gitRepo" }]
   ],
   "theme": "default",
   "locale": "ko",
@@ -111,27 +113,30 @@ Sonnet 4.6 [high] │ 📁 festatusline(main)
 
 ## 🧩 위젯
 
-### Claude (15개)
+### Claude (13개)
 
 | id | 출력 예시 | 설명 |
 |---|---|---|
 | `model` | `Sonnet 4.6` / `Sonnet 4.6 [high]` | 현재 모델명(축약). 노력 레벨이 보통이 아니면 괄호로 표시. |
 | `context` | `Ctx ■■□□□□□□□□  23% (47K/200K)` | 컨텍스트 창 바 + 비율 + 토큰 수 |
 | `sessionRateLimit` | `Now ■■■□□□□□□□  30% (3h 41m)` | 현재 세션(약 5시간 롤링) 사용량 바 + 리셋까지 남은 시간 |
-| `weeklyRateLimit` | `7d ■■□□□□□□□□  25% (6d 10h)` | 7일 전체 모델 레이트 리밋 + 리셋까지 남은 시간 |
-| `peakTime` | `22:00–05:00` | 최근 14일 기준 피크 사용 시간대 (jsonl 이력 분석) |
+| `weeklyRateLimit` | `all ■■□□□□□□□□  25% (6d 10h)` | 7일 전체 모델 레이트 리밋 + 리셋까지 남은 시간 |
 | `dailyUsage` | `Daily  ` | 오늘 사용량용 레이블 (다른 위젯과 함께 배치) |
 | `dailyReset` | `↺ 04:32` | 자정 기준 일간 리셋까지 카운트다운 |
 | `weeklyUsage` | `Weekly ` | 주간 사용량용 레이블 |
 | `weeklyReset` | `↺ 2d 3h` | 주간 리셋 앵커까지 카운트다운 |
 | `sonnetWeeklyUsage` | `S:42K` / `S:1.3M` | 이번 주 Sonnet 모델 누적 토큰 수 |
 | `sonnetWeeklyReset` | `S↺ 2d 3h` | Sonnet 주간 리셋까지 카운트다운 |
-| `claudePeak` | `🔴 Peak (1h 30m)` / `🟢 Off-Peak (8h 6m)` | KST 22:00–04:00 피크 창 (UTC 13:00–19:00) |
 | `sessionCost` | `$0.0042` / `$1.23` | 세션 비용 (USD) |
 | `cacheHit` | `⚡74%` | 캐시 히트율 (cache_read / 총 입력 토큰) |
 | `cacheTtl` | `⏱ 1h 0m` | 캐시 TTL 잔여 시간 (ephemeral → 1h, 나머지 → 5m) |
 
-### Codex (4개)
+> **모델별 주간 한도는 가져올 수 없습니다.** statusline stdin 페이로드에는 `rate_limits.five_hour`
+> 와 `rate_limits.seven_day` 만 실려 옵니다. Claude Code 는 모델별 버킷(Opus·Sonnet·Fable)을 내부적으로
+> 추적하고 `/usage` 에는 표시하지만, statusline 으로 넘겨주지도 디스크에 캐시하지도 않습니다. 따라서
+> `weeklyRateLimit` 은 전체 모델 합산 값만 보여줍니다.
+
+### Codex (3개)
 
 | id | 출력 예시 | 설명 |
 |---|---|---|
@@ -175,11 +180,20 @@ TUI 에서 테마를 바꾸거나 settings.json 의 `"theme"` 필드를 직접 �
 
 | 프리셋 | 라인 수 | 주요 구성 |
 |---|---|---|
-| `lite` | 3 | `dailyUsage` + `context` / `weeklyUsage` + `weeklyRateLimit` / `model` + `claudePeak` + `gitRepo` |
-| `plus` | 5 | lite + spacer + `cacheHit`, `cacheTtl`, `sessionCost` 행 추가 |
-| `pro` | 6 | plus + Codex 행(`codexModel`, `codexWeeklyRateLimit`) 추가 |
+| `basic` | 2 | 일간 행 / 주간 행 |
+| `pro` | 4 | basic + 개행 + `model` + `gitRepo` |
+| `max` | 6 | pro + Codex 행 + `cacheHit`, `cacheTtl`, `sessionCost` 행 |
 
-Claude Code 에서 `/festatusline:setup` 으로 적용할 수 있습니다.
+일간 행은 `dailyUsage` + `context` + `sessionRateLimit`, 주간 행은
+`weeklyUsage` + `weeklyRateLimit` 이며, `all` 바가 윗줄 `Ctx` 열 아래에 오도록 폭이
+맞춰져 있습니다.
+
+Claude Code 에서 `/festatusline:setup` 으로 적용할 수 있습니다. setup 마법사와 프리셋 메뉴 모두
+커서가 놓인 프리셋의 실시간 미리보기를 보여줍니다 — 예시 사용량 수치에 현재 테마·로케일이
+적용되므로, 고르기 전에 레이아웃을 확인할 수 있습니다.
+
+`minimal`, `full`, `korean-dev`, `multi-cli` 는 프리셋 메뉴에는 남아 있지만 setup 마법사에는
+나오지 않습니다.
 
 ---
 

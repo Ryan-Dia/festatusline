@@ -1,17 +1,15 @@
 #!/usr/bin/env node
 import {
-  getTheme,
-  getWidget,
-  source_default
-} from "./chunk-KA63TBK7.js";
-import {
   createTranslator,
   external_exports,
   getClaudeDir,
+  getTheme,
   loadSettings,
+  renderAllLines,
   setLocale,
+  source_default,
   t
-} from "./chunk-YFNHIZ7Z.js";
+} from "./chunk-AGLANR4T.js";
 
 // src/render/index.ts
 import { promises as fs5 } from "fs";
@@ -438,24 +436,6 @@ async function readClaudeSettings() {
   }
 }
 
-// src/render/line.ts
-function renderLine(widgetCfgs, ctx, separator) {
-  const parts = [];
-  for (const cfg of widgetCfgs) {
-    const widget = getWidget(cfg.id);
-    if (!widget) continue;
-    const text = widget.render(ctx, cfg);
-    if (!text) continue;
-    const color = cfg.color ?? ctx.theme.accent;
-    parts.push(source_default.hex(color)(text));
-  }
-  const sep = source_default.hex(ctx.theme.muted)(separator);
-  return parts.join(sep);
-}
-function renderAllLines(lines, ctx, separator) {
-  return lines.map((line) => renderLine(line, ctx, separator)).filter(Boolean).join("\n");
-}
-
 // src/render/index.ts
 var CACHE_DIR = process.env.XDG_CACHE_HOME ? join(process.env.XDG_CACHE_HOME, "festatusline") : join(homedir(), ".cache", "festatusline");
 var RATE_LIMITS_CACHE_PATH = join(CACHE_DIR, "rate_limits.json");
@@ -623,7 +603,7 @@ function isLocale(v) {
 }
 var commands = {
   setup: async () => {
-    const { runSetupWizard } = await import("./setup-ZRYLRBVJ.js");
+    const { runSetupWizard } = await import("./setup-GZLPJ53B.js");
     return runSetupWizard();
   },
   install: (args) => installToClaude(args.includes("--force")),
@@ -640,7 +620,7 @@ async function dispatch(argv) {
     await renderFromStdin();
     return;
   }
-  const { runTui } = await import("./tui-NS3HCL37.js");
+  const { runTui } = await import("./tui-PGUC6YXE.js");
   await runTui();
 }
 async function main() {

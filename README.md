@@ -72,15 +72,17 @@ The setup command writes the following into `~/.claude/settings.json`:
 ## 🎨 Demo
 
 ```
-Daily   │ Ctx ■■■■■■■■■■  23% (47K/200K)  │ Session ■■■■■■■■■■  30% (3h 41m)
-Weekly  │ 7d ■■■■■■■■■■  25% (4d 0h)
-Codex   │ 7d ■■■■■■■■■■  10% (1d 1h)
+Daily   │ Ctx ■■■■■■■■■■  38% (75K/200K)  │ Session ■■■■■■■■■■  30% (3h 0m)
+Weekly  │ all ■■■■■■■■■■  25% (4d 0h)
+Codex   │ 7d  ■■■■■■■■■■  10% (1d 0h)
 
-⚡74% │ ⏱ 1h 0m │ $0.0042
-Sonnet 4.6 [high] │ 📁 festatusline(main)
+⚡70% │ ⏱ 30m │ $0.420
+Opus 5 [high] │ 📁 festatusline(main)
 ```
 
-Colors are rendered with truecolor ANSI — dim/bright bars, accent text. Output varies by preset and locale.
+That is the `max` preset. Colors are rendered with truecolor ANSI — filled and empty bar cells
+use the same `■` glyph at different brightness, so the bars look solid once color is stripped.
+Output varies by preset and locale.
 
 ---
 
@@ -93,7 +95,7 @@ Settings are stored at `~/.config/festatusline/settings.json` (respects `$XDG_CO
   "lines": [
     [{ "id": "dailyUsage" }, { "id": "context" }],
     [{ "id": "weeklyUsage" }, { "id": "weeklyRateLimit" }],
-    [{ "id": "model" }, { "id": "claudePeak" }, { "id": "gitRepo" }]
+    [{ "id": "model" }, { "id": "gitRepo" }]
   ],
   "theme": "default",
   "locale": "ko",
@@ -111,27 +113,30 @@ Edit manually or use `/festatusline:setup` in Claude Code to reconfigure.
 
 ## 🧩 Widgets
 
-### Claude (15)
+### Claude (13)
 
 | id | Example output | Description |
 |---|---|---|
 | `model` | `Sonnet 4.6` / `Sonnet 4.6 [high]` | Current model name, shortened. Appends effort level if non-normal. |
 | `context` | `Ctx ■■□□□□□□□□  23% (47K/200K)` | Context window bar + percentage + token counts |
 | `sessionRateLimit` | `Now ■■■□□□□□□□  30% (3h 41m)` | Current session (rolling ~5h) usage bar + reset time |
-| `weeklyRateLimit` | `7d ■■□□□□□□□□  25% (6d 10h)` | 7-day all-model rate limit + reset time |
-| `peakTime` | `22:00–05:00` | Peak usage hour range (last 14 days, from jsonl history) |
+| `weeklyRateLimit` | `all ■■□□□□□□□□  25% (6d 10h)` | 7-day all-model rate limit + reset time |
 | `dailyUsage` | `Daily  ` | Static label for today's usage (pairs with other widgets) |
 | `dailyReset` | `↺ 04:32` | Countdown to local-midnight daily reset |
 | `weeklyUsage` | `Weekly ` | Static label for weekly usage |
 | `weeklyReset` | `↺ 2d 3h` | Countdown to weekly reset anchor |
 | `sonnetWeeklyUsage` | `S:42K` / `S:1.3M` | Sonnet model tokens consumed this week |
 | `sonnetWeeklyReset` | `S↺ 2d 3h` | Countdown to Sonnet weekly reset |
-| `claudePeak` | `🔴 Peak (1h 30m)` / `🟢 Off-Peak (8h 6m)` | KST peak window 22:00–04:00 (UTC 13:00–19:00) |
 | `sessionCost` | `$0.0042` / `$1.23` | Session cost in USD |
 | `cacheHit` | `⚡74%` | Cache hit ratio (cache_read / total input tokens) |
 | `cacheTtl` | `⏱ 1h 0m` | Remaining cache TTL (1h for ephemeral, 5m otherwise) |
 
-### Codex (4)
+> **Per-model weekly limits are not available.** The statusline stdin payload only carries
+> `rate_limits.five_hour` and `rate_limits.seven_day`. Claude Code tracks per-model buckets
+> (Opus, Sonnet, Fable) internally and shows them in `/usage`, but never hands them to
+> statuslines nor caches them on disk — so `weeklyRateLimit` is the all-model figure only.
+
+### Codex (3)
 
 | id | Example output | Description |
 |---|---|---|
@@ -175,11 +180,19 @@ Select a theme in the TUI or set `"theme"` in settings.json.
 
 | Preset | Lines | Highlights |
 |---|---|---|
-| `lite` | 3 | `dailyUsage` + `context` / `weeklyUsage` + `weeklyRateLimit` / `model` + `claudePeak` + `gitRepo` |
-| `plus` | 5 | lite + spacer + `cacheHit`, `cacheTtl`, `sessionCost` row |
-| `pro` | 6 | plus + Codex row (`codexModel`, `codexWeeklyRateLimit`) |
+| `basic` | 2 | daily row / weekly row |
+| `pro` | 4 | basic + spacer + `model` + `gitRepo` |
+| `max` | 6 | pro + Codex row, `cacheHit` + `cacheTtl` + `sessionCost` row |
 
-Apply a preset via `/festatusline:setup` in Claude Code.
+The daily row is `dailyUsage` + `context` + `sessionRateLimit`, and the weekly row is
+`weeklyUsage` + `weeklyRateLimit` — the `all` bar is padded to sit under the `Ctx` column.
+
+Apply a preset via `/festatusline:setup` in Claude Code. The setup wizard and the preset menu both
+render a live preview of the highlighted preset — sample usage numbers, your current theme and
+locale — so you can see the layout before committing to it.
+
+`minimal`, `full`, `korean-dev` and `multi-cli` remain available in the preset menu but are not
+offered by the setup wizard.
 
 ---
 

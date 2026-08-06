@@ -2,14 +2,15 @@
 import {
   LanguageSelect,
   PRESETS,
+  PresetPreview,
   saveSettings
-} from "./chunk-BZNV6SZX.js";
+} from "./chunk-YJXLBNTA.js";
 import {
   SettingsSchema,
   loadSettings,
   setLocale,
   t
-} from "./chunk-YFNHIZ7Z.js";
+} from "./chunk-AGLANR4T.js";
 
 // src/tui/setup.ts
 import React2 from "react";
@@ -19,16 +20,17 @@ import { render } from "ink";
 import React, { useState } from "react";
 import { Box, Text, useApp } from "ink";
 import SelectInput from "ink-select-input";
-var SETUP_PRESET_NAMES = ["lite", "plus", "pro"];
+var SETUP_PRESET_NAMES = ["basic", "pro", "max"];
 var SETUP_PRESET_LABEL_KEYS = {
-  lite: "tui.preset.lite",
-  plus: "tui.preset.plus",
-  pro: "tui.preset.pro"
+  basic: "tui.preset.basic",
+  pro: "tui.preset.pro",
+  max: "tui.preset.max"
 };
 function SetupWizard({ initialSettings, onSave }) {
   const { exit } = useApp();
   const [step, setStep] = useState("language");
   const [settings, setSettings] = useState(initialSettings);
+  const [highlighted, setHighlighted] = useState(SETUP_PRESET_NAMES[0]);
   if (step === "language") {
     return /* @__PURE__ */ React.createElement(
       LanguageSelect,
@@ -56,6 +58,7 @@ function SetupWizard({ initialSettings, onSave }) {
     SelectInput,
     {
       items,
+      onHighlight: (item) => setHighlighted(item.value),
       onSelect: async (item) => {
         if (item.value === "__back__") {
           setStep("language");
@@ -67,7 +70,7 @@ function SetupWizard({ initialSettings, onSave }) {
         exit();
       }
     }
-  ));
+  ), /* @__PURE__ */ React.createElement(PresetPreview, { name: highlighted, settings }));
 }
 
 // src/tui/setup.ts
@@ -81,4 +84,4 @@ async function runSetupWizard() {
 export {
   runSetupWizard
 };
-//# sourceMappingURL=setup-ZRYLRBVJ.js.map
+//# sourceMappingURL=setup-GZLPJ53B.js.map

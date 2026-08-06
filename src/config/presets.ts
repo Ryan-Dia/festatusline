@@ -1,5 +1,9 @@
 import type { Settings } from './schema.js';
 
+// Shared by the basic/pro/max ladder so the two usage rows stay column-aligned.
+const DAILY_ROW = [{ id: 'dailyUsage' }, { id: 'context' }, { id: 'sessionRateLimit' }];
+const WEEKLY_ROW = [{ id: 'weeklyUsage' }, { id: 'weeklyRateLimit' }];
+
 export const PRESETS: Record<string, Partial<Settings>> = {
   minimal: {
     lines: [
@@ -42,26 +46,16 @@ export const PRESETS: Record<string, Partial<Settings>> = {
   'multi-cli': {
     lines: [[{ id: 'model' }, { id: 'dailyUsage' }, { id: 'gptUsage' }]],
   },
-  lite: {
-    lines: [
-      [{ id: 'dailyUsage' }, { id: 'context' }],
-      [{ id: 'weeklyUsage' }, { id: 'weeklyRateLimit' }],
-      [{ id: 'model' }, { id: 'gitRepo' }],
-    ],
-  },
-  plus: {
-    lines: [
-      [{ id: 'dailyUsage' }, { id: 'context' }],
-      [{ id: 'weeklyUsage' }, { id: 'weeklyRateLimit' }],
-      [{ id: 'spacer' }],
-      [{ id: 'cacheHit' }, { id: 'cacheTtl' }, { id: 'sessionCost' }],
-      [{ id: 'model' }, { id: 'gitRepo' }],
-    ],
+  basic: {
+    lines: [DAILY_ROW, WEEKLY_ROW],
   },
   pro: {
+    lines: [DAILY_ROW, WEEKLY_ROW, [{ id: 'spacer' }], [{ id: 'model' }, { id: 'gitRepo' }]],
+  },
+  max: {
     lines: [
-      [{ id: 'dailyUsage' }, { id: 'context' }],
-      [{ id: 'weeklyUsage' }, { id: 'weeklyRateLimit' }],
+      DAILY_ROW,
+      WEEKLY_ROW,
       [{ id: 'codexModel' }, { id: 'codexWeeklyRateLimit' }],
       [{ id: 'spacer' }],
       [{ id: 'cacheHit' }, { id: 'cacheTtl' }, { id: 'sessionCost' }],

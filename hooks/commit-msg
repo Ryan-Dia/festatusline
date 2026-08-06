@@ -54,9 +54,9 @@ fi
 
 # --- Rule 4: subject (full first line) max 50 chars ---
 MSG_LENGTH=${#COMMIT_MSG}
-if [ "$MSG_LENGTH" -gt 50 ]; then
+if [ "$MSG_LENGTH" -gt 100 ]; then
   echo ""
-  echo "  ⚠ WARNING — First line is $MSG_LENGTH chars (recommended max: 50)"
+  echo "  ⚠ WARNING — First line is $MSG_LENGTH chars (recommended max: 100)"
   echo ""
   # Warning only, not blocking
 fi

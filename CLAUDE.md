@@ -67,7 +67,7 @@ src/
 | `model` | 현재 Claude 모델명 |
 | `context` | 컨텍스트 사용률 바 + % |
 | `sessionRateLimit` | 현재 세션(약 5시간 롤링) 한도 바 |
-| `weeklyRateLimit` | Claude 7일 할당량 바 |
+| `weeklyRateLimit` | Claude 7일 전체 할당량 바 (`all`) |
 | `dailyUsage` | 오늘 총 토큰 수 |
 | `dailyReset` | 일간 리셋까지 남은 시간 |
 | `weeklyUsage` | 최근 7일 총 토큰 수 |
@@ -145,7 +145,7 @@ footer (optional)
 ```
 
 - **type**: `feat` | `fix` | `docs` | `style` | `refactor` | `test` | `chore`
-- **Subject**: 대문자 시작, 마침표 없음, 명령형, 50자 이내
+- **Subject**: 대문자 시작, 마침표 없음, 명령형, 100자 이내
 - **body**: 72자/줄, what & why 설명 (선택)
 - **footer**: 이슈 참조 (선택) — `Resolves: #123`
 
