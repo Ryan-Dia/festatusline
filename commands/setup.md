@@ -11,7 +11,7 @@ Configure the festatusline status line plugin.
 ## Arguments
 
 - **No arguments**: Interactive mode (asks questions)
-- `$1`: Preset name — `lite` (default), `plus`, `pro`
+- `$1`: Preset name — `basic`, `pro` (default), `max`
 - `$2`: Locale — `ko`, `en` (default), `zh`
 
 ## Available Widgets
@@ -50,62 +50,46 @@ Configure the festatusline status line plugin.
 
 Ask all questions in a single AskUserQuestion call:
 1. Preset — options with descriptions and multi-line previews showing the exact layout:
-   - `lite` (3 lines): Daily/context + weekly rate limit + model line
+   - `basic` (2 lines): daily row + weekly row only
      preview (use actual newlines \n between lines):
      ```
-     Daily  │ Ctx ████  31% (63K/200K)
-     Weekly │ 7d ████  6% (6d 21h)
-     Sonnet 4.6 [high] │ 📁 my-repo (main)
+     Daily   │ Ctx ■■■□□□□□□□  38% (75K/200K)  │ Session ■■■□□□□□□□  30% (3h 0m)
+     Weekly  │ all ■■□□□□□□□□  25% (4d 0h)
      ```
-   - `plus` (5 lines, recommended): lite + spacer + cache/cost line
+   - `pro` (4 lines, recommended): basic + spacer + model/repo line
      preview:
      ```
-     Daily  │ Ctx ████  31% (63K/200K)
-     Weekly │ 7d ████  6% (6d 21h)
+     Daily   │ Ctx ■■■□□□□□□□  38% (75K/200K)  │ Session ■■■□□□□□□□  30% (3h 0m)
+     Weekly  │ all ■■□□□□□□□□  25% (4d 0h)
 
-     ⚡100% │ ⏰ 1h 0m │ $1.56
-     Sonnet 4.6 [high] │ 📁 my-repo (main)
+     Opus 5 [high] │ 📁 my-repo(main)
      ```
-   - `pro` (6 lines): plus + Codex CLI line
+   - `max` (6 lines): pro + Codex row + cache/cost row
      preview:
      ```
-     Daily  │ Ctx ████  31% (63K/200K)
-     Weekly │ 7d ████  6% (6d 21h)
-     Codex  │ 7d ████   0% (reset)
+     Daily   │ Ctx ■■■□□□□□□□  38% (75K/200K)  │ Session ■■■□□□□□□□  30% (3h 0m)
+     Weekly  │ all ■■□□□□□□□□  25% (4d 0h)
+     Codex   │ 7d  ■□□□□□□□□□  10% (1d 0h)
 
-     ⚡100% │ ⏰ 1h 0m │ $1.56
-     Sonnet 4.6 [high] │ 📁 my-repo (main)
+     ⚡70% │ ⏱ 30m │ $0.420
+     Opus 5 [high] │ 📁 my-repo(main)
      ```
 2. Theme — `default` (recommended), `dracula`, `nord`, `gruvbox`, `tokyo-night`
 3. Locale — `ko` (recommended), `en`, `zh`
 
 **If arguments provided:**
-Use `$1` as preset (default: `lite`) and `$2` as locale (default: `en`).
+Use `$1` as preset (default: `pro`) and `$2` as locale (default: `en`).
 
 ### 2. Build settings JSON
 
 Map the chosen preset to the `lines` array:
 
-**lite:**
+**basic:**
 ```json
 {
   "lines": [
-    [{"id":"dailyUsage"},{"id":"context"}],
-    [{"id":"weeklyUsage"},{"id":"weeklyRateLimit"}],
-    [{"id":"model"},{"id":"gitRepo"}]
-  ]
-}
-```
-
-**plus:**
-```json
-{
-  "lines": [
-    [{"id":"dailyUsage"},{"id":"context"}],
-    [{"id":"weeklyUsage"},{"id":"weeklyRateLimit"}],
-    [{"id":"spacer"}],
-    [{"id":"cacheHit"},{"id":"cacheTtl"},{"id":"sessionCost"}],
-    [{"id":"model"},{"id":"gitRepo"}]
+    [{"id":"dailyUsage"},{"id":"context"},{"id":"sessionRateLimit"}],
+    [{"id":"weeklyUsage"},{"id":"weeklyRateLimit"}]
   ]
 }
 ```
@@ -114,7 +98,19 @@ Map the chosen preset to the `lines` array:
 ```json
 {
   "lines": [
-    [{"id":"dailyUsage"},{"id":"context"}],
+    [{"id":"dailyUsage"},{"id":"context"},{"id":"sessionRateLimit"}],
+    [{"id":"weeklyUsage"},{"id":"weeklyRateLimit"}],
+    [{"id":"spacer"}],
+    [{"id":"model"},{"id":"gitRepo"}]
+  ]
+}
+```
+
+**max:**
+```json
+{
+  "lines": [
+    [{"id":"dailyUsage"},{"id":"context"},{"id":"sessionRateLimit"}],
     [{"id":"weeklyUsage"},{"id":"weeklyRateLimit"}],
     [{"id":"codexModel"},{"id":"codexWeeklyRateLimit"}],
     [{"id":"spacer"}],
@@ -123,6 +119,9 @@ Map the chosen preset to the `lines` array:
   ]
 }
 ```
+
+> The daily and weekly rows are identical across all three presets and are padded so the
+> `all` bar sits directly under the `Ctx` column.
 
 ### 3. Write settings file
 

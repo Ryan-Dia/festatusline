@@ -119,7 +119,7 @@ Opus 5 [high] │ 📁 festatusline(main)
 |---|---|---|
 | `model` | `Sonnet 4.6` / `Sonnet 4.6 [high]` | 현재 모델명(축약). 노력 레벨이 보통이 아니면 괄호로 표시. |
 | `context` | `Ctx ■■□□□□□□□□  23% (47K/200K)` | 컨텍스트 창 바 + 비율 + 토큰 수 |
-| `sessionRateLimit` | `Now ■■■□□□□□□□  30% (3h 41m)` | 현재 세션(약 5시간 롤링) 사용량 바 + 리셋까지 남은 시간 |
+| `sessionRateLimit` | `Session ■■■□□□□□□□  30% (3h 41m)` | 현재 세션(약 5시간 롤링) 사용량 바 + 리셋까지 남은 시간 |
 | `weeklyRateLimit` | `all ■■□□□□□□□□  25% (6d 10h)` | 7일 전체 모델 레이트 리밋 + 리셋까지 남은 시간 |
 | `dailyUsage` | `Daily  ` | 오늘 사용량용 레이블 (다른 위젯과 함께 배치) |
 | `dailyReset` | `↺ 04:32` | 자정 기준 일간 리셋까지 카운트다운 |
@@ -142,7 +142,7 @@ Opus 5 [high] │ 📁 festatusline(main)
 |---|---|---|
 | `gptUsage` | `GPT:12req` | 오늘 Codex CLI 요청 수 (`~/.codex/history.jsonl` 기반) |
 | `codexModel` | `Codex  ` | Codex/GPT 행임을 나타내는 고정 라벨 |
-| `codexWeeklyRateLimit` | `7d ■□□□□□□□□□  10% (1d 1h)` | Codex 7일 레이트 리밋 |
+| `codexWeeklyRateLimit` | `7d  ■□□□□□□□□□  10% (1d 1h)` | Codex 7일 레이트 리밋 |
 
 > `gptUsage`는 Codex CLI를 한 번이라도 사용하기 전까지 숨겨집니다. `codexModel`은 고정
 > 라벨이라 처음 사용하기 전에도 Codex 행이 항상 표시됩니다.
@@ -209,6 +209,9 @@ Claude Code 에서 `/festatusline:setup` 으로 적용할 수 있습니다. setu
 4. 최종 폴백: `en`
 
 `FESTATUSLINE_LOCALE` 는 설정 파일보다 항상 우선합니다.
+
+로케일은 인터랙티브 TUI — 셋업 마법사 라벨, 메뉴, 프리셋 이름 — 에 적용됩니다. 상태바 출력에는
+번역 문자열이 없으므로 위젯 출력은 어떤 로케일에서도 동일합니다.
 
 ---
 

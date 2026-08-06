@@ -119,7 +119,7 @@ Edit manually or use `/festatusline:setup` in Claude Code to reconfigure.
 |---|---|---|
 | `model` | `Sonnet 4.6` / `Sonnet 4.6 [high]` | Current model name, shortened. Appends effort level if non-normal. |
 | `context` | `Ctx ■■□□□□□□□□  23% (47K/200K)` | Context window bar + percentage + token counts |
-| `sessionRateLimit` | `Now ■■■□□□□□□□  30% (3h 41m)` | Current session (rolling ~5h) usage bar + reset time |
+| `sessionRateLimit` | `Session ■■■□□□□□□□  30% (3h 41m)` | Current session (rolling ~5h) usage bar + reset time |
 | `weeklyRateLimit` | `all ■■□□□□□□□□  25% (6d 10h)` | 7-day all-model rate limit + reset time |
 | `dailyUsage` | `Daily  ` | Static label for today's usage (pairs with other widgets) |
 | `dailyReset` | `↺ 04:32` | Countdown to local-midnight daily reset |
@@ -142,7 +142,7 @@ Edit manually or use `/festatusline:setup` in Claude Code to reconfigure.
 |---|---|---|
 | `gptUsage` | `GPT:12req` | Today's Codex CLI request count (from `~/.codex/history.jsonl`) |
 | `codexModel` | `Codex  ` | Static "Codex" label marking the Codex/GPT row |
-| `codexWeeklyRateLimit` | `7d ■□□□□□□□□□  10% (1d 1h)` | Codex 7-day rate limit |
+| `codexWeeklyRateLimit` | `7d  ■□□□□□□□□□  10% (1d 1h)` | Codex 7-day rate limit |
 
 > `gptUsage` is hidden until Codex CLI has been used at least once. `codexModel` is a static
 > label shown regardless, so the Codex row is visible even before first use.
@@ -208,6 +208,9 @@ Three locale bundles are included: `ko` (Korean), `en` (English), `zh` (Chinese)
 4. Fallback: `en`
 
 `FESTATUSLINE_LOCALE` takes precedence over the settings file value.
+
+Locale applies to the interactive TUI — setup wizard labels, menus, preset names. The rendered
+statusline carries no translated strings, so widget output is identical in every locale.
 
 ---
 
