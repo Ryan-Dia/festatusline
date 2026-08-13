@@ -4,13 +4,13 @@ import {
   PRESETS,
   PresetPreview,
   saveSettings
-} from "./chunk-YJXLBNTA.js";
+} from "./chunk-OXDD7W64.js";
 import {
   SettingsSchema,
   loadSettings,
   setLocale,
   t
-} from "./chunk-AGLANR4T.js";
+} from "./chunk-JOKZRD53.js";
 
 // src/tui/setup.ts
 import React2 from "react";
@@ -84,4 +84,4 @@ async function runSetupWizard() {
 export {
   runSetupWizard
 };
-//# sourceMappingURL=setup-GZLPJ53B.js.map
+//# sourceMappingURL=setup-DJW4HGHT.js.map

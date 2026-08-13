@@ -9,7 +9,7 @@ import {
   setLocale,
   source_default,
   t
-} from "./chunk-AGLANR4T.js";
+} from "./chunk-JOKZRD53.js";
 
 // src/render/index.ts
 import { promises as fs5 } from "fs";
@@ -56,6 +56,9 @@ var WorkspaceSchema = external_exports.object({
 var OutputStyleSchema = external_exports.object({
   name: external_exports.string().optional()
 });
+var EffortSchema = external_exports.object({
+  level: external_exports.string().optional()
+});
 var ClaudeStdinSchema = external_exports.object({
   type: external_exports.string().optional(),
   model: ModelSchema.optional(),
@@ -70,7 +73,8 @@ var ClaudeStdinSchema = external_exports.object({
   version: external_exports.string().optional(),
   output_style: OutputStyleSchema.optional(),
   rate_limits: RateLimitsSchema.optional(),
-  exceeds_200k_tokens: external_exports.boolean().optional()
+  exceeds_200k_tokens: external_exports.boolean().optional(),
+  effort: EffortSchema.optional()
 });
 async function readStdin() {
   return new Promise((resolve, reject) => {
@@ -423,7 +427,10 @@ async function getCodexSnapshot() {
 import fs4 from "fs";
 import path3 from "path";
 var ClaudeSettingsSchema = external_exports.object({
-  effortLevel: external_exports.string().optional()
+  effortLevel: external_exports.string().optional(),
+  // Session-scoped flag, normally supplied via --settings. `/effort ultracode` picked in
+  // the TUI never lands here, so this only catches sessions pinned through the file.
+  ultracode: external_exports.boolean().optional()
 });
 async function readClaudeSettings() {
   const settingsPath = path3.join(getClaudeDir(), "settings.json");
@@ -498,6 +505,7 @@ async function renderFromStdin() {
     now: /* @__PURE__ */ new Date(),
     weeklyAnchorDay: settings.weeklyAnchorDay,
     effortLevel: claudeSettings.effortLevel,
+    ultracode: claudeSettings.ultracode,
     cacheTtlCreatedAt,
     cacheTtlMs
   };
@@ -603,7 +611,7 @@ function isLocale(v) {
 }
 var commands = {
   setup: async () => {
-    const { runSetupWizard } = await import("./setup-GZLPJ53B.js");
+    const { runSetupWizard } = await import("./setup-DJW4HGHT.js");
     return runSetupWizard();
   },
   install: (args) => installToClaude(args.includes("--force")),
@@ -620,7 +628,7 @@ async function dispatch(argv) {
     await renderFromStdin();
     return;
   }
-  const { runTui } = await import("./tui-PGUC6YXE.js");
+  const { runTui } = await import("./tui-QHDAEQVD.js");
   await runTui();
 }
 async function main() {

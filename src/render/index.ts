@@ -89,6 +89,7 @@ export async function renderFromStdin(): Promise<void> {
     now: new Date(),
     weeklyAnchorDay: settings.weeklyAnchorDay,
     effortLevel: claudeSettings.effortLevel,
+    ultracode: claudeSettings.ultracode,
     cacheTtlCreatedAt,
     cacheTtlMs,
   };

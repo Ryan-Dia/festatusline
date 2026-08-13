@@ -4823,11 +4823,28 @@ function getTheme(name) {
 
 // src/widgets/Model.ts
 var EFFORT_LABELS = {
-  low: "low",
-  normal: "normal",
-  high: "high",
   "max-tokens": "max"
 };
+var EFFORT_IN_STDIN_SINCE = [2, 1, 119];
+function isAtLeast(version, min) {
+  if (!version) return false;
+  const parts = version.split(".").map((part) => Number.parseInt(part, 10));
+  if (parts.length < min.length || parts.some((part) => Number.isNaN(part))) return false;
+  for (let i = 0; i < min.length; i += 1) {
+    const part = parts[i] ?? 0;
+    const floor = min[i] ?? 0;
+    if (part !== floor) return part > floor;
+  }
+  return true;
+}
+function effortLabel(ctx) {
+  const fromStdin = ctx.stdin.effort?.level;
+  const stale = isAtLeast(ctx.stdin.version, EFFORT_IN_STDIN_SINCE) ? void 0 : ctx.effortLevel;
+  const level = fromStdin ?? stale;
+  if (!level || level === "normal") return null;
+  if (ctx.ultracode && level === "xhigh") return "ultracode";
+  return EFFORT_LABELS[level] ?? level;
+}
 function shortName(raw) {
   const stripped = raw.replace(/^Claude\s+/i, "");
   if (stripped !== raw) return stripped;
@@ -4846,12 +4863,8 @@ var ModelWidget = {
     const rawName = ctx.stdin.model?.display_name ?? ctx.stdin.model?.id ?? ctx.usage?.lastModel ?? null;
     if (!rawName) return "?";
     const name = shortName(rawName);
-    const effort = ctx.effortLevel;
-    if (effort && effort !== "normal") {
-      const label = EFFORT_LABELS[effort] ?? effort;
-      return `${name} [${label}]`;
-    }
-    return name;
+    const label = effortLabel(ctx);
+    return label ? `${name} [${label}]` : name;
   }
 };
 
@@ -5283,4 +5296,4 @@ export {
   ALL_WIDGETS,
   renderAllLines
 };
-//# sourceMappingURL=chunk-AGLANR4T.js.map
+//# sourceMappingURL=chunk-JOKZRD53.js.map

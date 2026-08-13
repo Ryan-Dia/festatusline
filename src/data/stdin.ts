@@ -49,6 +49,14 @@ const OutputStyleSchema = z.object({
   name: z.string().optional(),
 });
 
+// Claude Code emits this only for effort-capable models, and the level is already
+// resolved: env override > launch-effort pin > session choice > model default.
+// Always prefer it over the raw effortLevel in ~/.claude/settings.json, which never
+// records the session-only levels (max, ultracode) and ignores env overrides.
+const EffortSchema = z.object({
+  level: z.string().optional(),
+});
+
 const ClaudeStdinSchema = z.object({
   type: z.string().optional(),
   model: ModelSchema.optional(),
@@ -64,6 +72,7 @@ const ClaudeStdinSchema = z.object({
   output_style: OutputStyleSchema.optional(),
   rate_limits: RateLimitsSchema.optional(),
   exceeds_200k_tokens: z.boolean().optional(),
+  effort: EffortSchema.optional(),
 });
 
 export type ClaudeStdin = z.infer<typeof ClaudeStdinSchema>;

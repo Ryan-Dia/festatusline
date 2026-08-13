@@ -13,6 +13,7 @@ export interface RenderContext {
   now: Date;
   weeklyAnchorDay: number | null;
   effortLevel?: string;
+  ultracode?: boolean;
   cacheTtlCreatedAt: number | null;
   cacheTtlMs: number;
 }

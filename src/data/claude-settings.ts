@@ -5,6 +5,9 @@ import { getClaudeDir } from '../config/load.js';
 
 const ClaudeSettingsSchema = z.object({
   effortLevel: z.string().optional(),
+  // Session-scoped flag, normally supplied via --settings. `/effort ultracode` picked in
+  // the TUI never lands here, so this only catches sessions pinned through the file.
+  ultracode: z.boolean().optional(),
 });
 
 export type ClaudeSettings = z.infer<typeof ClaudeSettingsSchema>;
