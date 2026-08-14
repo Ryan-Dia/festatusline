@@ -101,11 +101,21 @@ async function findLatestSessionFile(): Promise<string | null> {
           .reverse();
         for (const day of days) {
           const dayDir = path.join(sessionsDir, year, month, day);
-          const files = (await fs.promises.readdir(dayDir))
-            .filter((f) => f.endsWith('.jsonl'))
-            .sort()
-            .reverse();
-          if (files.length > 0) return path.join(dayDir, files[0] as string);
+          const files = (await fs.promises.readdir(dayDir)).filter((f) => f.endsWith('.jsonl'));
+          if (files.length === 0) continue;
+          // A session's filename encodes when it started, not when it was last
+          // written to — a long-running session can stay the most recently
+          // modified file long after a later-started, quickly-abandoned one.
+          // Pick by mtime so we read the freshest rate-limit snapshot.
+          const withMtime = await Promise.all(
+            files.map(async (f) => {
+              const filePath = path.join(dayDir, f);
+              const { mtimeMs } = await fs.promises.stat(filePath);
+              return { filePath, mtimeMs };
+            }),
+          );
+          withMtime.sort((a, b) => b.mtimeMs - a.mtimeMs);
+          return withMtime[0]?.filePath ?? null;
         }
       }
     }

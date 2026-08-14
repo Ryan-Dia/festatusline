@@ -140,4 +140,38 @@ describe('getCodexSnapshot', () => {
     const slot = selectLongestWindowSlot(snap.rateLimits);
     expect(slot?.usedPercent).toBe(35);
   });
+
+  it('prefers the session file most recently written to over the one with the latest filename', async () => {
+    const dayDir = join(tmpDir, 'sessions', '2026', '08', '13');
+    await fs.mkdir(dayDir, { recursive: true });
+
+    const makeEvent = (usedPercent: number) =>
+      JSON.stringify({
+        timestamp: '2026-08-13T00:00:00.000Z',
+        type: 'event_msg',
+        payload: {
+          type: 'token_count',
+          rate_limits: {
+            primary: { used_percent: usedPercent, window_minutes: 10_080, resets_at: 1_787_201_135 },
+            secondary: null,
+          },
+        },
+      });
+
+    // Started earlier in the day, but is a still-active long-running session.
+    const stillActive = join(dayDir, 'rollout-2026-08-13T10-00-00-aaa.jsonl');
+    // Started later, but was abandoned right away — filename sorts after `stillActive`.
+    const abandoned = join(dayDir, 'rollout-2026-08-13T20-00-00-bbb.jsonl');
+
+    await fs.writeFile(abandoned, `${makeEvent(35)}\n`);
+    await fs.writeFile(stillActive, `${makeEvent(41)}\n`);
+
+    const past = new Date(Date.now() - 60_000);
+    await fs.utimes(abandoned, past, past);
+    await fs.utimes(stillActive, new Date(), new Date());
+
+    const { getCodexSnapshot } = await import('../src/data/codex.js');
+    const snap = await getCodexSnapshot();
+    expect(snap.rateLimits?.primary?.usedPercent).toBe(41);
+  });
 });
