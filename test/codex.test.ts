@@ -81,4 +81,63 @@ describe('getCodexSnapshot', () => {
     expect(snap.dailyRequests).toBe(1);
     expect(snap.weeklyRequests).toBe(2);
   });
+
+  it('falls back to CODEX_HOME when CODEX_CONFIG_DIR is unset', async () => {
+    delete process.env.CODEX_CONFIG_DIR;
+    process.env.CODEX_HOME = tmpDir;
+    await fs.writeFile(join(tmpDir, 'config.toml'), 'model = "o4-mini"\n');
+    await fs.mkdir(join(tmpDir, 'sessions'), { recursive: true });
+
+    const { getCodexSnapshot } = await import('../src/data/codex.js');
+    const snap = await getCodexSnapshot();
+    expect(snap.available).toBe(true);
+    expect(snap.model).toBe('o4-mini');
+
+    delete process.env.CODEX_HOME;
+  });
+
+  it('counts history.jsonl entries using the real "ts" epoch-seconds field', async () => {
+    const nowSec = Math.floor(Date.now() / 1000);
+    const todaySec = nowSec;
+    const lastWeekSec = nowSec - 10 * 24 * 60 * 60;
+
+    await fs.writeFile(
+      join(tmpDir, 'history.jsonl'),
+      [
+        JSON.stringify({ session_id: 'a', ts: todaySec, text: 'today entry' }),
+        JSON.stringify({ session_id: 'b', ts: lastWeekSec, text: 'old entry' }),
+      ].join('\n') + '\n',
+    );
+
+    const { getCodexSnapshot } = await import('../src/data/codex.js');
+    const snap = await getCodexSnapshot();
+    expect(snap.available).toBe(true);
+    expect(snap.dailyRequests).toBe(1);
+    expect(snap.weeklyRequests).toBe(1);
+  });
+
+  it('reads rate limits when secondary window is null (single-window plans)', async () => {
+    const dayDir = join(tmpDir, 'sessions', '2026', '08', '13');
+    await fs.mkdir(dayDir, { recursive: true });
+    const event = {
+      timestamp: '2026-08-13T20:32:47.000Z',
+      type: 'event_msg',
+      payload: {
+        type: 'token_count',
+        rate_limits: {
+          primary: { used_percent: 35, window_minutes: 10_080, resets_at: 1_787_201_135 },
+          secondary: null,
+        },
+      },
+    };
+    await fs.writeFile(join(dayDir, 'rollout.jsonl'), `${JSON.stringify(event)}\n`);
+
+    const { getCodexSnapshot, selectLongestWindowSlot } = await import('../src/data/codex.js');
+    const snap = await getCodexSnapshot();
+    expect(snap.rateLimits?.secondary).toBeNull();
+    expect(snap.rateLimits?.primary?.usedPercent).toBe(35);
+
+    const slot = selectLongestWindowSlot(snap.rateLimits);
+    expect(slot?.usedPercent).toBe(35);
+  });
 });

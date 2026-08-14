@@ -15,7 +15,8 @@ async function exists(p: string): Promise<boolean> {
 
 export async function runDoctor(): Promise<void> {
   const claudeDir = getClaudeDir();
-  const codexDir = process.env.CODEX_CONFIG_DIR ?? path.join(os.homedir(), '.codex');
+  const codexDir =
+    process.env.CODEX_CONFIG_DIR ?? process.env.CODEX_HOME ?? path.join(os.homedir(), '.codex');
 
   const claudeOk = await exists(claudeDir);
   const codexOk = await exists(codexDir);

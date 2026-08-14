@@ -46,8 +46,8 @@ function buildPreviewContext(settings: Settings): RenderContext {
       dailyRequests: 12,
       weeklyRequests: 84,
       rateLimits: {
-        primary: { usedPercent: 22, resetsAt: unixAfter(2 * HOUR_MS) },
-        secondary: { usedPercent: 10, resetsAt: unixAfter(DAY_MS) },
+        primary: { usedPercent: 22, resetsAt: unixAfter(2 * HOUR_MS), windowMinutes: 300 },
+        secondary: { usedPercent: 10, resetsAt: unixAfter(DAY_MS), windowMinutes: 10_080 },
       },
       model: 'gpt-5',
     },

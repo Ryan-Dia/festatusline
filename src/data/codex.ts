@@ -6,10 +6,13 @@ import { z } from 'zod';
 import { createTtlCache } from './cache.js';
 import { getTimeWindows } from './time.js';
 
-const RateLimitSlotSchema = z.object({
-  used_percent: z.number().optional().default(0),
-  resets_at: z.number(),
-});
+const RateLimitSlotSchema = z
+  .object({
+    used_percent: z.number().optional().default(0),
+    window_minutes: z.number().optional(),
+    resets_at: z.number(),
+  })
+  .nullable();
 
 const CodexEventSchema = z.object({
   type: z.literal('event_msg'),
@@ -22,9 +25,27 @@ const CodexEventSchema = z.object({
   }),
 });
 
+export interface CodexRateLimitSlot {
+  usedPercent: number;
+  resetsAt: number;
+  windowMinutes: number | null;
+}
+
 export interface CodexRateLimits {
-  primary: { usedPercent: number; resetsAt: number };
-  secondary: { usedPercent: number; resetsAt: number };
+  primary: CodexRateLimitSlot | null;
+  secondary: CodexRateLimitSlot | null;
+}
+
+// Some plans only report a single window (usually the 7d one) in `primary`
+// and leave `secondary` null, so pick whichever slot covers the longer window.
+export function selectLongestWindowSlot(
+  rateLimits: CodexRateLimits | null,
+): CodexRateLimitSlot | null {
+  const { primary, secondary } = rateLimits ?? {};
+  if (primary && secondary) {
+    return (primary.windowMinutes ?? 0) >= (secondary.windowMinutes ?? 0) ? primary : secondary;
+  }
+  return secondary ?? primary ?? null;
 }
 
 export interface CodexSnapshot {
@@ -36,7 +57,9 @@ export interface CodexSnapshot {
 }
 
 function getCodexDir(): string {
-  return process.env.CODEX_CONFIG_DIR ?? path.join(os.homedir(), '.codex');
+  return (
+    process.env.CODEX_CONFIG_DIR ?? process.env.CODEX_HOME ?? path.join(os.homedir(), '.codex')
+  );
 }
 
 async function readCodexModel(): Promise<string | null> {
@@ -103,15 +126,36 @@ async function readLastRateLimits(filePath: string): Promise<CodexRateLimits | n
       const result = CodexEventSchema.safeParse(JSON.parse(trimmed));
       if (!result.success) continue;
       const { rate_limits: r } = result.data.payload;
+      const toSlot = (
+        slot: { used_percent: number; window_minutes?: number; resets_at: number } | null,
+      ): CodexRateLimitSlot | null =>
+        slot === null
+          ? null
+          : {
+              usedPercent: slot.used_percent,
+              resetsAt: slot.resets_at,
+              windowMinutes: slot.window_minutes ?? null,
+            };
       last = {
-        primary: { usedPercent: r.primary.used_percent, resetsAt: r.primary.resets_at },
-        secondary: { usedPercent: r.secondary.used_percent, resetsAt: r.secondary.resets_at },
+        primary: toSlot(r.primary),
+        secondary: toSlot(r.secondary),
       };
     } catch (_e) {
       // skip malformed lines
     }
   }
   return last;
+}
+
+function extractHistoryEntryTimestampMs(entry: unknown): number {
+  if (typeof entry !== 'object' || entry === null) return 0;
+  const { ts, timestamp } = entry as Record<string, unknown>;
+  if (typeof ts === 'number') return ts * 1000;
+  if (typeof timestamp === 'string') {
+    const ms = new Date(timestamp).getTime();
+    return Number.isNaN(ms) ? 0 : ms;
+  }
+  return 0;
 }
 
 async function countSessionFiles(sessionsDir: string): Promise<{ daily: number; weekly: number }> {
@@ -177,8 +221,8 @@ export async function getCodexSnapshot(): Promise<CodexSnapshot> {
       const trimmed = line.trim();
       if (!trimmed) continue;
       try {
-        const obj = JSON.parse(trimmed);
-        const ts = obj.timestamp ? new Date(obj.timestamp).getTime() : 0;
+        const obj: unknown = JSON.parse(trimmed);
+        const ts = extractHistoryEntryTimestampMs(obj);
         if (ts >= todayStartMs) daily += 1;
         if (ts >= weekStartMs) weekly += 1;
       } catch (_e) {
