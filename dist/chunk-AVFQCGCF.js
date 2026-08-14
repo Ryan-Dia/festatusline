@@ -6,7 +6,7 @@ import {
   getTheme,
   renderAllLines,
   t
-} from "./chunk-JOKZRD53.js";
+} from "./chunk-4EHSA5TI.js";
 
 // src/config/save.ts
 import fs from "fs";
@@ -21,6 +21,10 @@ async function saveSettings(settings) {
 // src/config/presets.ts
 var DAILY_ROW = [{ id: "dailyUsage" }, { id: "context" }, { id: "sessionRateLimit" }];
 var WEEKLY_ROW = [{ id: "weeklyUsage" }, { id: "weeklyRateLimit" }];
+var CODEX_ROW = [{ id: "codexModel" }, { id: "codexWeeklyRateLimit" }];
+function withCodexRow(lines) {
+  return [...lines.slice(0, 2), CODEX_ROW, ...lines.slice(2)];
+}
 var PRESETS = {
   minimal: {
     lines: [
@@ -73,7 +77,6 @@ var PRESETS = {
     lines: [
       DAILY_ROW,
       WEEKLY_ROW,
-      [{ id: "codexModel" }, { id: "codexWeeklyRateLimit" }],
       [{ id: "spacer" }],
       [{ id: "cacheHit" }, { id: "cacheTtl" }, { id: "sessionCost" }],
       [{ id: "model" }, { id: "gitRepo" }]
@@ -169,6 +172,12 @@ function buildPreviewContext(settings) {
     cacheTtlMs: HOUR_MS
   };
 }
+function renderLinesPreview(lines, settings) {
+  const merged = SettingsSchema.parse({ ...settings, lines });
+  const output = renderAllLines(merged.lines, buildPreviewContext(merged), merged.separator);
+  if (!output) return [];
+  return output.split("\n").map((text, i) => ({ id: `lines:${i}`, text }));
+}
 function renderPresetPreview(name, settings) {
   const preset = PRESETS[name];
   if (!preset) return [];
@@ -179,17 +188,23 @@ function renderPresetPreview(name, settings) {
 }
 
 // src/tui/screens/PresetPreview.tsx
-function PresetPreview({ name, settings }) {
-  const lines = renderPresetPreview(name, settings);
-  if (!lines.length) return null;
-  return /* @__PURE__ */ React2.createElement(Box2, { flexDirection: "column", marginTop: 1, paddingX: 1, borderStyle: "round" }, /* @__PURE__ */ React2.createElement(Text2, { dimColor: true }, t("tui.preset.preview")), lines.map((line) => /* @__PURE__ */ React2.createElement(Text2, { key: line.id }, line.text)));
+function resolvePreviewLines(name, lines, settings) {
+  if (lines) return renderLinesPreview(lines, settings);
+  if (name) return renderPresetPreview(name, settings);
+  return [];
+}
+function PresetPreview({ name, lines, settings }) {
+  const previewLines = resolvePreviewLines(name, lines, settings);
+  if (!previewLines.length) return null;
+  return /* @__PURE__ */ React2.createElement(Box2, { flexDirection: "column", marginTop: 1, paddingX: 1, borderStyle: "round" }, /* @__PURE__ */ React2.createElement(Text2, { dimColor: true }, t("tui.preset.preview")), previewLines.map((line) => /* @__PURE__ */ React2.createElement(Text2, { key: line.id }, line.text)));
 }
 
 export {
   saveSettings,
+  withCodexRow,
   PRESETS,
   PRESET_NAMES,
   LanguageSelect,
   PresetPreview
 };
-//# sourceMappingURL=chunk-OXDD7W64.js.map
+//# sourceMappingURL=chunk-AVFQCGCF.js.map

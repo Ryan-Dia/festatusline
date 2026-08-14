@@ -67,6 +67,14 @@ export type PreviewLine = {
   text: string;
 };
 
+/** Renders an arbitrary line layout exactly as the statusline would, for the preview pane. */
+export function renderLinesPreview(lines: Settings['lines'], settings: Settings): PreviewLine[] {
+  const merged = SettingsSchema.parse({ ...settings, lines });
+  const output = renderAllLines(merged.lines, buildPreviewContext(merged), merged.separator);
+  if (!output) return [];
+  return output.split('\n').map((text, i) => ({ id: `lines:${i}`, text }));
+}
+
 /** Renders a preset exactly as the statusline would, for the TUI preview pane. */
 export function renderPresetPreview(name: string, settings: Settings): PreviewLine[] {
   const preset = PRESETS[name];

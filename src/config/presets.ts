@@ -4,6 +4,15 @@ import type { Settings } from './schema.js';
 const DAILY_ROW = [{ id: 'dailyUsage' }, { id: 'context' }, { id: 'sessionRateLimit' }];
 const WEEKLY_ROW = [{ id: 'weeklyUsage' }, { id: 'weeklyRateLimit' }];
 
+// Optional row, offered independently of preset tier (setup wizard's Codex step) rather
+// than baked into any one preset.
+export const CODEX_ROW = [{ id: 'codexModel' }, { id: 'codexWeeklyRateLimit' }];
+
+/** Inserts the Codex row right after the weekly row, which sits at index 1 on every tier. */
+export function withCodexRow(lines: Settings['lines']): Settings['lines'] {
+  return [...lines.slice(0, 2), CODEX_ROW, ...lines.slice(2)];
+}
+
 export const PRESETS: Record<string, Partial<Settings>> = {
   minimal: {
     lines: [
@@ -56,7 +65,6 @@ export const PRESETS: Record<string, Partial<Settings>> = {
     lines: [
       DAILY_ROW,
       WEEKLY_ROW,
-      [{ id: 'codexModel' }, { id: 'codexWeeklyRateLimit' }],
       [{ id: 'spacer' }],
       [{ id: 'cacheHit' }, { id: 'cacheTtl' }, { id: 'sessionCost' }],
       [{ id: 'model' }, { id: 'gitRepo' }],

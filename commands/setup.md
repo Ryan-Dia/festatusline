@@ -1,6 +1,6 @@
 ---
 description: Configure festatusline status line settings
-argument-hint: "[preset] [locale]"
+argument-hint: "[preset] [locale] [codex]"
 allowed-tools: Read, Write, Bash(jq:*), Bash(cat:*), Bash(mkdir:*), Bash(ls:*), Bash(sort:*), Bash(tail:*), Bash(mv:*), AskUserQuestion
 ---
 
@@ -13,6 +13,8 @@ Configure the festatusline status line plugin.
 - **No arguments**: Interactive mode (asks questions)
 - `$1`: Preset name — `basic`, `pro` (default), `max`
 - `$2`: Locale — `ko`, `en` (default), `zh`
+- `$3`: Add Codex CLI usage row — `yes`, `no` (default). Independent of preset: any tier
+  can carry the Codex row or not.
 
 ## Available Widgets
 
@@ -64,21 +66,34 @@ Ask all questions in a single AskUserQuestion call:
 
      Opus 5 [high] │ 📁 my-repo(main)
      ```
-   - `max` (6 lines): pro + Codex row + cache/cost row
+   - `max` (5 lines): pro + cache/cost row
      preview:
      ```
      Daily   │ Ctx ■■■□□□□□□□  38% (75K/200K)  │ Session ■■■□□□□□□□  30% (3h 0m)
      Weekly  │ all ■■□□□□□□□□  25% (4d 0h)
-     Codex   │ 7d  ■□□□□□□□□□  10% (1d 0h)
 
      ⚡70% │ ⏱ 30m │ $0.420
      Opus 5 [high] │ 📁 my-repo(main)
      ```
 2. Theme — `default` (recommended), `dracula`, `nord`, `gruvbox`, `tokyo-night`
 3. Locale — `ko` (recommended), `en`, `zh`
+4. Codex — add the Codex CLI usage row? This is independent of preset: `basic`, `pro`,
+   and `max` can each carry it or not.
+   - `No` (default)
+   - `Yes` — inserts a Codex row directly below the weekly row, before whatever the
+     chosen preset already has there (spacer, cache/cost, model/repo). Preview for
+     `pro` + Codex:
+     ```
+     Daily   │ Ctx ■■■□□□□□□□  38% (75K/200K)  │ Session ■■■□□□□□□□  30% (3h 0m)
+     Weekly  │ all ■■□□□□□□□□  25% (4d 0h)
+     Codex   │ 7d  ■□□□□□□□□□  10% (1d 0h)
+
+     Opus 5 [high] │ 📁 my-repo(main)
+     ```
 
 **If arguments provided:**
-Use `$1` as preset (default: `pro`) and `$2` as locale (default: `en`).
+Use `$1` as preset (default: `pro`), `$2` as locale (default: `en`), and `$3` as the Codex
+choice (default: `no`).
 
 ### 2. Build settings JSON
 
@@ -112,7 +127,6 @@ Map the chosen preset to the `lines` array:
   "lines": [
     [{"id":"dailyUsage"},{"id":"context"},{"id":"sessionRateLimit"}],
     [{"id":"weeklyUsage"},{"id":"weeklyRateLimit"}],
-    [{"id":"codexModel"},{"id":"codexWeeklyRateLimit"}],
     [{"id":"spacer"}],
     [{"id":"cacheHit"},{"id":"cacheTtl"},{"id":"sessionCost"}],
     [{"id":"model"},{"id":"gitRepo"}]
@@ -122,6 +136,22 @@ Map the chosen preset to the `lines` array:
 
 > The daily and weekly rows are identical across all three presets and are padded so the
 > `all` bar sits directly under the `Ctx` column.
+
+**If Codex was requested (`$3` is `yes`, or the interactive question was answered `Yes`):**
+Insert `[{"id":"codexModel"},{"id":"codexWeeklyRateLimit"}]` as a new row right after the
+weekly row (index 2, i.e. the 3rd entry in `lines`) — regardless of which preset was
+picked. For example, `pro` + Codex becomes:
+```json
+{
+  "lines": [
+    [{"id":"dailyUsage"},{"id":"context"},{"id":"sessionRateLimit"}],
+    [{"id":"weeklyUsage"},{"id":"weeklyRateLimit"}],
+    [{"id":"codexModel"},{"id":"codexWeeklyRateLimit"}],
+    [{"id":"spacer"}],
+    [{"id":"model"},{"id":"gitRepo"}]
+  ]
+}
+```
 
 ### 3. Write settings file
 

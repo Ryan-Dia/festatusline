@@ -80,9 +80,9 @@ Codex   │ 7d  ■■■■■■■■■■  10% (1d 0h)
 Opus 5 [high] │ 📁 festatusline(main)
 ```
 
-That is the `max` preset. Colors are rendered with truecolor ANSI — filled and empty bar cells
-use the same `■` glyph at different brightness, so the bars look solid once color is stripped.
-Output varies by preset and locale.
+That is the `max` preset with the optional Codex row added. Colors are rendered with truecolor
+ANSI — filled and empty bar cells use the same `■` glyph at different brightness, so the bars
+look solid once color is stripped. Output varies by preset, Codex opt-in, and locale.
 
 ---
 
@@ -182,7 +182,7 @@ Select a theme in the TUI or set `"theme"` in settings.json.
 |---|---|---|
 | `basic` | 2 | daily row / weekly row |
 | `pro` | 4 | basic + spacer + `model` + `gitRepo` |
-| `max` | 6 | pro + Codex row, `cacheHit` + `cacheTtl` + `sessionCost` row |
+| `max` | 5 | pro + `cacheHit` + `cacheTtl` + `sessionCost` row |
 
 The daily row is `dailyUsage` + `context` + `sessionRateLimit`, and the weekly row is
 `weeklyUsage` + `weeklyRateLimit` — the `all` bar is padded to sit under the `Ctx` column.
@@ -190,6 +190,10 @@ The daily row is `dailyUsage` + `context` + `sessionRateLimit`, and the weekly r
 Apply a preset via `/festatusline:setup` in Claude Code. The setup wizard and the preset menu both
 render a live preview of the highlighted preset — sample usage numbers, your current theme and
 locale — so you can see the layout before committing to it.
+
+Any preset can also carry a Codex row (`codexModel` + `codexWeeklyRateLimit`), inserted directly
+below the weekly row. The setup wizard asks about it as a separate step after the preset choice —
+it is not tied to any one tier.
 
 `minimal`, `full`, `korean-dev` and `multi-cli` remain available in the preset menu but are not
 offered by the setup wizard.

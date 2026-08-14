@@ -3,11 +3,12 @@ import { Box, Text, useApp } from 'ink';
 import SelectInput from 'ink-select-input';
 import { SettingsSchema, type Settings } from '../../config/schema.js';
 import { t, setLocale } from '../../i18n/index.js';
-import { PRESETS } from '../../config/presets.js';
+import { PRESETS, withCodexRow } from '../../config/presets.js';
 import LanguageSelect from './LanguageSelect.js';
 import PresetPreview from './PresetPreview.js';
 
-type Step = 'language' | 'preset';
+type Step = 'language' | 'preset' | 'codex';
+type YesNo = 'yes' | 'no';
 
 const SETUP_PRESET_NAMES = ['basic', 'pro', 'max'] as const;
 const SETUP_PRESET_LABEL_KEYS: Record<string, string> = {
@@ -26,6 +27,8 @@ export default function SetupWizard({ initialSettings, onSave }: Props): React.R
   const [step, setStep] = useState<Step>('language');
   const [settings, setSettings] = useState<Settings>(initialSettings);
   const [highlighted, setHighlighted] = useState<string>(SETUP_PRESET_NAMES[0]);
+  const [chosenPreset, setChosenPreset] = useState<string>(SETUP_PRESET_NAMES[0]);
+  const [codexHighlighted, setCodexHighlighted] = useState<YesNo>('no');
 
   if (step === 'language') {
     return (
@@ -42,32 +45,66 @@ export default function SetupWizard({ initialSettings, onSave }: Props): React.R
     );
   }
 
-  const items = [
-    ...SETUP_PRESET_NAMES.map((name) => ({
-      label: t((SETUP_PRESET_LABEL_KEYS[name] ?? name) as Parameters<typeof t>[0]),
-      value: name as string,
-    })),
+  if (step === 'preset') {
+    const items = [
+      ...SETUP_PRESET_NAMES.map((name) => ({
+        label: t((SETUP_PRESET_LABEL_KEYS[name] ?? name) as Parameters<typeof t>[0]),
+        value: name as string,
+      })),
+      { label: '← 뒤로', value: '__back__' },
+    ];
+
+    return (
+      <Box flexDirection="column" padding={1}>
+        <Text bold>{t('tui.mainMenu.selectPreset')}</Text>
+        <SelectInput
+          items={items}
+          onHighlight={(item) => setHighlighted(item.value)}
+          onSelect={(item) => {
+            if (item.value === '__back__') {
+              setStep('language');
+              return;
+            }
+            setChosenPreset(item.value);
+            setStep('codex');
+          }}
+        />
+        <PresetPreview name={highlighted} settings={settings} />
+      </Box>
+    );
+  }
+
+  const baseLines = PRESETS[chosenPreset]?.lines ?? [];
+  const codexItems = [
+    { label: t('tui.setup.codexNo'), value: 'no' as const },
+    { label: t('tui.setup.codexYes'), value: 'yes' as const },
     { label: '← 뒤로', value: '__back__' },
   ];
 
   return (
     <Box flexDirection="column" padding={1}>
-      <Text bold>{t('tui.mainMenu.selectPreset')}</Text>
+      <Text bold>{t('tui.setup.codexQuestion')}</Text>
       <SelectInput
-        items={items}
-        onHighlight={(item) => setHighlighted(item.value)}
+        items={codexItems}
+        onHighlight={(item) => {
+          if (item.value === 'yes' || item.value === 'no') setCodexHighlighted(item.value);
+        }}
         onSelect={async (item) => {
           if (item.value === '__back__') {
-            setStep('language');
+            setStep('preset');
             return;
           }
-          const preset = PRESETS[item.value] ?? {};
+          const lines = item.value === 'yes' ? withCodexRow(baseLines) : baseLines;
+          const preset = { ...PRESETS[chosenPreset], lines };
           const next = SettingsSchema.parse({ ...settings, ...preset });
           await onSave(next);
           exit();
         }}
       />
-      <PresetPreview name={highlighted} settings={settings} />
+      <PresetPreview
+        lines={codexHighlighted === 'yes' ? withCodexRow(baseLines) : baseLines}
+        settings={settings}
+      />
     </Box>
   );
 }

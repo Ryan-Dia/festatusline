@@ -80,9 +80,9 @@ Codex   │ 7d  ■■■■■■■■■■  10% (1d 0h)
 Opus 5 [high] │ 📁 festatusline(main)
 ```
 
-`max` 프리셋 기준입니다. 실제 출력에는 트루컬러 ANSI 색상이 적용됩니다 — 채운 칸과 빈 칸이 같은
-`■` 문자에 밝기만 다르게 표시되므로, 색을 벗기면 바가 꽉 찬 것처럼 보입니다. 프리셋과 로케일에
-따라 결과가 달라집니다.
+Codex 행을 추가한 `max` 프리셋 기준입니다. 실제 출력에는 트루컬러 ANSI 색상이 적용됩니다 — 채운
+칸과 빈 칸이 같은 `■` 문자에 밝기만 다르게 표시되므로, 색을 벗기면 바가 꽉 찬 것처럼 보입니다.
+프리셋, Codex 포함 여부, 로케일에 따라 결과가 달라집니다.
 
 ---
 
@@ -182,7 +182,7 @@ TUI 에서 테마를 바꾸거나 settings.json 의 `"theme"` 필드를 직접 �
 |---|---|---|
 | `basic` | 2 | 일간 행 / 주간 행 |
 | `pro` | 4 | basic + 개행 + `model` + `gitRepo` |
-| `max` | 6 | pro + Codex 행 + `cacheHit`, `cacheTtl`, `sessionCost` 행 |
+| `max` | 5 | pro + `cacheHit`, `cacheTtl`, `sessionCost` 행 |
 
 일간 행은 `dailyUsage` + `context` + `sessionRateLimit`, 주간 행은
 `weeklyUsage` + `weeklyRateLimit` 이며, `all` 바가 윗줄 `Ctx` 열 아래에 오도록 폭이
@@ -191,6 +191,10 @@ TUI 에서 테마를 바꾸거나 settings.json 의 `"theme"` 필드를 직접 �
 Claude Code 에서 `/festatusline:setup` 으로 적용할 수 있습니다. setup 마법사와 프리셋 메뉴 모두
 커서가 놓인 프리셋의 실시간 미리보기를 보여줍니다 — 예시 사용량 수치에 현재 테마·로케일이
 적용되므로, 고르기 전에 레이아웃을 확인할 수 있습니다.
+
+어떤 프리셋이든 Codex 행(`codexModel` + `codexWeeklyRateLimit`)을 추가로 붙일 수 있으며, 주간 행
+바로 아래에 삽입됩니다. setup 마법사에서 프리셋을 고른 다음 별도 단계로 물어보며, 특정 등급에
+종속되지 않습니다.
 
 `minimal`, `full`, `korean-dev`, `multi-cli` 는 프리셋 메뉴에는 남아 있지만 setup 마법사에는
 나오지 않습니다.

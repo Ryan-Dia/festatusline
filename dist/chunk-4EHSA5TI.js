@@ -5,7 +5,7 @@ var __export = (target, all) => {
     __defProp(target, name, { get: all[name], enumerable: true });
 };
 
-// node_modules/chalk/source/vendor/ansi-styles/index.js
+// ../../../../../../home/saeroi/code/festatusline/node_modules/chalk/source/vendor/ansi-styles/index.js
 var ANSI_BACKGROUND_OFFSET = 10;
 var wrapAnsi16 = (offset = 0) => (code) => `\x1B[${code + offset}m`;
 var wrapAnsi256 = (offset = 0) => (code) => `\x1B[${38 + offset};5;${code}m`;
@@ -191,7 +191,7 @@ function assembleStyles() {
 var ansiStyles = assembleStyles();
 var ansi_styles_default = ansiStyles;
 
-// node_modules/chalk/source/vendor/supports-color/index.js
+// ../../../../../../home/saeroi/code/festatusline/node_modules/chalk/source/vendor/supports-color/index.js
 import process2 from "process";
 import os from "os";
 import tty from "tty";
@@ -323,7 +323,7 @@ var supportsColor = {
 };
 var supports_color_default = supportsColor;
 
-// node_modules/chalk/source/utilities.js
+// ../../../../../../home/saeroi/code/festatusline/node_modules/chalk/source/utilities.js
 function stringReplaceAll(string, substring, replacer) {
   let index = string.indexOf(substring);
   if (index === -1) {
@@ -353,7 +353,7 @@ function stringEncaseCRLFWithFirstIndex(string, prefix, postfix, index) {
   return returnValue;
 }
 
-// node_modules/chalk/source/index.js
+// ../../../../../../home/saeroi/code/festatusline/node_modules/chalk/source/index.js
 var { stdout: stdoutColor, stderr: stderrColor } = supports_color_default;
 var GENERATOR = /* @__PURE__ */ Symbol("GENERATOR");
 var STYLER = /* @__PURE__ */ Symbol("STYLER");
@@ -505,7 +505,7 @@ import fs from "fs";
 import path from "path";
 import os2 from "os";
 
-// node_modules/zod/v3/external.js
+// ../../../../../../home/saeroi/code/festatusline/node_modules/zod/v3/external.js
 var external_exports = {};
 __export(external_exports, {
   BRAND: () => BRAND,
@@ -617,7 +617,7 @@ __export(external_exports, {
   void: () => voidType
 });
 
-// node_modules/zod/v3/helpers/util.js
+// ../../../../../../home/saeroi/code/festatusline/node_modules/zod/v3/helpers/util.js
 var util;
 (function(util2) {
   util2.assertEqual = (_) => {
@@ -751,7 +751,7 @@ var getParsedType = (data) => {
   }
 };
 
-// node_modules/zod/v3/ZodError.js
+// ../../../../../../home/saeroi/code/festatusline/node_modules/zod/v3/ZodError.js
 var ZodIssueCode = util.arrayToEnum([
   "invalid_type",
   "invalid_literal",
@@ -869,7 +869,7 @@ ZodError.create = (issues) => {
   return error;
 };
 
-// node_modules/zod/v3/locales/en.js
+// ../../../../../../home/saeroi/code/festatusline/node_modules/zod/v3/locales/en.js
 var errorMap = (issue, _ctx) => {
   let message;
   switch (issue.code) {
@@ -972,7 +972,7 @@ var errorMap = (issue, _ctx) => {
 };
 var en_default = errorMap;
 
-// node_modules/zod/v3/errors.js
+// ../../../../../../home/saeroi/code/festatusline/node_modules/zod/v3/errors.js
 var overrideErrorMap = en_default;
 function setErrorMap(map) {
   overrideErrorMap = map;
@@ -981,7 +981,7 @@ function getErrorMap() {
   return overrideErrorMap;
 }
 
-// node_modules/zod/v3/helpers/parseUtil.js
+// ../../../../../../home/saeroi/code/festatusline/node_modules/zod/v3/helpers/parseUtil.js
 var makeIssue = (params) => {
   const { data, path: path2, errorMaps, issueData } = params;
   const fullPath = [...path2, ...issueData.path || []];
@@ -1091,14 +1091,14 @@ var isDirty = (x) => x.status === "dirty";
 var isValid = (x) => x.status === "valid";
 var isAsync = (x) => typeof Promise !== "undefined" && x instanceof Promise;
 
-// node_modules/zod/v3/helpers/errorUtil.js
+// ../../../../../../home/saeroi/code/festatusline/node_modules/zod/v3/helpers/errorUtil.js
 var errorUtil;
 (function(errorUtil2) {
   errorUtil2.errToObj = (message) => typeof message === "string" ? { message } : message || {};
   errorUtil2.toString = (message) => typeof message === "string" ? message : message?.message;
 })(errorUtil || (errorUtil = {}));
 
-// node_modules/zod/v3/types.js
+// ../../../../../../home/saeroi/code/festatusline/node_modules/zod/v3/types.js
 var ParseInputLazyPath = class {
   constructor(parent, value, path2, key) {
     this._cachedPath = [];
@@ -4621,6 +4621,9 @@ var ko = {
   "tui.preset.pro": "Pro",
   "tui.preset.max": "Max",
   "tui.preset.preview": "\uBBF8\uB9AC\uBCF4\uAE30 (\uC608\uC2DC \uB370\uC774\uD130)",
+  "tui.setup.codexQuestion": "Codex CLI \uC0AC\uC6A9\uB7C9 \uC704\uC82F\uC744 \uCD94\uAC00\uD560\uAE4C\uC694?",
+  "tui.setup.codexYes": "\uC608, \uCD94\uAC00",
+  "tui.setup.codexNo": "\uC544\uB2C8\uC624",
   "tui.lang.ko": "\uD55C\uAD6D\uC5B4",
   "tui.lang.en": "English",
   "tui.lang.zh": "\u4E2D\u6587",
@@ -4674,6 +4677,9 @@ var en = {
   "tui.preset.pro": "Pro",
   "tui.preset.max": "Max",
   "tui.preset.preview": "Preview (sample data)",
+  "tui.setup.codexQuestion": "Add Codex CLI usage widgets?",
+  "tui.setup.codexYes": "Yes, add them",
+  "tui.setup.codexNo": "No",
   "tui.lang.ko": "\uD55C\uAD6D\uC5B4",
   "tui.lang.en": "English",
   "tui.lang.zh": "\u4E2D\u6587",
@@ -4727,6 +4733,9 @@ var zh = {
   "tui.preset.pro": "Pro",
   "tui.preset.max": "Max",
   "tui.preset.preview": "\u9884\u89C8\uFF08\u793A\u4F8B\u6570\u636E\uFF09",
+  "tui.setup.codexQuestion": "\u8981\u6DFB\u52A0 Codex CLI \u7528\u91CF\u7EC4\u4EF6\u5417\uFF1F",
+  "tui.setup.codexYes": "\u662F\uFF0C\u6DFB\u52A0",
+  "tui.setup.codexNo": "\u5426",
   "tui.lang.ko": "\uD55C\uAD6D\uC5B4",
   "tui.lang.en": "English",
   "tui.lang.zh": "\u4E2D\u6587",
@@ -5296,4 +5305,4 @@ export {
   ALL_WIDGETS,
   renderAllLines
 };
-//# sourceMappingURL=chunk-JOKZRD53.js.map
+//# sourceMappingURL=chunk-4EHSA5TI.js.map
