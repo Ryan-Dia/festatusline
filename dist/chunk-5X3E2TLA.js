@@ -6,7 +6,7 @@ import {
   getTheme,
   renderAllLines,
   t
-} from "./chunk-4EHSA5TI.js";
+} from "./chunk-PZXUSLUV.js";
 
 // src/config/save.ts
 import fs from "fs";
@@ -158,8 +158,8 @@ function buildPreviewContext(settings) {
       dailyRequests: 12,
       weeklyRequests: 84,
       rateLimits: {
-        primary: { usedPercent: 22, resetsAt: unixAfter(2 * HOUR_MS) },
-        secondary: { usedPercent: 10, resetsAt: unixAfter(DAY_MS) }
+        primary: { usedPercent: 22, resetsAt: unixAfter(2 * HOUR_MS), windowMinutes: 300 },
+        secondary: { usedPercent: 10, resetsAt: unixAfter(DAY_MS), windowMinutes: 10080 }
       },
       model: "gpt-5"
     },
@@ -207,4 +207,4 @@ export {
   LanguageSelect,
   PresetPreview
 };
-//# sourceMappingURL=chunk-AVFQCGCF.js.map
+//# sourceMappingURL=chunk-5X3E2TLA.js.map

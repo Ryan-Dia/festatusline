@@ -5,13 +5,13 @@ import {
   PresetPreview,
   saveSettings,
   withCodexRow
-} from "./chunk-AVFQCGCF.js";
+} from "./chunk-5X3E2TLA.js";
 import {
   SettingsSchema,
   loadSettings,
   setLocale,
   t
-} from "./chunk-4EHSA5TI.js";
+} from "./chunk-PZXUSLUV.js";
 
 // src/tui/setup.ts
 import React2 from "react";
@@ -99,7 +99,13 @@ function SetupWizard({ initialSettings, onSave }) {
         exit();
       }
     }
-  ), /* @__PURE__ */ React.createElement(PresetPreview, { lines: codexHighlighted === "yes" ? withCodexRow(baseLines) : baseLines, settings }));
+  ), /* @__PURE__ */ React.createElement(
+    PresetPreview,
+    {
+      lines: codexHighlighted === "yes" ? withCodexRow(baseLines) : baseLines,
+      settings
+    }
+  ));
 }
 
 // src/tui/setup.ts
@@ -113,4 +119,4 @@ async function runSetupWizard() {
 export {
   runSetupWizard
 };
-//# sourceMappingURL=setup-SYDRVSVJ.js.map
+//# sourceMappingURL=setup-6N24TBC4.js.map

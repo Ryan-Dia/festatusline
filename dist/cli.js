@@ -1,18 +1,22 @@
 #!/usr/bin/env node
 import {
+  createMtimeCache,
   createTranslator,
+  createTtlCache,
   external_exports,
   getClaudeDir,
+  getCodexSnapshot,
   getTheme,
+  getTimeWindows,
   loadSettings,
   renderAllLines,
   setLocale,
   source_default,
   t
-} from "./chunk-4EHSA5TI.js";
+} from "./chunk-PZXUSLUV.js";
 
 // src/render/index.ts
-import { promises as fs5 } from "fs";
+import { promises as fs3 } from "fs";
 import { homedir } from "os";
 import { join } from "path";
 
@@ -98,47 +102,9 @@ async function readStdin() {
 }
 
 // src/data/jsonl.ts
-import fs2 from "fs";
+import fs from "fs";
 import path from "path";
 import readline from "readline";
-
-// src/data/cache.ts
-import { promises as fs } from "fs";
-function createTtlCache(ttlMs) {
-  let cached = null;
-  return {
-    async get(compute) {
-      const now = Date.now();
-      if (cached && now - cached.loadedAt < ttlMs) {
-        return cached.value;
-      }
-      const value = await compute();
-      cached = { value, loadedAt: now };
-      return value;
-    },
-    invalidate() {
-      cached = null;
-    }
-  };
-}
-function createMtimeCache() {
-  const store = /* @__PURE__ */ new Map();
-  return {
-    async get(filePath, compute) {
-      const stat = await fs.stat(filePath);
-      const mtime = stat.mtimeMs;
-      const entry = store.get(filePath);
-      if (entry && entry.mtime === mtime) {
-        return entry.value;
-      }
-      const value = await compute(filePath);
-      store.set(filePath, { mtime, value });
-      return value;
-    }
-  };
-}
-
-// src/data/jsonl.ts
 var UsageSchema = external_exports.object({
   input_tokens: external_exports.number().optional().default(0),
   output_tokens: external_exports.number().optional().default(0),
@@ -162,7 +128,7 @@ var fileCache = createMtimeCache();
 async function parseJsonlFile(filePath) {
   return fileCache.get(filePath, async (p) => {
     const entries = [];
-    const stream = fs2.createReadStream(p, { encoding: "utf8" });
+    const stream = fs.createReadStream(p, { encoding: "utf8" });
     const rl = readline.createInterface({ input: stream, crlfDelay: Infinity });
     for await (const line of rl) {
       const trimmed = line.trim();
@@ -197,7 +163,7 @@ async function loadAllEntries() {
   const projectsDir = path.join(getClaudeDir(), "projects");
   let projectDirs;
   try {
-    projectDirs = await fs2.promises.readdir(projectsDir);
+    projectDirs = await fs.promises.readdir(projectsDir);
   } catch {
     return [];
   }
@@ -207,7 +173,7 @@ async function loadAllEntries() {
       const dirPath = path.join(projectsDir, dir);
       let files;
       try {
-        files = await fs2.promises.readdir(dirPath);
+        files = await fs.promises.readdir(dirPath);
       } catch {
         return;
       }
@@ -233,14 +199,6 @@ async function getLastCacheCreation() {
   if (!latest) return null;
   const ttlMs = latest.ephemeral1hTokens > 0 ? 36e5 : 3e5;
   return { timestamp: latest.timestamp, ttlMs };
-}
-
-// src/data/time.ts
-function getTimeWindows() {
-  const now = Date.now();
-  const todayStart = /* @__PURE__ */ new Date();
-  todayStart.setHours(0, 0, 0, 0);
-  return { now, todayStartMs: todayStart.getTime(), weekStartMs: now - 7 * 24 * 60 * 60 * 1e3 };
 }
 
 // src/data/usage.ts
@@ -276,156 +234,9 @@ async function getUsageSnapshot() {
   });
 }
 
-// src/data/codex.ts
-import fs3 from "fs";
-import path2 from "path";
-import os from "os";
-import readline2 from "readline";
-var RateLimitSlotSchema = external_exports.object({
-  used_percent: external_exports.number().optional().default(0),
-  resets_at: external_exports.number()
-});
-var CodexEventSchema = external_exports.object({
-  type: external_exports.literal("event_msg"),
-  payload: external_exports.object({
-    type: external_exports.literal("token_count"),
-    rate_limits: external_exports.object({
-      primary: RateLimitSlotSchema,
-      secondary: RateLimitSlotSchema
-    })
-  })
-});
-function getCodexDir() {
-  return process.env.CODEX_CONFIG_DIR ?? path2.join(os.homedir(), ".codex");
-}
-async function readCodexModel() {
-  try {
-    const raw = await fs3.promises.readFile(path2.join(getCodexDir(), "config.toml"), "utf8");
-    const match = raw.match(/^model\s*=\s*"([^"]+)"/m);
-    return match?.[1] ?? null;
-  } catch {
-    return null;
-  }
-}
-async function findHistoryFile() {
-  const base = getCodexDir();
-  const candidates = [path2.join(base, "history.jsonl"), path2.join(base, "sessions")];
-  for (const c of candidates) {
-    try {
-      await fs3.promises.access(c);
-      return c;
-    } catch {
-      continue;
-    }
-  }
-  return null;
-}
-async function findLatestSessionFile() {
-  const sessionsDir = path2.join(getCodexDir(), "sessions");
-  try {
-    const years = (await fs3.promises.readdir(sessionsDir)).filter((y) => /^\d{4}$/.test(y)).sort().reverse();
-    for (const year of years) {
-      const months = (await fs3.promises.readdir(path2.join(sessionsDir, year))).sort().reverse();
-      for (const month of months) {
-        const days = (await fs3.promises.readdir(path2.join(sessionsDir, year, month))).sort().reverse();
-        for (const day of days) {
-          const dayDir = path2.join(sessionsDir, year, month, day);
-          const files = (await fs3.promises.readdir(dayDir)).filter((f) => f.endsWith(".jsonl")).sort().reverse();
-          if (files.length > 0) return path2.join(dayDir, files[0]);
-        }
-      }
-    }
-  } catch (_e) {
-  }
-  return null;
-}
-async function readLastRateLimits(filePath) {
-  const stream = fs3.createReadStream(filePath, { encoding: "utf8" });
-  const rl = readline2.createInterface({ input: stream, crlfDelay: Infinity });
-  let last = null;
-  for await (const line of rl) {
-    const trimmed = line.trim();
-    if (!trimmed) continue;
-    try {
-      const result = CodexEventSchema.safeParse(JSON.parse(trimmed));
-      if (!result.success) continue;
-      const { rate_limits: r } = result.data.payload;
-      last = {
-        primary: { usedPercent: r.primary.used_percent, resetsAt: r.primary.resets_at },
-        secondary: { usedPercent: r.secondary.used_percent, resetsAt: r.secondary.resets_at }
-      };
-    } catch (_e) {
-    }
-  }
-  return last;
-}
-async function countSessionFiles(sessionsDir) {
-  const { todayStartMs, weekStartMs } = getTimeWindows();
-  let daily = 0;
-  let weekly = 0;
-  try {
-    for (const year of await fs3.promises.readdir(sessionsDir)) {
-      if (!/^\d{4}$/.test(year)) continue;
-      for (const month of await fs3.promises.readdir(path2.join(sessionsDir, year))) {
-        for (const day of await fs3.promises.readdir(path2.join(sessionsDir, year, month))) {
-          const dayMs = new Date(Number(year), Number(month) - 1, Number(day)).getTime();
-          if (dayMs + 864e5 <= weekStartMs) continue;
-          const files = (await fs3.promises.readdir(path2.join(sessionsDir, year, month, day))).filter((f) => f.endsWith(".jsonl")).length;
-          if (dayMs >= todayStartMs) daily += files;
-          weekly += files;
-        }
-      }
-    }
-  } catch {
-  }
-  return { daily, weekly };
-}
-var codexCache = createTtlCache(3e4);
-async function getCodexSnapshot() {
-  return codexCache.get(async () => {
-    const histPath = await findHistoryFile();
-    if (!histPath) {
-      return {
-        available: false,
-        dailyRequests: 0,
-        weeklyRequests: 0,
-        rateLimits: null,
-        model: null
-      };
-    }
-    const [stat, latestSession, model] = await Promise.all([
-      fs3.promises.stat(histPath),
-      findLatestSessionFile(),
-      readCodexModel()
-    ]);
-    const rateLimits = latestSession ? await readLastRateLimits(latestSession) : null;
-    if (stat.isDirectory()) {
-      const { daily: daily2, weekly: weekly2 } = await countSessionFiles(histPath);
-      return { available: true, dailyRequests: daily2, weeklyRequests: weekly2, rateLimits, model };
-    }
-    const { todayStartMs, weekStartMs } = getTimeWindows();
-    let daily = 0;
-    let weekly = 0;
-    const stream = fs3.createReadStream(histPath, { encoding: "utf8" });
-    const rl = readline2.createInterface({ input: stream, crlfDelay: Infinity });
-    for await (const line of rl) {
-      const trimmed = line.trim();
-      if (!trimmed) continue;
-      try {
-        const obj = JSON.parse(trimmed);
-        const ts = obj.timestamp ? new Date(obj.timestamp).getTime() : 0;
-        if (ts >= todayStartMs) daily += 1;
-        if (ts >= weekStartMs) weekly += 1;
-      } catch (_e) {
-      }
-    }
-    return { available: true, dailyRequests: daily, weeklyRequests: weekly, rateLimits, model };
-  });
-}
-
 // src/data/claude-settings.ts
-import fs4 from "fs";
-import path3 from "path";
+import fs2 from "fs";
+import path2 from "path";
 var ClaudeSettingsSchema = external_exports.object({
   effortLevel: external_exports.string().optional(),
   // Session-scoped flag, normally supplied via --settings. `/effort ultracode` picked in
@@ -433,9 +244,9 @@ var ClaudeSettingsSchema = external_exports.object({
   ultracode: external_exports.boolean().optional()
 });
 async function readClaudeSettings() {
-  const settingsPath = path3.join(getClaudeDir(), "settings.json");
+  const settingsPath = path2.join(getClaudeDir(), "settings.json");
   try {
-    const raw = await fs4.promises.readFile(settingsPath, "utf8");
+    const raw = await fs2.promises.readFile(settingsPath, "utf8");
     const result = ClaudeSettingsSchema.safeParse(JSON.parse(raw));
     return result.success ? result.data : {};
   } catch {
@@ -463,15 +274,15 @@ async function tryOrNull(fn) {
 }
 async function readRateLimitsCache() {
   return tryOrNull(async () => {
-    const raw = await fs5.readFile(RATE_LIMITS_CACHE_PATH, "utf8");
+    const raw = await fs3.readFile(RATE_LIMITS_CACHE_PATH, "utf8");
     const result = RateLimitsCacheSchema.safeParse(JSON.parse(raw));
     return result.success ? result.data : null;
   });
 }
 async function writeRateLimitsCache(rateLimits) {
   await tryOrNull(async () => {
-    await fs5.mkdir(CACHE_DIR, { recursive: true });
-    await fs5.writeFile(RATE_LIMITS_CACHE_PATH, JSON.stringify(rateLimits), "utf8");
+    await fs3.mkdir(CACHE_DIR, { recursive: true });
+    await fs3.writeFile(RATE_LIMITS_CACHE_PATH, JSON.stringify(rateLimits), "utf8");
   });
 }
 async function renderFromStdin() {
@@ -515,15 +326,15 @@ async function renderFromStdin() {
 }
 
 // src/config/install.ts
-import fs6 from "fs";
-import path4 from "path";
+import fs4 from "fs";
+import path3 from "path";
 import { fileURLToPath } from "url";
 var ClaudeSettingsSchema2 = external_exports.object({ statusLine: external_exports.record(external_exports.unknown()).optional() }).catchall(external_exports.unknown());
 function getClaudeSettingsPath() {
-  return path4.join(getClaudeDir(), "settings.json");
+  return path3.join(getClaudeDir(), "settings.json");
 }
 async function resolveCliPath() {
-  const pluginCacheBase = path4.join(
+  const pluginCacheBase = path3.join(
     getClaudeDir(),
     "plugins",
     "cache",
@@ -531,11 +342,11 @@ async function resolveCliPath() {
     "festatusline"
   );
   try {
-    const versions = await fs6.promises.readdir(pluginCacheBase);
+    const versions = await fs4.promises.readdir(pluginCacheBase);
     const sorted = versions.filter((v) => /^\d+\.\d+\.\d+$/.test(v)).sort((a, b) => a.localeCompare(b, void 0, { numeric: true }));
     const latest = sorted.at(-1);
     if (latest) {
-      return path4.join(pluginCacheBase, latest, "dist", "cli.js");
+      return path3.join(pluginCacheBase, latest, "dist", "cli.js");
     }
   } catch {
   }
@@ -545,7 +356,7 @@ async function installToClaude(force = false) {
   const settingsPath = getClaudeSettingsPath();
   let current = {};
   try {
-    const raw = await fs6.promises.readFile(settingsPath, "utf8");
+    const raw = await fs4.promises.readFile(settingsPath, "utf8");
     const parsed = ClaudeSettingsSchema2.safeParse(JSON.parse(raw));
     if (parsed.success) current = parsed.data;
   } catch {
@@ -561,7 +372,7 @@ async function installToClaude(force = false) {
   }
   const backup = `${settingsPath}.bak`;
   if (Object.keys(current).length > 0) {
-    await fs6.promises.writeFile(backup, `${JSON.stringify(current, null, 2)}
+    await fs4.promises.writeFile(backup, `${JSON.stringify(current, null, 2)}
 `, "utf8");
   }
   const cliPath = await resolveCliPath();
@@ -570,20 +381,20 @@ async function installToClaude(force = false) {
     command: `node ${cliPath}`,
     refreshIntervalMs: 6e4
   };
-  await fs6.promises.mkdir(path4.dirname(settingsPath), { recursive: true });
-  await fs6.promises.writeFile(settingsPath, `${JSON.stringify(current, null, 2)}
+  await fs4.promises.mkdir(path3.dirname(settingsPath), { recursive: true });
+  await fs4.promises.writeFile(settingsPath, `${JSON.stringify(current, null, 2)}
 `, "utf8");
   process.stdout.write(`${t("install.success")}
 `);
 }
 
 // src/config/doctor.ts
-import fs7 from "fs";
-import path5 from "path";
-import os2 from "os";
+import fs5 from "fs";
+import path4 from "path";
+import os from "os";
 async function exists(p) {
   try {
-    await fs7.promises.access(p);
+    await fs5.promises.access(p);
     return true;
   } catch {
     return false;
@@ -591,7 +402,7 @@ async function exists(p) {
 }
 async function runDoctor() {
   const claudeDir = getClaudeDir();
-  const codexDir = process.env.CODEX_CONFIG_DIR ?? path5.join(os2.homedir(), ".codex");
+  const codexDir = process.env.CODEX_CONFIG_DIR ?? process.env.CODEX_HOME ?? path4.join(os.homedir(), ".codex");
   const claudeOk = await exists(claudeDir);
   const codexOk = await exists(codexDir);
   process.stdout.write(
@@ -611,7 +422,7 @@ function isLocale(v) {
 }
 var commands = {
   setup: async () => {
-    const { runSetupWizard } = await import("./setup-SYDRVSVJ.js");
+    const { runSetupWizard } = await import("./setup-6N24TBC4.js");
     return runSetupWizard();
   },
   install: (args) => installToClaude(args.includes("--force")),
@@ -628,7 +439,7 @@ async function dispatch(argv) {
     await renderFromStdin();
     return;
   }
-  const { runTui } = await import("./tui-E752UAV4.js");
+  const { runTui } = await import("./tui-TQPBAKUE.js");
   await runTui();
 }
 async function main() {

@@ -5,7 +5,7 @@ var __export = (target, all) => {
     __defProp(target, name, { get: all[name], enumerable: true });
 };
 
-// ../../../../../../home/saeroi/code/festatusline/node_modules/chalk/source/vendor/ansi-styles/index.js
+// node_modules/chalk/source/vendor/ansi-styles/index.js
 var ANSI_BACKGROUND_OFFSET = 10;
 var wrapAnsi16 = (offset = 0) => (code) => `\x1B[${code + offset}m`;
 var wrapAnsi256 = (offset = 0) => (code) => `\x1B[${38 + offset};5;${code}m`;
@@ -191,7 +191,7 @@ function assembleStyles() {
 var ansiStyles = assembleStyles();
 var ansi_styles_default = ansiStyles;
 
-// ../../../../../../home/saeroi/code/festatusline/node_modules/chalk/source/vendor/supports-color/index.js
+// node_modules/chalk/source/vendor/supports-color/index.js
 import process2 from "process";
 import os from "os";
 import tty from "tty";
@@ -323,7 +323,7 @@ var supportsColor = {
 };
 var supports_color_default = supportsColor;
 
-// ../../../../../../home/saeroi/code/festatusline/node_modules/chalk/source/utilities.js
+// node_modules/chalk/source/utilities.js
 function stringReplaceAll(string, substring, replacer) {
   let index = string.indexOf(substring);
   if (index === -1) {
@@ -353,7 +353,7 @@ function stringEncaseCRLFWithFirstIndex(string, prefix, postfix, index) {
   return returnValue;
 }
 
-// ../../../../../../home/saeroi/code/festatusline/node_modules/chalk/source/index.js
+// node_modules/chalk/source/index.js
 var { stdout: stdoutColor, stderr: stderrColor } = supports_color_default;
 var GENERATOR = /* @__PURE__ */ Symbol("GENERATOR");
 var STYLER = /* @__PURE__ */ Symbol("STYLER");
@@ -505,7 +505,7 @@ import fs from "fs";
 import path from "path";
 import os2 from "os";
 
-// ../../../../../../home/saeroi/code/festatusline/node_modules/zod/v3/external.js
+// node_modules/zod/v3/external.js
 var external_exports = {};
 __export(external_exports, {
   BRAND: () => BRAND,
@@ -617,7 +617,7 @@ __export(external_exports, {
   void: () => voidType
 });
 
-// ../../../../../../home/saeroi/code/festatusline/node_modules/zod/v3/helpers/util.js
+// node_modules/zod/v3/helpers/util.js
 var util;
 (function(util2) {
   util2.assertEqual = (_) => {
@@ -751,7 +751,7 @@ var getParsedType = (data) => {
   }
 };
 
-// ../../../../../../home/saeroi/code/festatusline/node_modules/zod/v3/ZodError.js
+// node_modules/zod/v3/ZodError.js
 var ZodIssueCode = util.arrayToEnum([
   "invalid_type",
   "invalid_literal",
@@ -869,7 +869,7 @@ ZodError.create = (issues) => {
   return error;
 };
 
-// ../../../../../../home/saeroi/code/festatusline/node_modules/zod/v3/locales/en.js
+// node_modules/zod/v3/locales/en.js
 var errorMap = (issue, _ctx) => {
   let message;
   switch (issue.code) {
@@ -972,7 +972,7 @@ var errorMap = (issue, _ctx) => {
 };
 var en_default = errorMap;
 
-// ../../../../../../home/saeroi/code/festatusline/node_modules/zod/v3/errors.js
+// node_modules/zod/v3/errors.js
 var overrideErrorMap = en_default;
 function setErrorMap(map) {
   overrideErrorMap = map;
@@ -981,10 +981,10 @@ function getErrorMap() {
   return overrideErrorMap;
 }
 
-// ../../../../../../home/saeroi/code/festatusline/node_modules/zod/v3/helpers/parseUtil.js
+// node_modules/zod/v3/helpers/parseUtil.js
 var makeIssue = (params) => {
-  const { data, path: path2, errorMaps, issueData } = params;
-  const fullPath = [...path2, ...issueData.path || []];
+  const { data, path: path3, errorMaps, issueData } = params;
+  const fullPath = [...path3, ...issueData.path || []];
   const fullIssue = {
     ...issueData,
     path: fullPath
@@ -1091,20 +1091,20 @@ var isDirty = (x) => x.status === "dirty";
 var isValid = (x) => x.status === "valid";
 var isAsync = (x) => typeof Promise !== "undefined" && x instanceof Promise;
 
-// ../../../../../../home/saeroi/code/festatusline/node_modules/zod/v3/helpers/errorUtil.js
+// node_modules/zod/v3/helpers/errorUtil.js
 var errorUtil;
 (function(errorUtil2) {
   errorUtil2.errToObj = (message) => typeof message === "string" ? { message } : message || {};
   errorUtil2.toString = (message) => typeof message === "string" ? message : message?.message;
 })(errorUtil || (errorUtil = {}));
 
-// ../../../../../../home/saeroi/code/festatusline/node_modules/zod/v3/types.js
+// node_modules/zod/v3/types.js
 var ParseInputLazyPath = class {
-  constructor(parent, value, path2, key) {
+  constructor(parent, value, path3, key) {
     this._cachedPath = [];
     this.parent = parent;
     this.data = value;
-    this._path = path2;
+    this._path = path3;
     this._key = key;
   }
   get path() {
@@ -4770,6 +4770,231 @@ function createTranslator(locale) {
   return (key) => bundles[locale][key] ?? bundles.en[key] ?? key;
 }
 
+// src/data/codex.ts
+import fs3 from "fs";
+import path2 from "path";
+import os3 from "os";
+import readline from "readline";
+
+// src/data/cache.ts
+import { promises as fs2 } from "fs";
+function createTtlCache(ttlMs) {
+  let cached = null;
+  return {
+    async get(compute) {
+      const now = Date.now();
+      if (cached && now - cached.loadedAt < ttlMs) {
+        return cached.value;
+      }
+      const value = await compute();
+      cached = { value, loadedAt: now };
+      return value;
+    },
+    invalidate() {
+      cached = null;
+    }
+  };
+}
+function createMtimeCache() {
+  const store = /* @__PURE__ */ new Map();
+  return {
+    async get(filePath, compute) {
+      const stat = await fs2.stat(filePath);
+      const mtime = stat.mtimeMs;
+      const entry = store.get(filePath);
+      if (entry && entry.mtime === mtime) {
+        return entry.value;
+      }
+      const value = await compute(filePath);
+      store.set(filePath, { mtime, value });
+      return value;
+    }
+  };
+}
+
+// src/data/time.ts
+function getTimeWindows() {
+  const now = Date.now();
+  const todayStart = /* @__PURE__ */ new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  return { now, todayStartMs: todayStart.getTime(), weekStartMs: now - 7 * 24 * 60 * 60 * 1e3 };
+}
+
+// src/data/codex.ts
+var RateLimitSlotSchema = external_exports.object({
+  used_percent: external_exports.number().optional().default(0),
+  window_minutes: external_exports.number().optional(),
+  resets_at: external_exports.number()
+}).nullable();
+var CodexEventSchema = external_exports.object({
+  type: external_exports.literal("event_msg"),
+  payload: external_exports.object({
+    type: external_exports.literal("token_count"),
+    rate_limits: external_exports.object({
+      primary: RateLimitSlotSchema,
+      secondary: RateLimitSlotSchema
+    })
+  })
+});
+function selectLongestWindowSlot(rateLimits) {
+  const { primary, secondary } = rateLimits ?? {};
+  if (primary && secondary) {
+    return (primary.windowMinutes ?? 0) >= (secondary.windowMinutes ?? 0) ? primary : secondary;
+  }
+  return secondary ?? primary ?? null;
+}
+function getCodexDir() {
+  return process.env.CODEX_CONFIG_DIR ?? process.env.CODEX_HOME ?? path2.join(os3.homedir(), ".codex");
+}
+async function readCodexModel() {
+  try {
+    const raw = await fs3.promises.readFile(path2.join(getCodexDir(), "config.toml"), "utf8");
+    const match = raw.match(/^model\s*=\s*"([^"]+)"/m);
+    return match?.[1] ?? null;
+  } catch {
+    return null;
+  }
+}
+async function findHistoryFile() {
+  const base = getCodexDir();
+  const candidates = [path2.join(base, "history.jsonl"), path2.join(base, "sessions")];
+  for (const c of candidates) {
+    try {
+      await fs3.promises.access(c);
+      return c;
+    } catch {
+      continue;
+    }
+  }
+  return null;
+}
+async function findLatestSessionFile() {
+  const sessionsDir = path2.join(getCodexDir(), "sessions");
+  try {
+    const years = (await fs3.promises.readdir(sessionsDir)).filter((y) => /^\d{4}$/.test(y)).sort().reverse();
+    for (const year of years) {
+      const months = (await fs3.promises.readdir(path2.join(sessionsDir, year))).sort().reverse();
+      for (const month of months) {
+        const days = (await fs3.promises.readdir(path2.join(sessionsDir, year, month))).sort().reverse();
+        for (const day of days) {
+          const dayDir = path2.join(sessionsDir, year, month, day);
+          const files = (await fs3.promises.readdir(dayDir)).filter((f) => f.endsWith(".jsonl"));
+          if (files.length === 0) continue;
+          const withMtime = await Promise.all(
+            files.map(async (f) => {
+              const filePath = path2.join(dayDir, f);
+              const { mtimeMs } = await fs3.promises.stat(filePath);
+              return { filePath, mtimeMs };
+            })
+          );
+          withMtime.sort((a, b) => b.mtimeMs - a.mtimeMs);
+          return withMtime[0]?.filePath ?? null;
+        }
+      }
+    }
+  } catch (_e) {
+  }
+  return null;
+}
+async function readLastRateLimits(filePath) {
+  const stream = fs3.createReadStream(filePath, { encoding: "utf8" });
+  const rl = readline.createInterface({ input: stream, crlfDelay: Infinity });
+  let last = null;
+  for await (const line of rl) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    try {
+      const result = CodexEventSchema.safeParse(JSON.parse(trimmed));
+      if (!result.success) continue;
+      const { rate_limits: r } = result.data.payload;
+      const toSlot = (slot) => slot === null ? null : {
+        usedPercent: slot.used_percent,
+        resetsAt: slot.resets_at,
+        windowMinutes: slot.window_minutes ?? null
+      };
+      last = {
+        primary: toSlot(r.primary),
+        secondary: toSlot(r.secondary)
+      };
+    } catch (_e) {
+    }
+  }
+  return last;
+}
+function extractHistoryEntryTimestampMs(entry) {
+  if (typeof entry !== "object" || entry === null) return 0;
+  const { ts, timestamp } = entry;
+  if (typeof ts === "number") return ts * 1e3;
+  if (typeof timestamp === "string") {
+    const ms = new Date(timestamp).getTime();
+    return Number.isNaN(ms) ? 0 : ms;
+  }
+  return 0;
+}
+async function countSessionFiles(sessionsDir) {
+  const { todayStartMs, weekStartMs } = getTimeWindows();
+  let daily = 0;
+  let weekly = 0;
+  try {
+    for (const year of await fs3.promises.readdir(sessionsDir)) {
+      if (!/^\d{4}$/.test(year)) continue;
+      for (const month of await fs3.promises.readdir(path2.join(sessionsDir, year))) {
+        for (const day of await fs3.promises.readdir(path2.join(sessionsDir, year, month))) {
+          const dayMs = new Date(Number(year), Number(month) - 1, Number(day)).getTime();
+          if (dayMs + 864e5 <= weekStartMs) continue;
+          const files = (await fs3.promises.readdir(path2.join(sessionsDir, year, month, day))).filter((f) => f.endsWith(".jsonl")).length;
+          if (dayMs >= todayStartMs) daily += files;
+          weekly += files;
+        }
+      }
+    }
+  } catch {
+  }
+  return { daily, weekly };
+}
+var codexCache = createTtlCache(3e4);
+async function getCodexSnapshot() {
+  return codexCache.get(async () => {
+    const histPath = await findHistoryFile();
+    if (!histPath) {
+      return {
+        available: false,
+        dailyRequests: 0,
+        weeklyRequests: 0,
+        rateLimits: null,
+        model: null
+      };
+    }
+    const [stat, latestSession, model] = await Promise.all([
+      fs3.promises.stat(histPath),
+      findLatestSessionFile(),
+      readCodexModel()
+    ]);
+    const rateLimits = latestSession ? await readLastRateLimits(latestSession) : null;
+    if (stat.isDirectory()) {
+      const { daily: daily2, weekly: weekly2 } = await countSessionFiles(histPath);
+      return { available: true, dailyRequests: daily2, weeklyRequests: weekly2, rateLimits, model };
+    }
+    const { todayStartMs, weekStartMs } = getTimeWindows();
+    let daily = 0;
+    let weekly = 0;
+    const stream = fs3.createReadStream(histPath, { encoding: "utf8" });
+    const rl = readline.createInterface({ input: stream, crlfDelay: Infinity });
+    for await (const line of rl) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+      try {
+        const obj = JSON.parse(trimmed);
+        const ts = extractHistoryEntryTimestampMs(obj);
+        if (ts >= todayStartMs) daily += 1;
+        if (ts >= weekStartMs) weekly += 1;
+      } catch (_e) {
+      }
+    }
+    return { available: true, dailyRequests: daily, weeklyRequests: weekly, rateLimits, model };
+  });
+}
+
 // src/theme/themes.ts
 var themes = {
   default: {
@@ -5132,7 +5357,7 @@ var CodexWeeklyRateLimitWidget = createRateLimitWidget({
   labelKey: "widget.codexWeeklyRateLimit",
   prefix: "7d",
   color: "#48dbfb",
-  getSlot: (ctx) => ctx.codex?.rateLimits?.secondary ?? null,
+  getSlot: (ctx) => selectLongestWindowSlot(ctx.codex?.rateLimits ?? null),
   timeFormat: "remaining",
   prefixWidth: PREFIX_WIDTH,
   timeExprWidth: TIME_EXPR_WIDTH
@@ -5292,10 +5517,14 @@ function renderAllLines(lines, ctx, separator) {
 export {
   source_default,
   external_exports,
+  createTtlCache,
+  createMtimeCache,
   SettingsSchema,
   getClaudeDir,
   getConfigPath,
   loadSettings,
+  getTimeWindows,
+  getCodexSnapshot,
   themes,
   THEME_NAMES,
   getTheme,
@@ -5305,4 +5534,4 @@ export {
   ALL_WIDGETS,
   renderAllLines
 };
-//# sourceMappingURL=chunk-4EHSA5TI.js.map
+//# sourceMappingURL=chunk-PZXUSLUV.js.map
