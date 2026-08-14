@@ -6,7 +6,7 @@ import {
   getTheme,
   renderAllLines,
   t
-} from "./chunk-PZXUSLUV.js";
+} from "./chunk-CRAZLCZ7.js";
 
 // src/config/save.ts
 import fs from "fs";
@@ -150,8 +150,7 @@ function buildPreviewContext(settings) {
       dailyTokens: 48e4,
       weeklyTokens: 31e5,
       sonnetWeeklyTokens: 13e5,
-      allEntries: [],
-      lastModel: "claude-opus-5"
+      allEntries: []
     },
     codex: {
       available: true,
@@ -207,4 +206,4 @@ export {
   LanguageSelect,
   PresetPreview
 };
-//# sourceMappingURL=chunk-5X3E2TLA.js.map
+//# sourceMappingURL=chunk-X5P5AGL4.js.map

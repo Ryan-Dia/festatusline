@@ -5094,7 +5094,7 @@ var ModelWidget = {
   id: "model",
   labelKey: "widget.model",
   render(ctx, _cfg) {
-    const rawName = ctx.stdin.model?.display_name ?? ctx.stdin.model?.id ?? ctx.usage?.lastModel ?? null;
+    const rawName = ctx.stdin.model?.display_name ?? ctx.stdin.model?.id ?? ctx.sessionLastModel ?? null;
     if (!rawName) return "?";
     const name = shortName(rawName);
     const label = effortLabel(ctx);
@@ -5534,4 +5534,4 @@ export {
   ALL_WIDGETS,
   renderAllLines
 };
-//# sourceMappingURL=chunk-PZXUSLUV.js.map
+//# sourceMappingURL=chunk-CRAZLCZ7.js.map

@@ -40,7 +40,6 @@ describe('getUsageSnapshot', () => {
     expect(snap.dailyTokens).toBe(0);
     expect(snap.weeklyTokens).toBe(0);
     expect(snap.sonnetWeeklyTokens).toBe(0);
-    expect(snap.lastModel).toBeNull();
     expect(snap.allEntries).toHaveLength(0);
   });
 
@@ -84,18 +83,6 @@ describe('getUsageSnapshot', () => {
     const { getUsageSnapshot } = await import('../src/data/usage.js');
     const snap = await getUsageSnapshot();
     expect(snap.weeklyTokens).toBe(0);
-  });
-
-  it('tracks the most recently used model', async () => {
-    mockEntries = [
-      makeEntry({ timestamp: 1000, model: 'claude-opus-4' }),
-      makeEntry({ timestamp: 3000, model: 'claude-sonnet-4-6' }),
-      makeEntry({ timestamp: 2000, model: 'claude-haiku-4-5' }),
-    ];
-
-    const { getUsageSnapshot } = await import('../src/data/usage.js');
-    const snap = await getUsageSnapshot();
-    expect(snap.lastModel).toBe('claude-sonnet-4-6');
   });
 
   it('includes all cache token types in total', async () => {

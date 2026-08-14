@@ -39,7 +39,6 @@ function buildPreviewContext(settings: Settings): RenderContext {
       weeklyTokens: 3_100_000,
       sonnetWeeklyTokens: 1_300_000,
       allEntries: [],
-      lastModel: 'claude-opus-5',
     },
     codex: {
       available: true,

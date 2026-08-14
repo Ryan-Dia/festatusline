@@ -1,5 +1,25 @@
 import { describe, it, expect } from 'vitest';
-import { shortName, effortLabel } from '../src/widgets/Model.js';
+import { shortName, effortLabel, ModelWidget } from '../src/widgets/Model.js';
+import type { RenderContext } from '../src/widgets/types.js';
+import { getTheme } from '../src/theme/index.js';
+import { createTranslator } from '../src/i18n/index.js';
+
+const NOW = new Date('2026-01-01T12:00:00Z');
+
+function makeCtx(overrides: Partial<RenderContext> = {}): RenderContext {
+  return {
+    stdin: { type: 'statusLine' },
+    usage: null,
+    codex: null,
+    theme: getTheme('default'),
+    t: createTranslator('en'),
+    now: NOW,
+    weeklyAnchorDay: null,
+    cacheTtlCreatedAt: null,
+    cacheTtlMs: 300_000,
+    ...overrides,
+  };
+}
 
 describe('shortName', () => {
   it('strips "Claude " prefix from display names', () => {
@@ -74,5 +94,38 @@ describe('effortLabel', () => {
   it('hides the legacy normal level and missing values', () => {
     expect(effortLabel({ stdin: {}, effortLevel: 'normal' })).toBeNull();
     expect(effortLabel({ stdin: {} })).toBeNull();
+  });
+});
+
+describe('ModelWidget.render', () => {
+  it('prefers stdin.model.display_name over everything else', () => {
+    const ctx = makeCtx({
+      stdin: { type: 'statusLine', model: { id: 'claude-sonnet-4-6', display_name: 'Claude Sonnet 4.6' } },
+      sessionLastModel: 'claude-fable-5',
+    });
+    expect(ModelWidget.render(ctx, {})).toBe('Sonnet 4.6');
+  });
+
+  it('falls back to stdin.model.id when display_name is absent', () => {
+    const ctx = makeCtx({ stdin: { type: 'statusLine', model: { id: 'claude-sonnet-4-6' } } });
+    expect(ModelWidget.render(ctx, {})).toBe('Sonnet 4.6');
+  });
+
+  it('falls back to sessionLastModel only when stdin has no model at all', () => {
+    const ctx = makeCtx({ stdin: { type: 'statusLine' }, sessionLastModel: 'claude-sonnet-4-6' });
+    expect(ModelWidget.render(ctx, {})).toBe('Sonnet 4.6');
+  });
+
+  it('never falls back to a different session\'s model just because stdin.model is missing', () => {
+    // Regression: this used to fall back to the most-recently-used model across every
+    // project on the machine, so right after /clear it could show an unrelated
+    // session's model (e.g. Fable) instead of the current session's actual model.
+    const ctx = makeCtx({ stdin: { type: 'statusLine' }, sessionLastModel: null });
+    expect(ModelWidget.render(ctx, {})).toBe('?');
+  });
+
+  it('shows "?" when neither stdin nor the session transcript has a model', () => {
+    const ctx = makeCtx({ stdin: { type: 'statusLine' } });
+    expect(ModelWidget.render(ctx, {})).toBe('?');
   });
 });

@@ -58,7 +58,7 @@ export const ModelWidget: Widget = {
   labelKey: 'widget.model',
   render(ctx: RenderContext, _cfg: WidgetConfig): string | null {
     const rawName =
-      ctx.stdin.model?.display_name ?? ctx.stdin.model?.id ?? ctx.usage?.lastModel ?? null;
+      ctx.stdin.model?.display_name ?? ctx.stdin.model?.id ?? ctx.sessionLastModel ?? null;
     if (!rawName) return '?';
 
     const name = shortName(rawName);

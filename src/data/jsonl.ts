@@ -112,6 +112,27 @@ export async function loadAllEntries(): Promise<UsageEntry[]> {
   return all;
 }
 
+// The model in the statusline's own stdin payload is scoped to the current session, so
+// when it's missing this fallback must read only the current session's transcript —
+// never another project's, or the statusline would show whatever model was last used
+// anywhere on the machine.
+export async function getLastModelFromTranscript(transcriptPath: string): Promise<string | null> {
+  try {
+    const entries = await parseJsonlFile(transcriptPath);
+    let lastModel: string | null = null;
+    let lastTimestamp = 0;
+    for (const e of entries) {
+      if (e.model && e.timestamp > lastTimestamp) {
+        lastTimestamp = e.timestamp;
+        lastModel = e.model;
+      }
+    }
+    return lastModel;
+  } catch {
+    return null;
+  }
+}
+
 export async function getLastCacheCreation(): Promise<{ timestamp: number; ttlMs: number } | null> {
   const entries = await loadAllEntries();
   let latest: UsageEntry | null = null;

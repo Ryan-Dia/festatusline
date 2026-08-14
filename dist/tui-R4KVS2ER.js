@@ -5,7 +5,7 @@ import {
   PRESET_NAMES,
   PresetPreview,
   saveSettings
-} from "./chunk-5X3E2TLA.js";
+} from "./chunk-X5P5AGL4.js";
 import {
   ALL_WIDGETS,
   SettingsSchema,
@@ -14,7 +14,7 @@ import {
   setLocale,
   t,
   themes
-} from "./chunk-PZXUSLUV.js";
+} from "./chunk-CRAZLCZ7.js";
 
 // src/tui/index.ts
 import React6 from "react";
@@ -307,4 +307,4 @@ async function runTui() {
 export {
   runTui
 };
-//# sourceMappingURL=tui-TQPBAKUE.js.map
+//# sourceMappingURL=tui-R4KVS2ER.js.map

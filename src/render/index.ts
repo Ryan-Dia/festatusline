@@ -6,7 +6,7 @@ import { readStdin } from '../data/stdin.js';
 import { getUsageSnapshot } from '../data/usage.js';
 import { getCodexSnapshot } from '../data/codex.js';
 import { readClaudeSettings } from '../data/claude-settings.js';
-import { getLastCacheCreation } from '../data/jsonl.js';
+import { getLastCacheCreation, getLastModelFromTranscript } from '../data/jsonl.js';
 import { loadSettings } from '../config/load.js';
 import { getTheme } from '../theme/index.js';
 import { createTranslator } from '../i18n/index.js';
@@ -76,6 +76,12 @@ export async function renderFromStdin(): Promise<void> {
     cacheCreated && cacheCreated > 0 ? Date.now() : (lastCacheCreation?.timestamp ?? null);
   const cacheTtlMs = lastCacheCreation?.ttlMs ?? 300_000;
 
+  let sessionLastModel: string | null = null;
+  if (!stdin.model && stdin.transcript_path) {
+    const transcriptPath = stdin.transcript_path;
+    sessionLastModel = await tryOrNull(() => getLastModelFromTranscript(transcriptPath));
+  }
+
   const theme = getTheme(settings.theme);
   const ctx: RenderContext = {
     stdin: {
@@ -84,6 +90,7 @@ export async function renderFromStdin(): Promise<void> {
     },
     usage,
     codex,
+    sessionLastModel,
     theme,
     t,
     now: new Date(),

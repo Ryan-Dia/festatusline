@@ -7,7 +7,6 @@ export interface UsageSnapshot {
   weeklyTokens: number;
   sonnetWeeklyTokens: number;
   allEntries: UsageEntry[];
-  lastModel: string | null;
 }
 
 function totalTokens(e: UsageEntry): number {
@@ -28,8 +27,6 @@ export async function getUsageSnapshot(): Promise<UsageSnapshot> {
     let dailyTokens = 0;
     let weeklyTokens = 0;
     let sonnetWeeklyTokens = 0;
-    let lastModel: string | null = null;
-    let lastTimestamp = 0;
 
     for (const e of entries) {
       const total = totalTokens(e);
@@ -38,12 +35,8 @@ export async function getUsageSnapshot(): Promise<UsageSnapshot> {
         weeklyTokens += total;
         if (isSonnet(e.model)) sonnetWeeklyTokens += total;
       }
-      if (e.model && e.timestamp > lastTimestamp) {
-        lastTimestamp = e.timestamp;
-        lastModel = e.model;
-      }
     }
 
-    return { dailyTokens, weeklyTokens, sonnetWeeklyTokens, allEntries: entries, lastModel };
+    return { dailyTokens, weeklyTokens, sonnetWeeklyTokens, allEntries: entries };
   });
 }

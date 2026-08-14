@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { promises as fs } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
-import { loadAllEntries, getLastCacheCreation } from '../src/data/jsonl.js';
+import { loadAllEntries, getLastCacheCreation, getLastModelFromTranscript } from '../src/data/jsonl.js';
 
 const makeUsageLine = (overrides: Record<string, unknown> = {}): string =>
   JSON.stringify({
@@ -162,5 +162,51 @@ describe('getLastCacheCreation', () => {
     const result = await getLastCacheCreation();
     expect(result).not.toBeNull();
     expect(result!.ttlMs).toBe(3_600_000);
+  });
+});
+
+describe('getLastModelFromTranscript', () => {
+  let tmpDir: string;
+
+  beforeEach(async () => {
+    tmpDir = await fs.mkdtemp(join(tmpdir(), 'festatusline-transcript-'));
+  });
+
+  afterEach(async () => {
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  });
+
+  it('returns null when the transcript file does not exist', async () => {
+    const result = await getLastModelFromTranscript(join(tmpDir, 'missing.jsonl'));
+    expect(result).toBeNull();
+  });
+
+  it('returns the most recently timestamped model in the transcript', async () => {
+    const filePath = join(tmpDir, 'session.jsonl');
+    await fs.writeFile(
+      filePath,
+      [
+        makeUsageLine({ timestamp: '2026-01-01T10:00:00.000Z', model: 'claude-opus-4' }),
+        makeUsageLine({ timestamp: '2026-01-01T12:00:00.000Z', model: 'claude-sonnet-4-6' }),
+        makeUsageLine({ timestamp: '2026-01-01T11:00:00.000Z', model: 'claude-haiku-4-5' }),
+      ].join('\n') + '\n',
+    );
+
+    const result = await getLastModelFromTranscript(filePath);
+    expect(result).toBe('claude-sonnet-4-6');
+  });
+
+  it('never reads other transcripts even when they are more recent', async () => {
+    const filePath = join(tmpDir, 'session.jsonl');
+    await fs.writeFile(filePath, `${makeUsageLine({ model: 'claude-sonnet-4-6' })}\n`);
+
+    const otherPath = join(tmpDir, 'other-session.jsonl');
+    await fs.writeFile(
+      otherPath,
+      `${makeUsageLine({ timestamp: '2099-01-01T00:00:00.000Z', model: 'claude-fable-5' })}\n`,
+    );
+
+    const result = await getLastModelFromTranscript(filePath);
+    expect(result).toBe('claude-sonnet-4-6');
   });
 });

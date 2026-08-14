@@ -13,7 +13,7 @@ import {
   setLocale,
   source_default,
   t
-} from "./chunk-PZXUSLUV.js";
+} from "./chunk-CRAZLCZ7.js";
 
 // src/render/index.ts
 import { promises as fs3 } from "fs";
@@ -188,6 +188,22 @@ async function loadAllEntries() {
   );
   return all;
 }
+async function getLastModelFromTranscript(transcriptPath) {
+  try {
+    const entries = await parseJsonlFile(transcriptPath);
+    let lastModel = null;
+    let lastTimestamp = 0;
+    for (const e of entries) {
+      if (e.model && e.timestamp > lastTimestamp) {
+        lastTimestamp = e.timestamp;
+        lastModel = e.model;
+      }
+    }
+    return lastModel;
+  } catch {
+    return null;
+  }
+}
 async function getLastCacheCreation() {
   const entries = await loadAllEntries();
   let latest = null;
@@ -216,8 +232,6 @@ async function getUsageSnapshot() {
     let dailyTokens = 0;
     let weeklyTokens = 0;
     let sonnetWeeklyTokens = 0;
-    let lastModel = null;
-    let lastTimestamp = 0;
     for (const e of entries) {
       const total = totalTokens(e);
       if (e.timestamp >= todayStartMs) dailyTokens += total;
@@ -225,12 +239,8 @@ async function getUsageSnapshot() {
         weeklyTokens += total;
         if (isSonnet(e.model)) sonnetWeeklyTokens += total;
       }
-      if (e.model && e.timestamp > lastTimestamp) {
-        lastTimestamp = e.timestamp;
-        lastModel = e.model;
-      }
     }
-    return { dailyTokens, weeklyTokens, sonnetWeeklyTokens, allEntries: entries, lastModel };
+    return { dailyTokens, weeklyTokens, sonnetWeeklyTokens, allEntries: entries };
   });
 }
 
@@ -303,6 +313,11 @@ async function renderFromStdin() {
   const cacheCreated = stdin.context_window?.current_usage?.cache_creation_input_tokens;
   const cacheTtlCreatedAt = cacheCreated && cacheCreated > 0 ? Date.now() : lastCacheCreation?.timestamp ?? null;
   const cacheTtlMs = lastCacheCreation?.ttlMs ?? 3e5;
+  let sessionLastModel = null;
+  if (!stdin.model && stdin.transcript_path) {
+    const transcriptPath = stdin.transcript_path;
+    sessionLastModel = await tryOrNull(() => getLastModelFromTranscript(transcriptPath));
+  }
   const theme = getTheme(settings.theme);
   const ctx = {
     stdin: {
@@ -311,6 +326,7 @@ async function renderFromStdin() {
     },
     usage,
     codex,
+    sessionLastModel,
     theme,
     t: t2,
     now: /* @__PURE__ */ new Date(),
@@ -422,7 +438,7 @@ function isLocale(v) {
 }
 var commands = {
   setup: async () => {
-    const { runSetupWizard } = await import("./setup-6N24TBC4.js");
+    const { runSetupWizard } = await import("./setup-UUM4HROO.js");
     return runSetupWizard();
   },
   install: (args) => installToClaude(args.includes("--force")),
@@ -439,7 +455,7 @@ async function dispatch(argv) {
     await renderFromStdin();
     return;
   }
-  const { runTui } = await import("./tui-TQPBAKUE.js");
+  const { runTui } = await import("./tui-R4KVS2ER.js");
   await runTui();
 }
 async function main() {

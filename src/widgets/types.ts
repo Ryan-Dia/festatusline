@@ -8,6 +8,9 @@ export interface RenderContext {
   stdin: ClaudeStdin;
   usage: UsageSnapshot | null;
   codex: CodexSnapshot | null;
+  // Last model used in the *current* session's own transcript, read only when stdin
+  // itself doesn't carry a model (e.g. right after /clear, before the next turn).
+  sessionLastModel?: string | null;
   theme: Theme;
   t: (key: I18nKey) => string;
   now: Date;
