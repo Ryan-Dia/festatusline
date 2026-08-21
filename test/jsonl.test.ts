@@ -82,6 +82,41 @@ describe('loadAllEntries', () => {
     expect(entries).toHaveLength(2);
   });
 
+  it('counts a duplicated messageId:requestId pair only once, even across files', async () => {
+    const duplicated = makeUsageLine({
+      requestId: 'req_1',
+      message: {
+        id: 'msg_1',
+        model: 'claude-opus-4',
+        usage: {
+          input_tokens: 100,
+          output_tokens: 50,
+          cache_creation_input_tokens: 0,
+          cache_read_input_tokens: 0,
+        },
+      },
+    });
+    const projDir = join(tmpDir, 'projects', 'proj-dup');
+    await fs.mkdir(projDir, { recursive: true });
+    // Same response written twice in one file (retry) and once more in a second file
+    // (resumed session copies history into a new transcript).
+    await fs.writeFile(join(projDir, 'original.jsonl'), `${duplicated}\n${duplicated}\n`);
+    await fs.writeFile(join(projDir, 'resumed.jsonl'), `${duplicated}\n`);
+
+    const entries = await loadAllEntries();
+    expect(entries).toHaveLength(1);
+    expect(entries[0]!.inputTokens).toBe(100);
+  });
+
+  it('keeps repeated lines that lack messageId or requestId', async () => {
+    const projDir = join(tmpDir, 'projects', 'proj-noid');
+    await fs.mkdir(projDir, { recursive: true });
+    await fs.writeFile(join(projDir, 'f.jsonl'), `${makeUsageLine()}\n${makeUsageLine()}\n`);
+
+    const entries = await loadAllEntries();
+    expect(entries).toHaveLength(2);
+  });
+
   it('reads usage from message.usage when top-level usage is absent', async () => {
     const projDir = join(tmpDir, 'projects', 'proj-4');
     await fs.mkdir(projDir, { recursive: true });

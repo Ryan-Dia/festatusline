@@ -21,8 +21,10 @@ const UsageSchema = z.object({
 const JsonlLineSchema = z.object({
   timestamp: z.string().optional(),
   model: z.string().optional(),
+  requestId: z.string().optional(),
   message: z
     .object({
+      id: z.string().optional(),
       model: z.string().optional(),
       usage: UsageSchema.optional(),
     })
@@ -39,6 +41,10 @@ export interface UsageEntry {
   cacheReadTokens: number;
   ephemeral5mTokens: number;
   ephemeral1hTokens: number;
+  /** `messageId:requestId` when both ids are present — the same API response can be
+   * written to disk more than once (retries, resumed/branched sessions), and lines
+   * sharing this key must be counted once. Null when either id is missing. */
+  dedupKey: string | null;
 }
 
 const fileCache = createMtimeCache<UsageEntry[]>();
@@ -62,6 +68,7 @@ async function parseJsonlFile(filePath: string): Promise<UsageEntry[]> {
         const timestamp = obj.timestamp ? new Date(obj.timestamp).getTime() : Date.now();
         const model = obj.message?.model ?? obj.model ?? '';
         const cacheCreation = usage.cache_creation;
+        const messageId = obj.message?.id;
         entries.push({
           timestamp,
           model,
@@ -71,6 +78,7 @@ async function parseJsonlFile(filePath: string): Promise<UsageEntry[]> {
           cacheReadTokens: usage.cache_read_input_tokens,
           ephemeral5mTokens: cacheCreation?.ephemeral_5m_input_tokens ?? 0,
           ephemeral1hTokens: cacheCreation?.ephemeral_1h_input_tokens ?? 0,
+          dedupKey: messageId && obj.requestId ? `${messageId}:${obj.requestId}` : null,
         });
       } catch {
         // skip malformed lines
@@ -109,7 +117,19 @@ export async function loadAllEntries(): Promise<UsageEntry[]> {
       );
     }),
   );
-  return all;
+
+  // The same API response appears in more than one line (and often more than one file)
+  // when a session is retried, resumed, or branched — summing every line roughly doubles
+  // the daily/weekly totals on a machine with long-running sessions. Count each
+  // messageId:requestId pair once; entries without both ids can't be matched safely and
+  // are kept as-is.
+  const seen = new Set<string>();
+  return all.filter((entry) => {
+    if (entry.dedupKey === null) return true;
+    if (seen.has(entry.dedupKey)) return false;
+    seen.add(entry.dedupKey);
+    return true;
+  });
 }
 
 // The model in the statusline's own stdin payload is scoped to the current session, so
