@@ -326,12 +326,53 @@ async function getUsageSnapshot() {
 import { promises as fs2 } from "fs";
 import { homedir } from "os";
 import { join } from "path";
+
+// src/data/macKeychain.ts
+import { execFile } from "child_process";
+import { createHash } from "crypto";
+var BASE_SERVICE = "Claude Code-credentials";
+var TIMEOUT_MS = 3e3;
+function keychainServiceNames(configDir) {
+  const suffix = createHash("sha256").update(configDir).digest("hex").slice(0, 8);
+  return [`${BASE_SERVICE}-${suffix}`, BASE_SERVICE];
+}
+function keychainAccount() {
+  return process.env.USER || process.env.USERNAME || "user";
+}
+var runSecurity = (args) => new Promise((resolve) => {
+  execFile("security", args, { timeout: TIMEOUT_MS }, (err, stdout) => {
+    resolve(err ? null : stdout.trim() || null);
+  });
+});
+function extractToken(raw) {
+  try {
+    const parsed = JSON.parse(raw);
+    const oauth = parsed?.claudeAiOauth;
+    return typeof oauth?.accessToken === "string" ? oauth.accessToken : null;
+  } catch {
+    return null;
+  }
+}
+async function readKeychainToken(configDir, run = runSecurity) {
+  if (process.platform !== "darwin") return null;
+  const account = keychainAccount();
+  for (const service of keychainServiceNames(configDir)) {
+    const raw = await run(["find-generic-password", "-s", service, "-a", account, "-w"]);
+    if (!raw) continue;
+    const token = extractToken(raw);
+    if (token) return token;
+  }
+  return null;
+}
+
+// src/data/claudeOAuthUsage.ts
 var OAUTH_USAGE_URL = "https://api.anthropic.com/api/oauth/usage";
 var OAUTH_BETA_HEADER = "oauth-2025-04-20";
 var USER_AGENT = "claude-code/2.1.0";
 var FETCH_TIMEOUT_MS = 3e3;
 var TTL_MS = 5 * 60 * 1e3;
 var FAILURE_BACKOFF_MS = 60 * 1e3;
+var EXPIRED_TTL_MS = 60 * 1e3;
 var CACHE_DIR = process.env.XDG_CACHE_HOME ? join(process.env.XDG_CACHE_HOME, "festatusline") : join(homedir(), ".cache", "festatusline");
 var CACHE_PATH = join(CACHE_DIR, "oauth_usage.json");
 var EMPTY_SLOTS = { fable: null, session: null, weekly: null };
@@ -412,13 +453,15 @@ function extractSlots(data) {
   };
 }
 async function readAccessToken() {
+  const configDir = getClaudeDir();
   try {
-    const raw = await fs2.readFile(join(getClaudeDir(), ".credentials.json"), "utf8");
+    const raw = await fs2.readFile(join(configDir, ".credentials.json"), "utf8");
     const result = CredentialsSchema.safeParse(JSON.parse(raw));
-    return result.success ? result.data.claudeAiOauth?.accessToken ?? null : null;
+    const token = result.success ? result.data.claudeAiOauth?.accessToken ?? null : null;
+    if (token) return token;
   } catch {
-    return null;
   }
+  return readKeychainToken(configDir);
 }
 async function readCache() {
   try {
@@ -462,11 +505,15 @@ async function fetchOAuthSlots(token) {
     clearTimeout(timeout);
   }
 }
+function hasExpiredSlot(slots, nowMs) {
+  return Object.values(slots).some((slot) => slot != null && slot.resetsAt * 1e3 <= nowMs);
+}
 async function getOAuthUsageSlots() {
   const cache2 = await readCache();
   const now = Date.now();
-  if (cache2 && now - cache2.fetchedAt < TTL_MS) {
-    return cache2.slots;
+  if (cache2) {
+    const ttl = hasExpiredSlot(cache2.slots, now) ? EXPIRED_TTL_MS : TTL_MS;
+    if (now - cache2.fetchedAt < ttl) return cache2.slots;
   }
   if (cache2?.failedAt != null && now - cache2.failedAt < FAILURE_BACKOFF_MS) {
     return cache2.slots;

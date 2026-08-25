@@ -12,6 +12,31 @@ summarised under [Earlier](#earlier).
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-08-25
+
+### Added
+
+- macOS support for the OAuth-backed widgets (`src/data/macKeychain.ts`). macOS has no
+  `~/.claude/.credentials.json` at all — Claude Code keeps the same JSON in the login Keychain
+  — so `fableWeeklyRateLimit` never rendered there and `sessionRateLimit`/`weeklyRateLimit`
+  never saw another device's usage. The token is now read with `security find-generic-password`
+  from the item Claude Code writes, trying the config-dir-scoped service name Claude Code 2.1+
+  uses (`Claude Code-credentials-<first 8 hex of sha256(CLAUDE_CONFIG_DIR)>`) before the bare
+  one, both verified against Orca's `claude-accounts/keychain.ts`. Guarded on
+  `process.platform === 'darwin'`, so every other OS behaves identically to before.
+
+  macOS may prompt once for permission to read the item; *Always Allow* stops it recurring. A
+  denied prompt, a timeout (3s) and a missing item all resolve to "no token", which falls back
+  to the stdin payload — the same path a machine without credentials already took.
+
+### Fixed
+
+- A cached OAuth window whose reset time has passed is no longer served for the rest of its
+  5-minute TTL. The renderer draws an expired window as `0% (reset)` while the real one has
+  already started refilling, so a rolled-over 5-hour window showed `0% (reset)` instead of its
+  actual figure until the cache aged out. Expiry now shortens the TTL to a minute rather than
+  dropping it, so a bucket that legitimately stays expired can't turn every render into a fetch.
+
 ## [0.6.0] - 2026-08-25
 
 ### Added
