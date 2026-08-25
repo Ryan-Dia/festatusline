@@ -3,6 +3,7 @@ import { SettingsSchema, type Settings } from '../config/schema.js';
 import { renderAllLines } from '../render/line.js';
 import { getTheme } from '../theme/index.js';
 import { createTranslator } from '../i18n/index.js';
+import { emptyFamilyTotals } from '../data/modelTier.js';
 import type { RenderContext } from '../widgets/types.js';
 
 const HOUR_MS = 60 * 60 * 1000;
@@ -18,7 +19,6 @@ function buildPreviewContext(settings: Settings): RenderContext {
     stdin: {
       type: 'statusLine',
       model: { id: 'claude-opus-5', display_name: 'Claude Opus 5' },
-      cost: { total_cost_usd: 0.42 },
       context_window: {
         context_window_size: 200_000,
         used_percentage: 38,
@@ -33,11 +33,22 @@ function buildPreviewContext(settings: Settings): RenderContext {
         five_hour: { used_percentage: 30, resets_at: unixAfter(3 * HOUR_MS) },
         seven_day: { used_percentage: 25, resets_at: unixAfter(4 * DAY_MS) },
       },
+      cost: { total_cost_usd: 0.42, total_lines_added: 156, total_lines_removed: 23 },
+      fast_mode: false,
+      pr: { number: 1234, url: 'https://example.com/pull/1234', review_state: 'approved' },
+      effort: { level: 'xhigh' },
     },
     usage: {
       dailyTokens: 480_000,
       weeklyTokens: 3_100_000,
       sonnetWeeklyTokens: 1_300_000,
+      weightedDaily: 24_000_000,
+      weightedWeekly: 155_000_000,
+      weightedWeeklyByFamily: {
+        ...emptyFamilyTotals(),
+        opus: 116_250_000,
+        sonnet: 38_750_000,
+      },
       allEntries: [],
     },
     codex: {
@@ -54,7 +65,6 @@ function buildPreviewContext(settings: Settings): RenderContext {
     t: createTranslator(settings.locale),
     now,
     weeklyAnchorDay: settings.weeklyAnchorDay,
-    effortLevel: 'high',
     cacheTtlCreatedAt: now.getTime() - 30 * 60 * 1000,
     cacheTtlMs: HOUR_MS,
   };

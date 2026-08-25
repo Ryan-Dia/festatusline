@@ -85,6 +85,54 @@ describe('getUsageSnapshot', () => {
     expect(snap.weeklyTokens).toBe(0);
   });
 
+  it('weights the week by model family so an Opus token outweighs a Sonnet one', async () => {
+    const weekAgoMs = Date.now() - 6 * 24 * 60 * 60 * 1000;
+
+    mockEntries = [
+      makeEntry({ timestamp: weekAgoMs + 1000, model: 'claude-opus-5', inputTokens: 1_000 }),
+      makeEntry({ timestamp: weekAgoMs + 1000, model: 'claude-sonnet-4-6', inputTokens: 1_000 }),
+    ];
+
+    const { getUsageSnapshot } = await import('../src/data/usage.js');
+    const snap = await getUsageSnapshot();
+
+    // Identical raw token counts, but Opus sits on tier 5 against Sonnet's tier 3.
+    expect(snap.weeklyTokens).toBe(2_000);
+    expect(snap.weightedWeeklyByFamily.opus).toBe(1_000 * 10 * 5);
+    expect(snap.weightedWeeklyByFamily.sonnet).toBe(1_000 * 10 * 3);
+    expect(snap.weightedWeekly).toBe(80_000);
+  });
+
+  it('scopes weightedDaily to today while weightedWeekly keeps the week', async () => {
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const todayMs = todayStart.getTime();
+
+    mockEntries = [
+      makeEntry({ timestamp: todayMs + 1000, model: 'claude-opus-5', inputTokens: 100 }),
+      makeEntry({ timestamp: todayMs - 1000, model: 'claude-opus-5', inputTokens: 100 }),
+    ];
+
+    const { getUsageSnapshot } = await import('../src/data/usage.js');
+    const snap = await getUsageSnapshot();
+    expect(snap.weightedDaily).toBe(100 * 10 * 5);
+    expect(snap.weightedWeekly).toBe(2 * 100 * 10 * 5);
+  });
+
+  it('buckets an unrecognized model under the other family', async () => {
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    mockEntries = [
+      makeEntry({ timestamp: todayStart.getTime() + 1000, model: '', outputTokens: 10 }),
+    ];
+
+    const { getUsageSnapshot } = await import('../src/data/usage.js');
+    const snap = await getUsageSnapshot();
+    expect(snap.weightedWeeklyByFamily.other).toBe(10 * 50 * 3);
+    expect(snap.weightedWeeklyByFamily.opus).toBe(0);
+  });
+
   it('includes all cache token types in total', async () => {
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);

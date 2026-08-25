@@ -3,10 +3,12 @@ import path from 'path';
 import { z } from 'zod';
 import { getClaudeDir } from '../config/load.js';
 
+// `effortLevel` is deliberately absent: it lags the live session, so effortLabel reads the
+// payload and CLAUDE_EFFORT instead.
 const ClaudeSettingsSchema = z.object({
-  effortLevel: z.string().optional(),
   // Session-scoped flag, normally supplied via --settings. `/effort ultracode` picked in
-  // the TUI never lands here, so this only catches sessions pinned through the file.
+  // the TUI never lands here, so this only catches sessions pinned through the file — and
+  // it is the only channel that distinguishes ultracode from plain xhigh at all.
   ultracode: z.boolean().optional(),
 });
 

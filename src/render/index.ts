@@ -1,8 +1,7 @@
 import { promises as fs } from 'fs';
 import { homedir } from 'os';
 import { join } from 'path';
-import { z } from 'zod';
-import { readStdin } from '../data/stdin.js';
+import { readStdin, RateLimitsSchema, type RateLimits } from '../data/stdin.js';
 import { getUsageSnapshot } from '../data/usage.js';
 import { getCodexSnapshot } from '../data/codex.js';
 import { readClaudeSettings } from '../data/claude-settings.js';
@@ -18,17 +17,9 @@ const CACHE_DIR = process.env.XDG_CACHE_HOME
   : join(homedir(), '.cache', 'festatusline');
 const RATE_LIMITS_CACHE_PATH = join(CACHE_DIR, 'rate_limits.json');
 
-const RateLimitPeriodSchema = z.object({
-  used_percentage: z.number().optional(),
-  resets_at: z.number().optional(),
-});
-
-const RateLimitsCacheSchema = z.object({
-  five_hour: RateLimitPeriodSchema.optional(),
-  seven_day: RateLimitPeriodSchema.optional(),
-});
-
-type RateLimitsCache = z.infer<typeof RateLimitsCacheSchema>;
+// The cache mirrors the stdin payload verbatim so a cached window survives a Claude Code
+// release that starts sending null where it used to omit the field.
+const RateLimitsCacheSchema = RateLimitsSchema;
 
 async function tryOrNull<T>(fn: () => Promise<T>): Promise<T | null> {
   try {
@@ -38,7 +29,7 @@ async function tryOrNull<T>(fn: () => Promise<T>): Promise<T | null> {
   }
 }
 
-async function readRateLimitsCache(): Promise<RateLimitsCache | null> {
+async function readRateLimitsCache(): Promise<RateLimits | null> {
   return tryOrNull(async () => {
     const raw = await fs.readFile(RATE_LIMITS_CACHE_PATH, 'utf8');
     const result = RateLimitsCacheSchema.safeParse(JSON.parse(raw));
@@ -46,7 +37,7 @@ async function readRateLimitsCache(): Promise<RateLimitsCache | null> {
   });
 }
 
-async function writeRateLimitsCache(rateLimits: RateLimitsCache): Promise<void> {
+async function writeRateLimitsCache(rateLimits: RateLimits): Promise<void> {
   await tryOrNull(async () => {
     await fs.mkdir(CACHE_DIR, { recursive: true });
     await fs.writeFile(RATE_LIMITS_CACHE_PATH, JSON.stringify(rateLimits), 'utf8');
@@ -95,7 +86,7 @@ export async function renderFromStdin(): Promise<void> {
     t,
     now: new Date(),
     weeklyAnchorDay: settings.weeklyAnchorDay,
-    effortLevel: claudeSettings.effortLevel,
+    envEffortLevel: process.env.CLAUDE_EFFORT,
     ultracode: claudeSettings.ultracode,
     cacheTtlCreatedAt,
     cacheTtlMs,

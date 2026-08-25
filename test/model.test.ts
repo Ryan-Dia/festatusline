@@ -37,6 +37,18 @@ describe('shortName', () => {
     expect(shortName('claude-haiku-4-5')).toBe('Haiku 4.5');
   });
 
+  it('formats current-generation IDs that carry no minor version', () => {
+    // Regression: these used to fall through unformatted as "opus-5" / "sonnet-5",
+    // which is what the model widget showed whenever display_name was absent.
+    expect(shortName('claude-opus-5')).toBe('Opus 5');
+    expect(shortName('claude-sonnet-5')).toBe('Sonnet 5');
+    expect(shortName('claude-fable-5')).toBe('Fable 5');
+  });
+
+  it('ignores a trailing date snapshot', () => {
+    expect(shortName('claude-sonnet-4-5-20250929')).toBe('Sonnet 4.5');
+  });
+
   it('handles multi-word model names', () => {
     expect(shortName('claude-claude-instant-1-2')).toBe('Claude instant 1.2');
   });
@@ -51,34 +63,47 @@ describe('shortName', () => {
 });
 
 describe('effortLabel', () => {
-  it('prefers the resolved level from stdin over the saved setting', () => {
-    expect(effortLabel({ stdin: { effort: { level: 'max' } }, effortLevel: 'xhigh' })).toBe('max');
+  it('uses the resolved level from the payload', () => {
+    expect(effortLabel({ stdin: { effort: { level: 'max' } } })).toBe('max');
+    expect(effortLabel({ stdin: { version: '2.1.243', effort: { level: 'high' } } })).toBe('high');
   });
 
-  it('falls back to the saved setting on payloads older than 2.1.119', () => {
-    expect(effortLabel({ stdin: { version: '2.1.118' }, effortLevel: 'xhigh' })).toBe('xhigh');
-    expect(effortLabel({ stdin: { version: '1.9.999' }, effortLevel: 'xhigh' })).toBe('xhigh');
-    expect(effortLabel({ stdin: {}, effortLevel: 'xhigh' })).toBe('xhigh');
+  it('prefers the payload over CLAUDE_EFFORT when both are present', () => {
+    // They always agree in practice — Claude Code builds the env var from the same value —
+    // but the payload is the direct channel.
+    const ctx = { stdin: { effort: { level: 'max' } }, envEffortLevel: 'xhigh' };
+    expect(effortLabel(ctx)).toBe('max');
   });
 
-  it('drops the fallback from 2.1.119 on, where a missing effort means no support', () => {
-    expect(effortLabel({ stdin: { version: '2.1.119' }, effortLevel: 'xhigh' })).toBeNull();
-    expect(effortLabel({ stdin: { version: '2.1.226' }, effortLevel: 'xhigh' })).toBeNull();
-    expect(effortLabel({ stdin: { version: '3.0.0' }, effortLevel: 'xhigh' })).toBeNull();
+  it('falls back to CLAUDE_EFFORT when the payload could not be parsed', () => {
+    // A payload that failed to parse leaves stdin empty, but Claude Code still exported the
+    // level to this spawn, so the label stays correct instead of vanishing.
+    expect(effortLabel({ stdin: {}, envEffortLevel: 'xhigh' })).toBe('xhigh');
   });
 
-  it('still trusts stdin effort on new payloads', () => {
-    expect(effortLabel({ stdin: { version: '2.1.226', effort: { level: 'max' } } })).toBe('max');
+  it('shows nothing when neither channel carries a level', () => {
+    // This is the model-has-no-effort-support case: the payload omits `effort` and Claude
+    // Code omits CLAUDE_EFFORT too, so no label is the right answer.
+    expect(effortLabel({ stdin: {} })).toBeNull();
+    expect(effortLabel({ stdin: { version: '2.1.243' } })).toBeNull();
+  });
+
+  it('never reads a level out of the settings file', () => {
+    // Regression: `effortLevel` in ~/.claude/settings.json lags the live session — it misses
+    // /effort changes and the per-model modelSettings override — so it used to print a level
+    // the session was not running at. It is no longer a source at all.
+    const stale = { stdin: {}, effortLevel: 'medium' } as Parameters<typeof effortLabel>[0];
+    expect(effortLabel(stale)).toBeNull();
   });
 
   it('labels ultracode when the settings flag is set and effort resolves to xhigh', () => {
-    const stdin = { version: '2.1.226', effort: { level: 'xhigh' } };
+    const stdin = { version: '2.1.243', effort: { level: 'xhigh' } };
     expect(effortLabel({ stdin, ultracode: true })).toBe('ultracode');
     expect(effortLabel({ stdin, ultracode: false })).toBe('xhigh');
   });
 
   it('does not label ultracode when effort resolves to something other than xhigh', () => {
-    const stdin = { version: '2.1.226', effort: { level: 'max' } };
+    const stdin = { version: '2.1.243', effort: { level: 'max' } };
     expect(effortLabel({ stdin, ultracode: true })).toBe('max');
   });
 
@@ -87,13 +112,14 @@ describe('effortLabel', () => {
     expect(effortLabel({ stdin: { effort: { level: 'xhigh' } } })).toBe('xhigh');
   });
 
-  it('maps the legacy max-tokens level', () => {
-    expect(effortLabel({ stdin: {}, effortLevel: 'max-tokens' })).toBe('max');
+  it('maps the legacy max-tokens level from either channel', () => {
+    expect(effortLabel({ stdin: { effort: { level: 'max-tokens' } } })).toBe('max');
+    expect(effortLabel({ stdin: {}, envEffortLevel: 'max-tokens' })).toBe('max');
   });
 
-  it('hides the legacy normal level and missing values', () => {
-    expect(effortLabel({ stdin: {}, effortLevel: 'normal' })).toBeNull();
-    expect(effortLabel({ stdin: {} })).toBeNull();
+  it('hides the legacy normal level', () => {
+    expect(effortLabel({ stdin: { effort: { level: 'normal' } } })).toBeNull();
+    expect(effortLabel({ stdin: {}, envEffortLevel: 'normal' })).toBeNull();
   });
 });
 

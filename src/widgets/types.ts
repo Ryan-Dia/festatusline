@@ -15,7 +15,9 @@ export interface RenderContext {
   t: (key: I18nKey) => string;
   now: Date;
   weeklyAnchorDay: number | null;
-  effortLevel?: string;
+  // CLAUDE_EFFORT, which Claude Code exports to the status line spawn. Backstop for a
+  // payload we could not parse; see effortLabel in Model.ts.
+  envEffortLevel?: string;
   ultracode?: boolean;
   cacheTtlCreatedAt: number | null;
   cacheTtlMs: number;
