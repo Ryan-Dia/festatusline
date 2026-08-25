@@ -17,6 +17,11 @@ import { CacheHitWidget } from './CacheHit.js';
 import { CacheTtlWidget } from './CacheTtl.js';
 import { GitBranchWidget, GitRepoWidget } from './GitInfo.js';
 
+import { ModelMixWidget } from './ModelMix.js';
+import { PrStatusWidget } from './PrStatus.js';
+import { FastModeWidget } from './FastMode.js';
+import { LinesChangedWidget } from './LinesChanged.js';
+
 export const ALL_WIDGETS: Widget[] = [
   ModelWidget,
   ContextWidget,
@@ -28,6 +33,7 @@ export const ALL_WIDGETS: Widget[] = [
   WeeklyResetTimerWidget,
   SonnetWeeklyUsageWidget,
   SonnetWeeklyResetTimerWidget,
+  ModelMixWidget,
   GptUsageWidget,
   CodexWeeklyRateLimitWidget,
   SpacerWidget,
@@ -37,6 +43,9 @@ export const ALL_WIDGETS: Widget[] = [
   CacheTtlWidget,
   GitBranchWidget,
   GitRepoWidget,
+  PrStatusWidget,
+  FastModeWidget,
+  LinesChangedWidget,
 ];
 
 const registry = new Map<string, Widget>(ALL_WIDGETS.map((w) => [w.id, w]));
