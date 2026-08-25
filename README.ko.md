@@ -178,11 +178,13 @@ Codex 행을 추가한 `max` 프리셋 기준입니다. 실제 출력에는 트�
 > 캐싱하고, 실패하면 1분간 재시도를 멈추며(오프라인에서 매 렌더가 멈추지 않도록), 그동안은
 > 마지막 성공값을 그대로 보여줍니다.
 >
-> **플랫폼 주의:** 토큰은 `~/.claude/.credentials.json` 에서 읽는데, 이건 Linux·WSL·Windows 의
-> 저장 위치입니다. macOS 에서는 Claude Code 가 Keychain 에 저장하므로 현재 OAuth 계층이 동작하지
-> 않습니다 — `fableWeeklyRateLimit` 은 표시되지 않고, `sessionRateLimit`/`weeklyRateLimit` 은
-> 이 기능 이전과 완전히 동일하게 동작합니다. Node 의 `fetch` 는 `HTTPS_PROXY` 도 읽지 않아서
-> 사내 프록시 환경에서도 같은 방식으로 조용히 비활성화됩니다.
+> **토큰을 어디서 읽는지:** Linux·WSL·Windows 는 `~/.claude/.credentials.json` 입니다. macOS 에는
+> 그 파일이 아예 없고 Claude Code 가 로그인 Keychain 에 저장하므로,
+> `security find-generic-password` 로 Claude Code 가 쓴 것과 같은 항목을 읽습니다
+> (`Claude Code-credentials`, 2.1+ 는 `CLAUDE_CONFIG_DIR` 해시로 스코프됨). macOS 가 최초 1회
+> 접근 권한을 물어볼 수 있는데, *항상 허용* 을 누르면 다시 묻지 않습니다. 거부하거나 사내 프록시
+> 환경이면(Node 의 `fetch` 는 `HTTPS_PROXY` 를 읽지 않습니다) OAuth 계층은 그냥 조용해집니다 —
+> `fableWeeklyRateLimit` 은 숨고, 나머지 두 바는 이 기능 이전처럼 stdin 페이로드만 씁니다.
 
 > `modelMix` 는 Claude Code 의 `/usage` 와 같은 가중치를 씁니다 — 캐시 읽기를 1 로 두고
 > 캐시 미스 입력 10배, 캐시 쓰기 12.5배, 출력 50배에 모델 계열 배수(Fable 10, Opus 5,

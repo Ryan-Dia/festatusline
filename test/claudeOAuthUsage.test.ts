@@ -252,6 +252,67 @@ describe('getOAuthUsageSlots', () => {
     expect(slots.weekly).toEqual({ usedPercent: 21, resetsAt: 1_900_000_000 });
   });
 
+  it('refetches inside the TTL once a cached window has passed its reset time', async () => {
+    // Serving it would draw `0% (reset)` while the real window has already started refilling.
+    const past = Math.floor(Date.now() / 1000) - 60;
+    await fs.mkdir(join(cacheDir, 'festatusline'), { recursive: true });
+    await fs.writeFile(
+      join(cacheDir, 'festatusline', 'oauth_usage.json'),
+      JSON.stringify({
+        // Older than the shortened expired-window TTL, younger than the normal one, so a
+        // refetch here proves the expiry is what cut it short.
+        fetchedAt: Date.now() - 90_000,
+        slots: { fable: null, session: { usedPercent: 62, resetsAt: past }, weekly: null },
+      }),
+    );
+    await fs.writeFile(
+      join(claudeDir, '.credentials.json'),
+      JSON.stringify({ claudeAiOauth: { accessToken: 'test-token' } }),
+    );
+    const fresh = Math.floor(Date.now() / 1000) + 3_600;
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse({ five_hour: { used_percentage: 2, resets_at: fresh } }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { getOAuthUsageSlots } = await import('../src/data/claudeOAuthUsage.js');
+    const slots = await getOAuthUsageSlots();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(slots.session).toEqual({ usedPercent: 2, resetsAt: fresh });
+  });
+
+  it('still rate-limits refetching while a window stays expired', async () => {
+    // Otherwise a bucket that legitimately never refills would fetch on every render.
+    const past = Math.floor(Date.now() / 1000) - 60;
+    await fs.mkdir(join(cacheDir, 'festatusline'), { recursive: true });
+    await fs.writeFile(
+      join(cacheDir, 'festatusline', 'oauth_usage.json'),
+      JSON.stringify({
+        // Older than the shortened expired-window TTL, younger than the normal one, so a
+        // refetch here proves the expiry is what cut it short.
+        fetchedAt: Date.now() - 90_000,
+        slots: { fable: null, session: { usedPercent: 62, resetsAt: past }, weekly: null },
+      }),
+    );
+    await fs.writeFile(
+      join(claudeDir, '.credentials.json'),
+      JSON.stringify({ claudeAiOauth: { accessToken: 'test-token' } }),
+    );
+    // The endpoint keeps returning the same already-expired window.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        jsonResponse({ five_hour: { used_percentage: 62, resets_at: past } }),
+      ),
+    );
+
+    const { getOAuthUsageSlots } = await import('../src/data/claudeOAuthUsage.js');
+    await getOAuthUsageSlots();
+    const callsAfterFirst = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls.length;
+    await getOAuthUsageSlots();
+    expect((globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls.length).toBe(callsAfterFirst);
+  });
+
   it('treats a corrupted cache file as no cache instead of throwing', async () => {
     const cachePath = join(cacheDir, 'festatusline', 'oauth_usage.json');
     await fs.mkdir(join(cacheDir, 'festatusline'), { recursive: true });

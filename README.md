@@ -181,12 +181,14 @@ Edit manually or use `/festatusline:setup` in Claude Code to reconfigure.
 > minutes, a failed attempt backs off for a minute (so an offline machine doesn't stall every
 > render), and stale values are kept rather than blanking anything.
 >
-> **Platform note:** this reads `~/.claude/.credentials.json`, which is where Claude Code
-> keeps the token on Linux, WSL, and Windows. On macOS Claude Code stores it in the Keychain
-> instead, so the OAuth layer is currently inert there — `fableWeeklyRateLimit` won't render
-> and `sessionRateLimit`/`weeklyRateLimit` behave exactly as before this feature. Node's
-> `fetch` also ignores `HTTPS_PROXY`, so behind a corporate proxy you get the same graceful
-> no-op.
+> **Where the token comes from:** `~/.claude/.credentials.json` on Linux, WSL and Windows.
+> macOS has no such file — Claude Code keeps the credentials in the login Keychain — so there
+> the token is read with `security find-generic-password`, from the same item Claude Code
+> writes (`Claude Code-credentials`, scoped by a hash of `CLAUDE_CONFIG_DIR` on 2.1+). macOS
+> may ask once for permission to read it; choosing *Always Allow* stops the prompt returning.
+> Deny it, or run behind a corporate proxy (Node's `fetch` ignores `HTTPS_PROXY`), and the
+> OAuth layer simply goes quiet: `fableWeeklyRateLimit` hides and the other two bars fall back
+> to the stdin payload exactly as they did before this feature.
 
 > `modelMix` weights tokens the way Claude Code's own `/usage` does — a cache read is the
 > unit, uncached input 10x, a cache write 12.5x, output 50x, all scaled by model family

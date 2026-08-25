@@ -80,17 +80,44 @@ src/
 ## 배포
 
 npm 에 발행하지 않는다. 배포 경로는 GitHub 플러그인 마켓플레이스이므로 **`dist/` 를 커밋해야
-한다** (`.gitignore` 는 `dist/*.map` 만 제외). 버전은 세 파일 네 곳을 함께 올린다.
+한다** (`.gitignore` 는 `dist/*.map` 만 제외). 버전은 네 파일 다섯 곳을 함께 올린다.
 
 | 파일 | 위치 |
 |---|---|
 | `package.json` | `version` |
+| `package-lock.json` | 최상위 `version` + `packages[""].version` |
 | `.claude-plugin/plugin.json` | `version` |
 | `.claude-plugin/marketplace.json` | `metadata.version` + top-level `version` |
 
 버전을 올리지 않으면 사용자 쪽 `/plugin update` 가 "already at the latest version" 을 반환한다
 — 플러그인 캐시가 `~/.claude/plugins/cache/festatusline/festatusline/<version>/` 로 버전별
 디렉터리를 쓰기 때문이다.
+
+### 릴리스 절차
+
+1. 버전 4파일 5곳을 올린다 (위 표). 위젯 추가·동작 변경이면 minor, 버그 수정만이면 patch.
+2. `CHANGELOG.md` 의 `## [Unreleased]` 를 `## [x.y.z] - YYYY-MM-DD` 로 확정하고 빈
+   `## [Unreleased]` 를 위에 다시 만든다.
+3. `npm run build` — `dist/` 는 커밋 대상이라 반드시 최신 상태로 만든다.
+4. 커밋 2개로 나눈다 (기존 히스토리와 동일):
+   - `feat:`/`fix:` — `src/`, `test/`, `README*.md`, `CLAUDE.md`
+   - `chore: Release vX.Y.Z` — 버전 파일들 + `CHANGELOG.md` + `dist/`
+   pre-commit 훅(lint-staged + eslint + vitest 전체)이 돌므로 실패하면 커밋이 통째로 롤백된다.
+   특히 **지역변수는 camelCase 강제** — `five_hour` 같은 페이로드 키 이름을 그대로 변수로
+   쓰면 `@typescript-eslint/naming-convention` 에 걸린다.
+5. **annotated** 태그를 만든다: `git tag -a vX.Y.Z -F -` (기존 태그가 전부 annotated).
+6. `git push origin main` + `git push origin vX.Y.Z`.
+7. **`gh release create vX.Y.Z --verify-tag --latest --notes-file -`** — 태그를 푸시해도
+   GitHub Release 는 생기지 않는다. 둘은 별개고, 이 단계를 빼먹으면 Releases 페이지가 옛
+   버전에 멈춰 있다. 본문 형식은 기존 릴리스를 따른다: `## ✨ Features` / `## 🐞 Bug Fixes` /
+   `## 🔧 Changes` 섹션, 항목 끝에 커밋 해시를 `` (`abc1234`) `` 로 붙이고, 마지막 줄에
+   `**Full Changelog**: .../compare/v<이전>...v<이번>` 링크를 단다.
+8. 내 환경 반영: `claude plugin marketplace update festatusline` →
+   `claude plugin update festatusline@festatusline -y` → `~/.claude/settings.json` 의
+   `statusLine` 을 새 캐시 경로로 교체. 적용은 Claude Code 재시작 후.
+
+플러그인 설치·업데이트는 Release 가 아니라 **`main` 브랜치의 `dist/` 와 마켓플레이스 JSON 버전**을
+보므로, Release 는 사람이 변경 내역을 읽는 용도다. 빠뜨려도 `/plugin update` 는 동작한다.
 
 ## 위젯 ID 목록
 
@@ -259,10 +286,15 @@ refactor: Extract token formatter into shared util
 - 네트워크·파싱 실패 시 절대 위젯을 비우지 않고 마지막으로 성공한 캐시 값을 그대로 돌려준다.
   자격증명 파일이 없거나 토큰이 없으면 세 슬롯 모두 `null` — `fableWeeklyRateLimit` 은 조용히
   사라지고, `sessionRateLimit`/`weeklyRateLimit` 은 stdin/로컬 캐시 폴백으로 그대로 동작한다.
-- **macOS 미지원.** Claude Code 는 macOS 에서 토큰을 `.credentials.json` 이 아닌 Keychain 에
-  저장한다(Orca 의 `readFromKeychain`, 서비스명이 `CLAUDE_CONFIG_DIR` 로 스코프됨). 지원하려면
-  `security find-generic-password` 를 서브프로세스로 띄워야 하는데 Linux 에서 검증할 수 없어
-  0.5.0 에는 넣지 않았다. 메인테이너 환경이 macOS 라 후속 작업 1순위.
+- **macOS 는 Keychain 에서 읽는다** (`src/data/macKeychain.ts`, 0.7.0~). macOS 에는
+  `.credentials.json` 이 아예 없고 Claude Code 가 로그인 Keychain 에 같은 JSON 을 넣는다.
+  `security find-generic-password -s <서비스> -a $USER -w` 로 읽으며, 서비스명은 Claude Code
+  2.1+ 가 `Claude Code-credentials-<sha256(CLAUDE_CONFIG_DIR) 앞 8자리>` 로 스코프하므로
+  스코프본 → 무접미사본 순으로 시도한다 (Orca 의 `claude-accounts/keychain.ts` 대조 확인).
+  `process.platform !== 'darwin'` 이면 즉시 `null` 이라 다른 OS 동작은 바이트 단위로 동일하다.
+  **이 코드는 Linux 에서 검증 불가하다** — 서비스명 파생과 폴백 순서는 유닛 테스트로 고정했지만,
+  실제 Keychain 접근은 macOS 에서만 확인된다. 최초 1회 접근 권한 프롬프트가 뜰 수 있고, 거부/타임아웃
+  /항목 없음이 전부 `null` 로 수렴해 stdin 폴백으로 이어진다. `security` 는 3초 타임아웃.
 - 토큰은 `readAccessToken()` → `fetch` Authorization 헤더 두 지점에만 닿는다. 캐시 파일엔
   퍼센트/리셋 시각만 기록한다(테스트로 고정). `refreshToken` 은 스키마에서 읽지도 않는다.
   `redirect: 'error'` 로 리다이렉트 시 토큰이 다른 호스트로 따라가는 것을 막는다.

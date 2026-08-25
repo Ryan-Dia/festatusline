@@ -3,6 +3,7 @@ import { homedir } from 'os';
 import { join } from 'path';
 import { z } from 'zod';
 import { getClaudeDir } from '../config/load.js';
+import { readKeychainToken } from './macKeychain.js';
 
 // Claude Code never exposes a per-model (Opus/Sonnet/Fable) weekly rate limit on the
 // statusline stdin payload — only `rate_limits.seven_day` for the account as a whole. The
@@ -29,6 +30,12 @@ const TTL_MS = 5 * 60 * 1000;
 // machine (Node's fetch ignores HTTPS_PROXY) would re-attempt — and stall for the timeout —
 // on every single render once the cache aged past TTL_MS.
 const FAILURE_BACKOFF_MS = 60 * 1000;
+
+// A window whose reset time has passed is stale no matter how recently it was fetched — the
+// renderer draws it as `0% (reset)` while the real window has already started refilling. Cut
+// the TTL rather than dropping it, so a bucket that legitimately stays expired can't turn
+// every render into a fetch.
+const EXPIRED_TTL_MS = 60 * 1000;
 
 const CACHE_DIR = process.env.XDG_CACHE_HOME
   ? join(process.env.XDG_CACHE_HOME, 'festatusline')
@@ -164,13 +171,16 @@ function extractSlots(data: OAuthUsageResponse): OAuthUsageSlots {
 }
 
 async function readAccessToken(): Promise<string | null> {
+  const configDir = getClaudeDir();
   try {
-    const raw = await fs.readFile(join(getClaudeDir(), '.credentials.json'), 'utf8');
+    const raw = await fs.readFile(join(configDir, '.credentials.json'), 'utf8');
     const result = CredentialsSchema.safeParse(JSON.parse(raw));
-    return result.success ? (result.data.claudeAiOauth?.accessToken ?? null) : null;
+    const token = result.success ? (result.data.claudeAiOauth?.accessToken ?? null) : null;
+    if (token) return token;
   } catch {
-    return null;
+    // Falls through: on macOS this file does not exist at all.
   }
+  return readKeychainToken(configDir);
 }
 
 async function readCache(): Promise<CacheEntry | null> {
@@ -219,11 +229,16 @@ async function fetchOAuthSlots(token: string): Promise<OAuthUsageSlots | null> {
   }
 }
 
+function hasExpiredSlot(slots: OAuthUsageSlots, nowMs: number): boolean {
+  return Object.values(slots).some((slot) => slot != null && slot.resetsAt * 1000 <= nowMs);
+}
+
 export async function getOAuthUsageSlots(): Promise<OAuthUsageSlots> {
   const cache = await readCache();
   const now = Date.now();
-  if (cache && now - cache.fetchedAt < TTL_MS) {
-    return cache.slots;
+  if (cache) {
+    const ttl = hasExpiredSlot(cache.slots, now) ? EXPIRED_TTL_MS : TTL_MS;
+    if (now - cache.fetchedAt < ttl) return cache.slots;
   }
   if (cache?.failedAt != null && now - cache.failedAt < FAILURE_BACKOFF_MS) {
     return cache.slots;
