@@ -6,7 +6,7 @@
 [![Node ≥18](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org)
 [![i18n](https://img.shields.io/badge/i18n-ko%20%7C%20en%20%7C%20zh-orange)](./README.md)
 
-> Claude Code 상태바(statusline) 도구. 다국어(ko/en/zh), 5종 테마, 7종 프리셋, 19개 위젯, Codex CLI 통합을 지원합니다.
+> Claude Code 상태바(statusline) 도구. 다국어(ko/en/zh), 5종 테마, 7종 프리셋, 23개 위젯, Codex CLI 통합을 지원합니다.
 
 [ccstatusline](https://github.com/sirmalloc/ccstatusline) 을 참고한 파생 버전입니다.
 
@@ -16,7 +16,7 @@
 
 - **다국어 지원** — 한국어·영어·중국어를 `FESTATUSLINE_LOCALE` 또는 `$LANG` 으로 자동 감지
 - **5종 테마 내장** — default, dracula, nord, gruvbox, tokyo-night
-- **19개 위젯** — Claude 사용량, Codex CLI, Git 정보, 세션 비용, 캐시 통계
+- **23개 위젯** — Claude 사용량, Codex CLI, Git 정보, 세션 비용, 캐시 통계
 - **Codex CLI 통합** — `~/.codex` 파싱으로 GPT 요청 수·레이트 리밋·모델 표시
 - **7종 프리셋 + 인터랙티브 셋업** — `/festatusline:setup` 으로 제로 설정 완료
 - **Node ≥18 전용** — Bun API 미사용
@@ -113,11 +113,11 @@ Codex 행을 추가한 `max` 프리셋 기준입니다. 실제 출력에는 트�
 
 ## 🧩 위젯
 
-### Claude (13개)
+### Claude (16개)
 
 | id | 출력 예시 | 설명 |
 |---|---|---|
-| `model` | `Sonnet 4.6` / `Sonnet 4.6 [high]` | 현재 모델명(축약). 노력 레벨이 보통이 아니면 괄호로 표시. |
+| `model` | `Sonnet 4.6` / `Opus 5 [xhigh, fast]` | 현재 모델명(축약). 세션 플래그를 덧붙임 — effort 레벨, 패스트 모드면 `fast`, thinking 을 명시적으로 끈 경우 `no-think`. |
 | `context` | `Ctx ■■□□□□□□□□  23% (47K/200K)` | 컨텍스트 창 바 + 비율 + 토큰 수 |
 | `sessionRateLimit` | `Session ■■■□□□□□□□  30% (3h 41m)` | 현재 세션(약 5시간 롤링) 사용량 바 + 리셋까지 남은 시간 |
 | `weeklyRateLimit` | `all ■■□□□□□□□□  25% (6d 10h)` | 7일 전체 모델 레이트 리밋 + 리셋까지 남은 시간 |
@@ -130,11 +130,28 @@ Codex 행을 추가한 `max` 프리셋 기준입니다. 실제 출력에는 트�
 | `sessionCost` | `$0.0042` / `$1.23` | 세션 비용 (USD) |
 | `cacheHit` | `⚡74%` | 캐시 히트율 (cache_read / 총 입력 토큰) |
 | `cacheTtl` | `⏱ 1h 0m` | 캐시 TTL 잔여 시간 (ephemeral → 1h, 나머지 → 5m) |
+| `modelMix` | `Opus 78% · Sonnet 22%` | 이번 주 사용량의 모델 계열별 비중 (`/usage` 와 동일한 가중치) |
+| `fastMode` | `»fast` | 패스트 모드가 켜져 있을 때만 표시 (`model` 플래그의 단독 버전) |
+| `linesChanged` | `+156/-23` | 이번 세션에서 추가/삭제된 줄 수 |
 
 > **모델별 주간 한도는 가져올 수 없습니다.** statusline stdin 페이로드에는 `rate_limits.five_hour`
 > 와 `rate_limits.seven_day` 만 실려 옵니다. Claude Code 는 모델별 버킷(Opus·Sonnet·Fable)을 내부적으로
 > 추적하고 `/usage` 에는 표시하지만, statusline 으로 넘겨주지도 디스크에 캐시하지도 않습니다. 따라서
 > `weeklyRateLimit` 은 전체 모델 합산 값만 보여줍니다.
+
+> `modelMix` 는 Claude Code 의 `/usage` 와 같은 가중치를 씁니다 — 캐시 읽기를 1 로 두고
+> 캐시 미스 입력 10배, 캐시 쓰기 12.5배, 출력 50배에 모델 계열 배수(Fable 10, Opus 5,
+> Sonnet 3, Haiku 1)를 곱합니다. 가중치가 붙은 값은 다른 가중치 값과 비교할 때만 의미가
+> 있어 비율로만 표시합니다. `sonnetWeeklyUsage` 같은 원시 토큰 위젯은 그대로 둡니다.
+
+
+> `model` 위젯의 effort 라벨은 페이로드의 `effort.level` 을 쓰고, 없으면 Claude Code 가
+> statusline 프로세스에 넘겨주는 `CLAUDE_EFFORT` 환경변수로 폴백합니다(같은 값이라, 페이로드
+> 파싱이 실패한 경우에만 의미가 있습니다). `~/.claude/settings.json` 의 `effortLevel` 은
+> **의도적으로 보지 않습니다** — 세션 중 `/effort` 변경과 모델별 `modelSettings` 오버라이드를
+> 반영하지 못해서, 실제로 돌고 있지 않은 레벨을 표시합니다. ultracode 는 탐지 자체가
+> 불가능합니다: Claude Code 가 모든 경로에서 `xhigh` 로 보고하므로, 설정 파일에
+> `ultracode: true` 를 박은 경우만 구분됩니다.
 
 ### Codex (3개)
 
@@ -147,12 +164,13 @@ Codex 행을 추가한 `max` 프리셋 기준입니다. 실제 출력에는 트�
 > `gptUsage`는 Codex CLI를 한 번이라도 사용하기 전까지 숨겨집니다. `codexModel`은 고정
 > 라벨이라 처음 사용하기 전에도 Codex 행이 항상 표시됩니다.
 
-### Git (2개)
+### Git (3개)
 
 | id | 출력 예시 | 설명 |
 |---|---|---|
 | `gitBranch` | `main` | 현재 작업 디렉터리의 브랜치 |
-| `gitRepo` | `📁 festatusline(main)` | 리포지토리 이름 + 브랜치 합산 표시 |
+| `gitRepo` | `📁 festatusline(main)` | 리포지토리 이름 + 브랜치 합산 표시. Claude Code 가 `workspace.repo` 를 넘겨주면 그 값을 쓰고, 없으면 `git rev-parse` 로 폴백. |
+| `pr` | `PR #1234 ✓` / `MR !77 ✗` | 현재 브랜치의 열린 PR. GitLab 머지 리퀘스트는 `MR !번호` 로 표시 |
 
 ### 레이아웃 (1개)
 
@@ -224,6 +242,7 @@ Claude Code 에서 `/festatusline:setup` 으로 적용할 수 있습니다. setu
 | 변수 | 기본값 | 설명 |
 |---|---|---|
 | `FESTATUSLINE_LOCALE` | — | 로케일 강제 지정 (`ko` / `en` / `zh`) |
+| `CLAUDE_EFFORT` | — | 사용자가 아니라 Claude Code 가 설정. 현재 세션의 effort 레벨 — 페이로드에 `effort.level` 이 없을 때만 폴백으로 사용 |
 | `CLAUDE_CONFIG_DIR` | `~/.claude` | Claude 데이터 디렉터리 위치 변경 |
 | `CODEX_CONFIG_DIR` | `~/.codex` | Codex 데이터 디렉터리 위치 변경 |
 | `XDG_CONFIG_HOME` | `~/.config` | 설정 파일 기준 경로 |

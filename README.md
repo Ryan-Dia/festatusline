@@ -6,7 +6,7 @@
 [![Node ≥18](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org)
 [![i18n](https://img.shields.io/badge/i18n-ko%20%7C%20en%20%7C%20zh-orange)](./README.ko.md)
 
-> Customizable [Claude Code](https://claude.ai/code) statusline with multilingual support (ko/en/zh), 5 themes, 7 presets, and 19 widgets including Codex CLI integration.
+> Customizable [Claude Code](https://claude.ai/code) statusline with multilingual support (ko/en/zh), 5 themes, 7 presets, and 23 widgets including Codex CLI integration.
 
 Inspired by [ccstatusline](https://github.com/sirmalloc/ccstatusline).
 
@@ -16,7 +16,7 @@ Inspired by [ccstatusline](https://github.com/sirmalloc/ccstatusline).
 
 - **Multilingual** — Korean, English, Chinese auto-detected from `FESTATUSLINE_LOCALE` or `$LANG`
 - **5 Built-in themes** — default, dracula, nord, gruvbox, tokyo-night
-- **19 widgets** — Claude usage, Codex CLI, Git info, session cost, cache stats
+- **23 widgets** — Claude usage, Codex CLI, Git info, session cost, cache stats
 - **Codex CLI integration** — reads `~/.codex` for GPT request counts, rate limits, and model
 - **7 Presets + interactive setup** — zero-config via `/festatusline:setup`
 - **Node ≥18 only** — no Bun dependency
@@ -113,11 +113,11 @@ Edit manually or use `/festatusline:setup` in Claude Code to reconfigure.
 
 ## 🧩 Widgets
 
-### Claude (13)
+### Claude (16)
 
 | id | Example output | Description |
 |---|---|---|
-| `model` | `Sonnet 4.6` / `Sonnet 4.6 [high]` | Current model name, shortened. Appends effort level if non-normal. |
+| `model` | `Sonnet 4.6` / `Opus 5 [xhigh, fast]` | Current model name, shortened. Appends session flags: effort level, `fast` while fast mode is on, `no-think` when thinking is explicitly disabled. |
 | `context` | `Ctx ■■□□□□□□□□  23% (47K/200K)` | Context window bar + percentage + token counts |
 | `sessionRateLimit` | `Session ■■■□□□□□□□  30% (3h 41m)` | Current session (rolling ~5h) usage bar + reset time |
 | `weeklyRateLimit` | `all ■■□□□□□□□□  25% (6d 10h)` | 7-day all-model rate limit + reset time |
@@ -130,11 +130,29 @@ Edit manually or use `/festatusline:setup` in Claude Code to reconfigure.
 | `sessionCost` | `$0.0042` / `$1.23` | Session cost in USD |
 | `cacheHit` | `⚡74%` | Cache hit ratio (cache_read / total input tokens) |
 | `cacheTtl` | `⏱ 1h 0m` | Remaining cache TTL (1h for ephemeral, 5m otherwise) |
+| `modelMix` | `Opus 78% · Sonnet 22%` | This week's spend split by model family, weighted the way `/usage` weights it |
+| `fastMode` | `»fast` | Shown only while fast mode is on (standalone form of the `model` flag) |
+| `linesChanged` | `+156/-23` | Lines added / removed this session |
 
 > **Per-model weekly limits are not available.** The statusline stdin payload only carries
 > `rate_limits.five_hour` and `rate_limits.seven_day`. Claude Code tracks per-model buckets
 > (Opus, Sonnet, Fable) internally and shows them in `/usage`, but never hands them to
 > statuslines nor caches them on disk — so `weeklyRateLimit` is the all-model figure only.
+
+> `modelMix` weights tokens the way Claude Code's own `/usage` does — a cache read is the
+> unit, uncached input 10x, a cache write 12.5x, output 50x, all scaled by model family
+> (Fable 10, Opus 5, Sonnet 3, Haiku 1). It is reported as a share because the weighted
+> unit only means something next to another weighted unit. Raw-token widgets such as
+> `sonnetWeeklyUsage` stay unweighted.
+
+
+> The `model` widget's effort label comes from the payload's `effort.level`, falling back to
+> the `CLAUDE_EFFORT` environment variable Claude Code exports to the status line spawn (the
+> same value, so it only matters for a payload that failed to parse). `effortLevel` in
+> `~/.claude/settings.json` is deliberately *not* consulted — it misses mid-session `/effort`
+> changes and the per-model `modelSettings` override, so it reports a level the session is not
+> running at. Ultracode cannot be detected at all: Claude Code reports it as `xhigh` on every
+> channel, so only a settings file that pins `ultracode: true` distinguishes it.
 
 ### Codex (3)
 
@@ -147,12 +165,13 @@ Edit manually or use `/festatusline:setup` in Claude Code to reconfigure.
 > `gptUsage` is hidden until Codex CLI has been used at least once. `codexModel` is a static
 > label shown regardless, so the Codex row is visible even before first use.
 
-### Git (2)
+### Git (3)
 
 | id | Example output | Description |
 |---|---|---|
 | `gitBranch` | `main` | Current branch of the workspace directory |
-| `gitRepo` | `📁 festatusline(main)` | Repo name + branch combined |
+| `gitRepo` | `📁 festatusline(main)` | Repo name + branch combined. Takes the name from `workspace.repo` when Claude Code supplies it, falling back to `git rev-parse`. |
+| `pr` | `PR #1234 ✓` / `MR !77 ✗` | Open pull request for the branch; GitLab merge requests render as `MR !n` |
 
 ### Layout (1)
 
@@ -223,6 +242,7 @@ statusline carries no translated strings, so widget output is identical in every
 | Variable | Default | Description |
 |---|---|---|
 | `FESTATUSLINE_LOCALE` | — | Force locale (`ko` / `en` / `zh`) |
+| `CLAUDE_EFFORT` | — | Set by Claude Code, not by you. Effort level for the current session; read only as a fallback when the payload has no `effort.level` |
 | `CLAUDE_CONFIG_DIR` | `~/.claude` | Override Claude data directory |
 | `CODEX_CONFIG_DIR` | `~/.codex` | Override Codex data directory |
 | `XDG_CONFIG_HOME` | `~/.config` | Settings file base path |
