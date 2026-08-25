@@ -6,7 +6,7 @@
 [![Node ≥18](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org)
 [![i18n](https://img.shields.io/badge/i18n-ko%20%7C%20en%20%7C%20zh-orange)](./README.ko.md)
 
-> Customizable [Claude Code](https://claude.ai/code) statusline with multilingual support (ko/en/zh), 5 themes, 7 presets, and 23 widgets including Codex CLI integration.
+> Customizable [Claude Code](https://claude.ai/code) statusline with multilingual support (ko/en/zh), 5 themes, 7 presets, and 26 widgets including Codex CLI integration.
 
 Inspired by [ccstatusline](https://github.com/sirmalloc/ccstatusline).
 
@@ -16,7 +16,7 @@ Inspired by [ccstatusline](https://github.com/sirmalloc/ccstatusline).
 
 - **Multilingual** — Korean, English, Chinese auto-detected from `FESTATUSLINE_LOCALE` or `$LANG`
 - **5 Built-in themes** — default, dracula, nord, gruvbox, tokyo-night
-- **23 widgets** — Claude usage, Codex CLI, Git info, session cost, cache stats
+- **26 widgets** — Claude usage, Codex CLI, Git info, session cost, cache stats
 - **Codex CLI integration** — reads `~/.codex` for GPT request counts, rate limits, and model
 - **7 Presets + interactive setup** — zero-config via `/festatusline:setup`
 - **Node ≥18 only** — no Bun dependency
@@ -113,7 +113,7 @@ Edit manually or use `/festatusline:setup` in Claude Code to reconfigure.
 
 ## 🧩 Widgets
 
-### Claude (16)
+### Claude (19)
 
 | id | Example output | Description |
 |---|---|---|
@@ -127,6 +127,9 @@ Edit manually or use `/festatusline:setup` in Claude Code to reconfigure.
 | `weeklyReset` | `↺ 2d 3h` | Countdown to weekly reset anchor |
 | `sonnetWeeklyUsage` | `S:42K` / `S:1.3M` | Sonnet model tokens consumed this week |
 | `sonnetWeeklyReset` | `S↺ 2d 3h` | Countdown to Sonnet weekly reset |
+| `fableWeeklyUsage` | `F:42K` / `F:1.3M` | Fable model tokens consumed this week |
+| `fableWeeklyReset` | `F↺ 2d 3h` | Countdown to Fable weekly reset |
+| `fableWeeklyRateLimit` | `F   ■■■■■■■■□□  89% (4d 2h)` | Fable's own weekly quota, fetched from Anthropic's OAuth usage endpoint |
 | `sessionCost` | `$0.0042` / `$1.23` | Session cost in USD |
 | `cacheHit` | `⚡74%` | Cache hit ratio (cache_read / total input tokens) |
 | `cacheTtl` | `⏱ 1h 0m` | Remaining cache TTL (1h for ephemeral, 5m otherwise) |
@@ -134,16 +137,40 @@ Edit manually or use `/festatusline:setup` in Claude Code to reconfigure.
 | `fastMode` | `»fast` | Shown only while fast mode is on (standalone form of the `model` flag) |
 | `linesChanged` | `+156/-23` | Lines added / removed this session |
 
-> **Per-model weekly limits are not available.** The statusline stdin payload only carries
-> `rate_limits.five_hour` and `rate_limits.seven_day`. Claude Code tracks per-model buckets
-> (Opus, Sonnet, Fable) internally and shows them in `/usage`, but never hands them to
-> statuslines nor caches them on disk — so `weeklyRateLimit` is the all-model figure only.
+> **Per-model weekly limits are not on the statusline stdin payload.** It only carries
+> `rate_limits.five_hour` and `rate_limits.seven_day` for the account as a whole.
+> `fableWeeklyRateLimit` gets around this the same way the
+> [Orca](https://github.com/stablyai/orca) client does: it reads the OAuth access token
+> Claude Code already stores at `~/.claude/.credentials.json` and calls Anthropic's own
+> (undocumented) `https://api.anthropic.com/api/oauth/usage` endpoint directly — the same one
+> `/usage` and the CLI itself use. No equivalent exists for Opus or Sonnet yet — only Fable's
+> usage was reverse-engineered so far.
+>
+> That same endpoint also returns `five_hour`/`seven_day`, so `sessionRateLimit` and
+> `weeklyRateLimit` use it too. Stdin's own values are piggybacked on this session's last
+> actual API call — exact the moment they arrive, but Claude Code keeps re-sending that same
+> snapshot on every idle refresh, so an idle session never sees quota another device burns.
+> Neither source carries a timestamp, so instead of ranking sources the widgets rank
+> snapshots: within one reset window usage only ever climbs, so the higher percentage is the
+> newer reading; across windows the later `resets_at` is newer; exact ties go to stdin. In
+> practice that means stdin wins the moment you send a message and OAuth wins while you sit
+> idle. Because the endpoint isn't public and isn't meant to be hit on every render, all
+> three slots are fetched together and cached to disk (`~/.cache/festatusline/`) for 5
+> minutes, a failed attempt backs off for a minute (so an offline machine doesn't stall every
+> render), and stale values are kept rather than blanking anything.
+>
+> **Platform note:** this reads `~/.claude/.credentials.json`, which is where Claude Code
+> keeps the token on Linux, WSL, and Windows. On macOS Claude Code stores it in the Keychain
+> instead, so the OAuth layer is currently inert there — `fableWeeklyRateLimit` won't render
+> and `sessionRateLimit`/`weeklyRateLimit` behave exactly as before this feature. Node's
+> `fetch` also ignores `HTTPS_PROXY`, so behind a corporate proxy you get the same graceful
+> no-op.
 
 > `modelMix` weights tokens the way Claude Code's own `/usage` does — a cache read is the
 > unit, uncached input 10x, a cache write 12.5x, output 50x, all scaled by model family
 > (Fable 10, Opus 5, Sonnet 3, Haiku 1). It is reported as a share because the weighted
 > unit only means something next to another weighted unit. Raw-token widgets such as
-> `sonnetWeeklyUsage` stay unweighted.
+> `sonnetWeeklyUsage` and `fableWeeklyUsage` stay unweighted.
 
 
 > The `model` widget's effort label comes from the payload's `effort.level`, falling back to

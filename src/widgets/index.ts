@@ -7,6 +7,9 @@ import { WeeklyUsageWidget } from './WeeklyUsage.js';
 import { WeeklyResetTimerWidget } from './WeeklyResetTimer.js';
 import { SonnetWeeklyUsageWidget } from './SonnetWeeklyUsage.js';
 import { SonnetWeeklyResetTimerWidget } from './SonnetWeeklyResetTimer.js';
+import { FableWeeklyUsageWidget } from './FableWeeklyUsage.js';
+import { FableWeeklyResetTimerWidget } from './FableWeeklyResetTimer.js';
+import { FableWeeklyRateLimitWidget } from './FableRateLimit.js';
 import { GptUsageWidget } from './GptUsage.js';
 import { SessionRateLimitWidget, WeeklyRateLimitWidget } from './RateLimit.js';
 import { CodexWeeklyRateLimitWidget } from './CodexRateLimit.js';
@@ -33,6 +36,9 @@ export const ALL_WIDGETS: Widget[] = [
   WeeklyResetTimerWidget,
   SonnetWeeklyUsageWidget,
   SonnetWeeklyResetTimerWidget,
+  FableWeeklyUsageWidget,
+  FableWeeklyResetTimerWidget,
+  FableWeeklyRateLimitWidget,
   ModelMixWidget,
   GptUsageWidget,
   CodexWeeklyRateLimitWidget,

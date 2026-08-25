@@ -16,6 +16,7 @@ function makeCtx(stdin: Partial<RenderContext['stdin']> = {}): RenderContext {
     },
     usage: null,
     codex: null,
+    fableRateLimit: null,
     theme: {
       accent: '#89b4fa',
       dim: '#45475a',

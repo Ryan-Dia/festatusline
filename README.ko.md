@@ -6,7 +6,7 @@
 [![Node ≥18](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org)
 [![i18n](https://img.shields.io/badge/i18n-ko%20%7C%20en%20%7C%20zh-orange)](./README.md)
 
-> Claude Code 상태바(statusline) 도구. 다국어(ko/en/zh), 5종 테마, 7종 프리셋, 23개 위젯, Codex CLI 통합을 지원합니다.
+> Claude Code 상태바(statusline) 도구. 다국어(ko/en/zh), 5종 테마, 7종 프리셋, 26개 위젯, Codex CLI 통합을 지원합니다.
 
 [ccstatusline](https://github.com/sirmalloc/ccstatusline) 을 참고한 파생 버전입니다.
 
@@ -16,7 +16,7 @@
 
 - **다국어 지원** — 한국어·영어·중국어를 `FESTATUSLINE_LOCALE` 또는 `$LANG` 으로 자동 감지
 - **5종 테마 내장** — default, dracula, nord, gruvbox, tokyo-night
-- **23개 위젯** — Claude 사용량, Codex CLI, Git 정보, 세션 비용, 캐시 통계
+- **26개 위젯** — Claude 사용량, Codex CLI, Git 정보, 세션 비용, 캐시 통계
 - **Codex CLI 통합** — `~/.codex` 파싱으로 GPT 요청 수·레이트 리밋·모델 표시
 - **7종 프리셋 + 인터랙티브 셋업** — `/festatusline:setup` 으로 제로 설정 완료
 - **Node ≥18 전용** — Bun API 미사용
@@ -113,7 +113,7 @@ Codex 행을 추가한 `max` 프리셋 기준입니다. 실제 출력에는 트�
 
 ## 🧩 위젯
 
-### Claude (16개)
+### Claude (19개)
 
 | id | 출력 예시 | 설명 |
 |---|---|---|
@@ -127,6 +127,9 @@ Codex 행을 추가한 `max` 프리셋 기준입니다. 실제 출력에는 트�
 | `weeklyReset` | `↺ 2d 3h` | 주간 리셋 앵커까지 카운트다운 |
 | `sonnetWeeklyUsage` | `S:42K` / `S:1.3M` | 이번 주 Sonnet 모델 누적 토큰 수 |
 | `sonnetWeeklyReset` | `S↺ 2d 3h` | Sonnet 주간 리셋까지 카운트다운 |
+| `fableWeeklyUsage` | `F:42K` / `F:1.3M` | 이번 주 Fable 모델 누적 토큰 수 |
+| `fableWeeklyReset` | `F↺ 2d 3h` | Fable 주간 리셋까지 카운트다운 |
+| `fableWeeklyRateLimit` | `F   ■■■■■■■■□□  89% (4d 2h)` | Fable 전용 주간 한도. Anthropic OAuth 사용량 API에서 직접 조회 |
 | `sessionCost` | `$0.0042` / `$1.23` | 세션 비용 (USD) |
 | `cacheHit` | `⚡74%` | 캐시 히트율 (cache_read / 총 입력 토큰) |
 | `cacheTtl` | `⏱ 1h 0m` | 캐시 TTL 잔여 시간 (ephemeral → 1h, 나머지 → 5m) |
@@ -134,15 +137,37 @@ Codex 행을 추가한 `max` 프리셋 기준입니다. 실제 출력에는 트�
 | `fastMode` | `»fast` | 패스트 모드가 켜져 있을 때만 표시 (`model` 플래그의 단독 버전) |
 | `linesChanged` | `+156/-23` | 이번 세션에서 추가/삭제된 줄 수 |
 
-> **모델별 주간 한도는 가져올 수 없습니다.** statusline stdin 페이로드에는 `rate_limits.five_hour`
-> 와 `rate_limits.seven_day` 만 실려 옵니다. Claude Code 는 모델별 버킷(Opus·Sonnet·Fable)을 내부적으로
-> 추적하고 `/usage` 에는 표시하지만, statusline 으로 넘겨주지도 디스크에 캐시하지도 않습니다. 따라서
-> `weeklyRateLimit` 은 전체 모델 합산 값만 보여줍니다.
+> **모델별 주간 한도는 statusline stdin 페이로드에 없습니다.** `rate_limits.five_hour` 와
+> `rate_limits.seven_day` 만 계정 전체 값으로 실려 옵니다. `fableWeeklyRateLimit` 은
+> [Orca](https://github.com/stablyai/orca) 클라이언트와 같은 방식으로 이 제약을 우회합니다 —
+> Claude Code 가 `~/.claude/.credentials.json` 에 저장해둔 OAuth 액세스 토큰을 그대로 읽어서,
+> `/usage` 와 CLI 자체가 쓰는 것과 동일한 Anthropic 내부(비공식) 엔드포인트
+> `https://api.anthropic.com/api/oauth/usage` 를 직접 호출합니다. 아직 Opus·Sonnet 용은
+> 없습니다 — 지금까지 역공학된 건 Fable 뿐입니다.
+>
+> 같은 엔드포인트 응답에는 `five_hour`/`seven_day` 도 함께 들어있어서, `sessionRateLimit` 과
+> `weeklyRateLimit` 도 이걸 씁니다. stdin 값은 이 세션이 마지막으로 실제 API 를 호출했을 때의
+> 스냅샷이라 그 순간엔 정확하지만, Claude Code 가 유휴 중에도 그 스냅샷을 그대로 계속 보내기
+> 때문에 다른 기기에서 소모한 양은 절대 반영되지 않습니다. 두 소스 모두 "언제 찍힌 값인지"
+> 타임스탬프가 없어서, 소스에 순위를 매기는 대신 **스냅샷 자체의 신선도**를 비교합니다: 같은
+> 리셋 윈도우 안에서 사용률은 오르기만 하므로 더 높은 % 가 더 최신값이고, 윈도우가 다르면 더
+> 늦은 `resets_at` 이 최신이며, 완전히 같으면 stdin 을 씁니다. 결과적으로 메시지를 보낸 직후엔
+> stdin 이, 가만히 있는 동안엔 OAuth 가 이깁니다. 이 엔드포인트는 공개용이 아니고 렌더마다
+> 두들겨서는 안 되므로, 세 값을 한 번에 조회해서 디스크(`~/.cache/festatusline/`)에 5분 TTL 로
+> 캐싱하고, 실패하면 1분간 재시도를 멈추며(오프라인에서 매 렌더가 멈추지 않도록), 그동안은
+> 마지막 성공값을 그대로 보여줍니다.
+>
+> **플랫폼 주의:** 토큰은 `~/.claude/.credentials.json` 에서 읽는데, 이건 Linux·WSL·Windows 의
+> 저장 위치입니다. macOS 에서는 Claude Code 가 Keychain 에 저장하므로 현재 OAuth 계층이 동작하지
+> 않습니다 — `fableWeeklyRateLimit` 은 표시되지 않고, `sessionRateLimit`/`weeklyRateLimit` 은
+> 이 기능 이전과 완전히 동일하게 동작합니다. Node 의 `fetch` 는 `HTTPS_PROXY` 도 읽지 않아서
+> 사내 프록시 환경에서도 같은 방식으로 조용히 비활성화됩니다.
 
 > `modelMix` 는 Claude Code 의 `/usage` 와 같은 가중치를 씁니다 — 캐시 읽기를 1 로 두고
 > 캐시 미스 입력 10배, 캐시 쓰기 12.5배, 출력 50배에 모델 계열 배수(Fable 10, Opus 5,
 > Sonnet 3, Haiku 1)를 곱합니다. 가중치가 붙은 값은 다른 가중치 값과 비교할 때만 의미가
-> 있어 비율로만 표시합니다. `sonnetWeeklyUsage` 같은 원시 토큰 위젯은 그대로 둡니다.
+> 있어 비율로만 표시합니다. `sonnetWeeklyUsage`, `fableWeeklyUsage` 같은 원시 토큰 위젯은
+> 그대로 둡니다.
 
 
 > `model` 위젯의 effort 라벨은 페이로드의 `effort.level` 을 쓰고, 없으면 Claude Code 가

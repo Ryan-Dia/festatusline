@@ -42,6 +42,7 @@ function buildPreviewContext(settings: Settings): RenderContext {
       dailyTokens: 480_000,
       weeklyTokens: 3_100_000,
       sonnetWeeklyTokens: 1_300_000,
+      fableWeeklyTokens: 0,
       weightedDaily: 24_000_000,
       weightedWeekly: 155_000_000,
       weightedWeeklyByFamily: {
@@ -61,6 +62,7 @@ function buildPreviewContext(settings: Settings): RenderContext {
       },
       model: 'gpt-5',
     },
+    fableRateLimit: { usedPercent: 89, resetsAt: unixAfter(4 * DAY_MS) },
     theme: getTheme(settings.theme),
     t: createTranslator(settings.locale),
     now,

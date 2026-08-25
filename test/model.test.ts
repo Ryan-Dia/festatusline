@@ -11,6 +11,7 @@ function makeCtx(overrides: Partial<RenderContext> = {}): RenderContext {
     stdin: { type: 'statusLine' },
     usage: null,
     codex: null,
+    fableRateLimit: null,
     theme: getTheme('default'),
     t: createTranslator('en'),
     now: NOW,

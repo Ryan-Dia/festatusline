@@ -3,6 +3,7 @@ import { createTtlCache } from './cache.js';
 import { getTimeWindows } from './time.js';
 import {
   emptyFamilyTotals,
+  isFableModel,
   isSonnetModel,
   modelFamily,
   weightedCost,
@@ -13,6 +14,7 @@ export interface UsageSnapshot {
   dailyTokens: number;
   weeklyTokens: number;
   sonnetWeeklyTokens: number;
+  fableWeeklyTokens: number;
   // Relative spend, Claude Code's /usage weighting. Only comparable against each other,
   // so widgets present these as shares rather than absolute figures.
   weightedDaily: number;
@@ -35,6 +37,7 @@ export async function getUsageSnapshot(): Promise<UsageSnapshot> {
     let dailyTokens = 0;
     let weeklyTokens = 0;
     let sonnetWeeklyTokens = 0;
+    let fableWeeklyTokens = 0;
     let weightedDaily = 0;
     let weightedWeekly = 0;
     const weightedWeeklyByFamily = emptyFamilyTotals();
@@ -51,6 +54,7 @@ export async function getUsageSnapshot(): Promise<UsageSnapshot> {
         weightedWeekly += weighted;
         weightedWeeklyByFamily[modelFamily(e.model)] += weighted;
         if (isSonnetModel(e.model)) sonnetWeeklyTokens += total;
+        if (isFableModel(e.model)) fableWeeklyTokens += total;
       }
     }
 
@@ -58,6 +62,7 @@ export async function getUsageSnapshot(): Promise<UsageSnapshot> {
       dailyTokens,
       weeklyTokens,
       sonnetWeeklyTokens,
+      fableWeeklyTokens,
       weightedDaily,
       weightedWeekly,
       weightedWeeklyByFamily,

@@ -40,6 +40,7 @@ describe('getUsageSnapshot', () => {
     expect(snap.dailyTokens).toBe(0);
     expect(snap.weeklyTokens).toBe(0);
     expect(snap.sonnetWeeklyTokens).toBe(0);
+    expect(snap.fableWeeklyTokens).toBe(0);
     expect(snap.allEntries).toHaveLength(0);
   });
 
@@ -70,6 +71,20 @@ describe('getUsageSnapshot', () => {
     const { getUsageSnapshot } = await import('../src/data/usage.js');
     const snap = await getUsageSnapshot();
     expect(snap.sonnetWeeklyTokens).toBe(150);
+    expect(snap.weeklyTokens).toBe(450);
+  });
+
+  it('filters Fable model for fableWeeklyTokens', async () => {
+    const weekAgoMs = Date.now() - 6 * 24 * 60 * 60 * 1000;
+
+    mockEntries = [
+      makeEntry({ timestamp: weekAgoMs + 1000, model: 'claude-fable-5', inputTokens: 100, outputTokens: 50 }),
+      makeEntry({ timestamp: weekAgoMs + 1000, model: 'claude-opus-4', inputTokens: 200, outputTokens: 100 }),
+    ];
+
+    const { getUsageSnapshot } = await import('../src/data/usage.js');
+    const snap = await getUsageSnapshot();
+    expect(snap.fableWeeklyTokens).toBe(150);
     expect(snap.weeklyTokens).toBe(450);
   });
 

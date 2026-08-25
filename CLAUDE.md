@@ -47,7 +47,7 @@ src/
 │   ├── claude-settings.ts # ~/.claude/settings.json 파싱 (ultracode 플래그만)
 │   ├── modelTier.ts       # 모델 계열 분류 + /usage 동일 가중치
 │   └── time.ts            # 시간 유틸 (날짜 경계 계산)
-├── widgets/               # 위젯 23종 + 레지스트리
+├── widgets/               # 위젯 25종 + 레지스트리
 ├── utils/                 # 공통 유틸 (bar, duration, tokens)
 ├── render/                # 위젯 배열 → stdout 한 줄 문자열
 ├── i18n/                  # ko/en/zh 번들 + t() 헬퍼
@@ -90,6 +90,9 @@ npm 에 발행하지 않는다. 배포 경로는 GitHub 플러그인 마켓플�
 | `weeklyReset` | 주간 리셋까지 남은 시간 |
 | `sonnetWeeklyUsage` | 최근 7일 Sonnet 모델 토큰 수 |
 | `sonnetWeeklyReset` | Sonnet 주간 리셋까지 남은 시간 |
+| `fableWeeklyUsage` | 최근 7일 Fable 모델 토큰 수 |
+| `fableWeeklyReset` | Fable 주간 리셋까지 남은 시간 |
+| `fableWeeklyRateLimit` | Fable 전용 주간 한도 바 (OAuth API 조회, `/usage`가 보여주는 실제 잔여율) |
 | `modelMix` | 주간 사용량의 모델 계열별 비중 (`/usage` 동일 가중치) |
 | `gptUsage` | 오늘 Codex CLI 요청 수 |
 | `codexWeeklyRateLimit` | Codex 7일 한도 바 |
@@ -205,6 +208,48 @@ refactor: Extract token formatter into shared util
   `used_percentage` 는 세션 초반). `.optional()` 하나가 전체 파싱을 터뜨려 상태바를 통째로
   비운다. 2차 방어로 `salvageStdin()` 이 키 단위 폴백 파싱을 한다.
 - 페이로드에 **없는** 것을 스키마에 넣지 않는다. `model` 은 `{id, display_name}` 뿐이다.
+
+### OAuth 네트워크 계층 (`src/data/claudeOAuthUsage.ts`)
+
+- 이 모듈 하나만 로컬 파일이 아니라 **네트워크 호출**을 한다. Claude Code 는 모델별
+  (Opus/Sonnet/Fable) 주간 한도를 statusline stdin 에 절대 실어주지 않는다 — `/usage` 화면과
+  CLI 내부 OAuth 호출에서만 볼 수 있다. 이 사실은 오카(Orca, https://github.com/stablyai/orca)
+  소스를 직접 확인해서 검증했다: `claude-fetcher.ts` 가 `~/.claude/.credentials.json` 의
+  `claudeAiOauth.accessToken` 을 읽어 `https://api.anthropic.com/api/oauth/usage` 를
+  `claude-code/2.1.0` User-Agent + `oauth-2025-04-20` 베타 헤더로 직접 호출하고, `limits[]`
+  배열의 `kind === 'weekly_scoped'` + `scope.model.display_name === 'fable'` 항목에서 퍼센트를
+  뽑는다. festatusline 도 동일한 방식을 그대로 따른다.
+- 같은 응답에 `five_hour`/`seven_day` (계정 전체 세션/주간 한도) 도 같이 들어있다. 이건 stdin
+  으로도 오지만, stdin 값은 **"이 세션이 마지막으로 API 를 호출한 시점"의 스냅샷**이다 — 같은
+  계정을 여러 기기/터미널에서 동시에 쓰면, 한쪽이 가만히 있는 동안 다른 쪽이 소모한 만큼은
+  반영이 안 된다 (Orca 의 `claude-statusline-rate-limits.ts` 주석: "pipes rate_limits ... on
+  every turn — piggybacked on Messages API responses" 이 이걸 뒷받침한다). **유휴 중에도 stdin
+  은 마지막 스냅샷을 계속 실어 보내므로 "stdin 이 있으면 stdin 우선" 규칙은 유휴 케이스를
+  절대 잡지 못한다** — 초기 구현이 그랬고, 리뷰에서 걸렸다.
+- 그래서 `render/index.ts` 의 `mergeRateLimits()` 는 소스가 아니라 **스냅샷의 신선도**를
+  비교한다(`fresher()`). 두 소스 모두 타임스탬프가 없지만 윈도우가 그 역할을 한다: `resets_at`
+  이 같은(±120초, 반올림 오차 관측됨: stdin 1787637000 vs OAuth 1787636999) 윈도우 안에서
+  사용률은 단조 증가하므로 **더 높은 % 가 더 최신**, 윈도우가 다르면 **더 늦은 `resets_at` 이
+  최신**, 완전 동률이면 stdin. 로컬 `rate_limits.json` 캐시는 과거 stdin 이라 stdin 이 비어
+  있을 때만 대신 쓰고 신선도 비교엔 끼지 않는다. Claude Code 가 stdin 을 첫 API 호출 전에
+  `{used_percentage: null, resets_at: null}` 껍데기로 보내는 것도 `usablePeriod()` 가 걸러낸다.
+- `/api/oauth/usage` 는 **문서화되지 않은 내부 엔드포인트**라 예고 없이 바뀌거나 막힐 수 있다.
+  Orca 는 기본 폴링 15분·최소 30초로 이 엔드포인트를 아낀다(코드 주석: "spending the OAuth
+  usage endpoint's tight budget... invites 429s"). festatusline 은 렌더마다 새 프로세스가
+  뜨는 구조라 인메모리 캐시(`createTtlCache`)는 무의미하고, **디스크 캐시**
+  (`~/.cache/festatusline/oauth_usage.json`, TTL 5분)로 렌더 간 호출을 막는다. 실패하면
+  `failedAt` 을 남겨 60초 백오프한다 — 이게 없으면 오프라인/프록시 환경에서 캐시가 만료된 뒤
+  **매 렌더가 3초 타임아웃에 걸려 멈춘다**. Node `fetch` 는 `HTTPS_PROXY` 를 읽지 않는다.
+- 네트워크·파싱 실패 시 절대 위젯을 비우지 않고 마지막으로 성공한 캐시 값을 그대로 돌려준다.
+  자격증명 파일이 없거나 토큰이 없으면 세 슬롯 모두 `null` — `fableWeeklyRateLimit` 은 조용히
+  사라지고, `sessionRateLimit`/`weeklyRateLimit` 은 stdin/로컬 캐시 폴백으로 그대로 동작한다.
+- **macOS 미지원.** Claude Code 는 macOS 에서 토큰을 `.credentials.json` 이 아닌 Keychain 에
+  저장한다(Orca 의 `readFromKeychain`, 서비스명이 `CLAUDE_CONFIG_DIR` 로 스코프됨). 지원하려면
+  `security find-generic-password` 를 서브프로세스로 띄워야 하는데 Linux 에서 검증할 수 없어
+  0.5.0 에는 넣지 않았다. 메인테이너 환경이 macOS 라 후속 작업 1순위.
+- 토큰은 `readAccessToken()` → `fetch` Authorization 헤더 두 지점에만 닿는다. 캐시 파일엔
+  퍼센트/리셋 시각만 기록한다(테스트로 고정). `refreshToken` 은 스키마에서 읽지도 않는다.
+  `redirect: 'error'` 로 리다이렉트 시 토큰이 다른 호스트로 따라가는 것을 막는다.
 
 ### effort / ultracode
 

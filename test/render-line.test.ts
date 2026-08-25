@@ -22,6 +22,7 @@ function makeCtx(override: Partial<RenderContext> = {}): RenderContext {
     },
     usage: null,
     codex: null,
+    fableRateLimit: null,
     theme: getTheme('default'),
     t: createTranslator('en'),
     now: new Date('2026-01-01T12:00:00Z'),

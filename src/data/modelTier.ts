@@ -65,6 +65,10 @@ export function isSonnetModel(model: string | null | undefined): boolean {
   return modelFamily(model) === 'sonnet';
 }
 
+export function isFableModel(model: string | null | undefined): boolean {
+  return modelFamily(model) === 'fable';
+}
+
 /**
  * Relative spend for one usage record. The unit is arbitrary and only meaningful next to
  * another weightedCost, which is why it is reported as a share rather than a total.

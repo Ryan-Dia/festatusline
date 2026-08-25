@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { SessionRateLimitWidget, WeeklyRateLimitWidget } from '../src/widgets/RateLimit.js';
+import { FableWeeklyRateLimitWidget } from '../src/widgets/FableRateLimit.js';
 import type { RenderContext } from '../src/widgets/types.js';
 import { getTheme } from '../src/theme/index.js';
 import { createTranslator } from '../src/i18n/index.js';
@@ -13,6 +14,7 @@ function makeCtx(rateLimits: RenderContext['stdin']['rate_limits']): RenderConte
     stdin: { type: 'statusLine', rate_limits: rateLimits },
     usage: null,
     codex: null,
+    fableRateLimit: null,
     theme: getTheme('default'),
     t: createTranslator('en'),
     now: NOW,
@@ -54,5 +56,21 @@ describe('SessionRateLimitWidget', () => {
     );
     expect(out.startsWith('Session ')).toBe(true);
     expect(out).toContain('30%');
+  });
+});
+
+describe('FableWeeklyRateLimitWidget', () => {
+  it('renders ctx.fableRateLimit behind an "F" prefix', () => {
+    const ctx: RenderContext = {
+      ...makeCtx({}),
+      fableRateLimit: { usedPercent: 89, resetsAt: RESETS_AT },
+    };
+    const out = render(FableWeeklyRateLimitWidget, ctx);
+    expect(out.startsWith('F   ')).toBe(true);
+    expect(out).toContain('89%');
+  });
+
+  it('shows ?% when no OAuth-derived Fable data is available', () => {
+    expect(render(FableWeeklyRateLimitWidget, makeCtx({}))).toContain('?%');
   });
 });
