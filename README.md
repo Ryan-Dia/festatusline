@@ -43,14 +43,14 @@ Inspired by [ccstatusline](https://github.com/sirmalloc/ccstatusline).
 /festatusline:setup
 ```
 
-**After upgrading the plugin**, refresh the marketplace cache before updating — otherwise
-`/plugin update` reports "already at the latest version" even when it isn't:
+**After upgrading the plugin**, run:
 
 ```
-/plugin marketplace update festatusline
-/plugin update festatusline@festatusline
 /festatusline:update
 ```
+
+It refreshes the marketplace, updates the plugin, and repoints `statusLine` at the newest
+cached version in one step — no `/plugin` commands needed first.
 
 Restart Claude Code (or your terminal session) afterward — the statusline command is
 resolved once at session start.

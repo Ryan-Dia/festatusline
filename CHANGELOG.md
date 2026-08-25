@@ -12,6 +12,16 @@ summarised under [Earlier](#earlier).
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-08-25
+
+### Changed
+
+- `/festatusline:update` now runs the whole update itself — marketplace refresh, plugin
+  update, and repointing `statusLine` at the newest cached version — instead of asking the
+  user to run `/plugin marketplace update` and `/plugin update` first. It shells out to
+  `claude plugin marketplace update` / `claude plugin update -y`, the non-interactive CLI
+  equivalents of those slash commands, so a single `/festatusline:update` is enough.
+
 ## [0.4.0] - 2026-08-25
 
 ### Fixed

@@ -43,14 +43,14 @@
 /festatusline:setup
 ```
 
-**플러그인 업그레이드 후**, 먼저 마켓플레이스 캐시를 갱신하세요 — 안 그러면 `/plugin update`가
-실제로는 최신이 아닌데도 "이미 최신 버전"이라고 보고합니다:
+**플러그인 업그레이드 후**, 아래 명령만 실행하세요:
 
 ```
-/plugin marketplace update festatusline
-/plugin update festatusline@festatusline
 /festatusline:update
 ```
+
+마켓플레이스 갱신, 플러그인 업데이트, `statusLine` 을 최신 캐시 버전으로 다시 가리키는 것까지
+한 번에 처리합니다 — `/plugin` 명령을 따로 실행할 필요가 없습니다.
 
 이후 Claude Code(또는 터미널 세션)를 재시작하세요 — statusLine 커맨드는 세션 시작 시
 한 번만 읽어옵니다.
