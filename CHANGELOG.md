@@ -12,8 +12,7 @@ summarised under [Earlier](#earlier).
 
 ## [Unreleased]
 
-The `v0.3.4` tag was cut before these changes landed, so they stay here until a version is
-assigned.
+## [0.4.0] - 2026-08-25
 
 ### Fixed
 
