@@ -3,7 +3,7 @@ import { Box, Text, useApp } from 'ink';
 import SelectInput from 'ink-select-input';
 import { SettingsSchema, type Settings } from '../../config/schema.js';
 import { t, setLocale } from '../../i18n/index.js';
-import { PRESETS, withCodexRow } from '../../config/presets.js';
+import { PRESETS, expandPreset, withCodexRow } from '../../config/presets.js';
 import LanguageSelect from './LanguageSelect.js';
 import PresetPreview from './PresetPreview.js';
 
@@ -74,7 +74,7 @@ export default function SetupWizard({ initialSettings, onSave }: Props): React.R
     );
   }
 
-  const baseLines = PRESETS[chosenPreset]?.lines ?? [];
+  const baseLines = expandPreset(chosenPreset);
   const codexItems = [
     { label: t('tui.setup.codexNo'), value: 'no' as const },
     { label: t('tui.setup.codexYes'), value: 'yes' as const },
@@ -94,9 +94,15 @@ export default function SetupWizard({ initialSettings, onSave }: Props): React.R
             setStep('preset');
             return;
           }
-          const lines = item.value === 'yes' ? withCodexRow(baseLines) : baseLines;
-          const preset = { ...PRESETS[chosenPreset], lines };
-          const next = SettingsSchema.parse({ ...settings, ...preset });
+          // Record the preset and the Codex answer, not the rows they expand to, so a later
+          // release that adds a widget to this preset shows up on update.
+          const next = SettingsSchema.parse({
+            ...settings,
+            ...PRESETS[chosenPreset],
+            preset: chosenPreset,
+            codexRow: item.value === 'yes',
+            lines: undefined,
+          });
           await onSave(next);
           exit();
         }}

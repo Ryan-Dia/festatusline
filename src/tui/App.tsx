@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Box, Text, useApp } from 'ink';
 import type { Settings } from '../config/schema.js';
+import { resolveLines } from '../config/presets.js';
 import { t, setLocale, type Locale } from '../i18n/index.js';
 import MainMenu from './screens/MainMenu.js';
 import PresetMenu from './screens/PresetMenu.js';
@@ -74,9 +75,11 @@ export default function App({ initialSettings, onSave }: AppProps): React.ReactE
   if (screen === 'widgets') {
     return (
       <WidgetEditor
-        lines={settings.lines}
+        lines={resolveLines(settings)}
         onSave={async (lines) => {
-          await handleSave({ ...settings, lines });
+          // A hand-edited layout stops tracking the preset — otherwise the next release that
+          // touches that preset would overwrite exactly what was just customized here.
+          await handleSave({ ...settings, lines, preset: undefined, codexRow: undefined });
           setScreen('main');
         }}
         onBack={() => setScreen('main')}

@@ -73,7 +73,7 @@
 
 ```
 Daily   │ Ctx ■■■■■■■■■■  38% (75K/200K)  │ Session ■■■■■■■■■■  30% (3h 0m)
-Weekly  │ all ■■■■■■■■■■  25% (4d 0h)
+Weekly  │ all ■■■■■■■■■■  25% (4d 0h)     │ Fable   ■■■■■■■■■■  89% (4d 0h)
 Codex   │ 7d  ■■■■■■■■■■  10% (1d 0h)
 
 ⚡70% │ ⏱ 30m │ $0.420
@@ -84,11 +84,36 @@ Codex 행을 추가한 `max` 프리셋 기준입니다. 실제 출력에는 트�
 칸과 빈 칸이 같은 `■` 문자에 밝기만 다르게 표시되므로, 색을 벗기면 바가 꽉 찬 것처럼 보입니다.
 프리셋, Codex 포함 여부, 로케일에 따라 결과가 달라집니다.
 
+`Fable` 바는 Fable 한도 데이터를 가져올 수 있을 때만 나타납니다. 가져올 수 없는 환경
+([위젯](#-위젯) 섹션의 플랫폼 주의 참고)에서는 주간 행이 `all` 하나로만 표시되고 나머지는
+그대로입니다.
+
 ---
 
 ## ⚙️ 설정
 
 설정 파일 경로: `~/.config/festatusline/settings.json` (`$XDG_CONFIG_HOME` 환경변수 적용)
+
+셋업은 전개된 위젯 목록이 아니라 **어떤 프리셋을 골랐는지**를 기록합니다:
+
+```jsonc
+{
+  "preset": "pro",
+  "codexRow": true,
+  "theme": "default",
+  "locale": "ko",
+  "weeklyAnchorDay": null,
+  "separator": " │ "
+}
+```
+
+덕분에 프리셋에 위젯이 추가된 릴리스가 나오면 `/festatusline:update` 만으로 반영됩니다 — 셋업을
+다시 돌리거나 이 파일을 고칠 필요가 없습니다. 0.6.0 이전에 만들어진 설정은 전개된 목록을 저장했는데,
+그 목록이 원래 프리셋과 그대로 일치하면 자동으로 인식되어 똑같이 업데이트를 따라갑니다.
+
+레이아웃을 고정하고 싶으면 `lines` 를 쓰면 됩니다 — 행(row) 배열이고 각 행이 독립된 stdout 줄로
+출력됩니다. `lines` 는 항상 `preset` 보다 우선하므로, 직접 손본 레이아웃을 업데이트가 건드리는 일은
+없습니다 (위젯 편집기가 이 형식으로 저장합니다):
 
 ```jsonc
 {
@@ -97,14 +122,10 @@ Codex 행을 추가한 `max` 프리셋 기준입니다. 실제 출력에는 트�
     [{ "id": "weeklyUsage" }, { "id": "weeklyRateLimit" }],
     [{ "id": "model" }, { "id": "gitRepo" }]
   ],
-  "theme": "default",
-  "locale": "ko",
-  "weeklyAnchorDay": null,
-  "separator": " │ "
+  "theme": "default"
 }
 ```
 
-`lines` 는 행(row) 배열 — 각 행이 독립된 stdout 줄로 출력됩니다.  
 위젯 항목에 `"color": "#hexcode"` 를 추가하면 색상을 개별 오버라이드할 수 있습니다.
 
 직접 파일을 편집하거나 Claude Code 에서 `/festatusline:setup` 으로 재설정할 수 있습니다.
@@ -129,7 +150,7 @@ Codex 행을 추가한 `max` 프리셋 기준입니다. 실제 출력에는 트�
 | `sonnetWeeklyReset` | `S↺ 2d 3h` | Sonnet 주간 리셋까지 카운트다운 |
 | `fableWeeklyUsage` | `F:42K` / `F:1.3M` | 이번 주 Fable 모델 누적 토큰 수 |
 | `fableWeeklyReset` | `F↺ 2d 3h` | Fable 주간 리셋까지 카운트다운 |
-| `fableWeeklyRateLimit` | `F   ■■■■■■■■□□  89% (4d 2h)` | Fable 전용 주간 한도. Anthropic OAuth 사용량 API에서 직접 조회 |
+| `fableWeeklyRateLimit` | `Fable   ■■■■■■■■□□  89% (4d 2h)` | Fable 전용 주간 한도. Anthropic OAuth 사용량 API 조회. 데이터를 못 받으면 숨김 |
 | `sessionCost` | `$0.0042` / `$1.23` | 세션 비용 (USD) |
 | `cacheHit` | `⚡74%` | 캐시 히트율 (cache_read / 총 입력 토큰) |
 | `cacheTtl` | `⏱ 1h 0m` | 캐시 TTL 잔여 시간 (ephemeral → 1h, 나머지 → 5m) |
@@ -228,8 +249,8 @@ TUI 에서 테마를 바꾸거나 settings.json 의 `"theme"` 필드를 직접 �
 | `max` | 5 | pro + `cacheHit`, `cacheTtl`, `sessionCost` 행 |
 
 일간 행은 `dailyUsage` + `context` + `sessionRateLimit`, 주간 행은
-`weeklyUsage` + `weeklyRateLimit` 이며, `all` 바가 윗줄 `Ctx` 열 아래에 오도록 폭이
-맞춰져 있습니다.
+`weeklyUsage` + `weeklyRateLimit` + `fableWeeklyRateLimit` 이며, 각 열이 윗줄 열 아래에 오도록
+폭이 맞춰져 있습니다. `Fable` 바는 데이터를 못 받는 환경에서 스스로 숨어 주간 행이 2열이 됩니다.
 
 Claude Code 에서 `/festatusline:setup` 으로 적용할 수 있습니다. setup 마법사와 프리셋 메뉴 모두
 커서가 놓인 프리셋의 실시간 미리보기를 보여줍니다 — 예시 사용량 수치에 현재 테마·로케일이

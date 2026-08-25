@@ -60,17 +60,32 @@ describe('SessionRateLimitWidget', () => {
 });
 
 describe('FableWeeklyRateLimitWidget', () => {
-  it('renders ctx.fableRateLimit behind an "F" prefix', () => {
+  it('renders ctx.fableRateLimit behind a padded Fable prefix', () => {
     const ctx: RenderContext = {
       ...makeCtx({}),
       fableRateLimit: { usedPercent: 89, resetsAt: RESETS_AT },
     };
     const out = render(FableWeeklyRateLimitWidget, ctx);
-    expect(out.startsWith('F   ')).toBe(true);
+    expect(out.startsWith('Fable  ')).toBe(true);
     expect(out).toContain('89%');
   });
 
-  it('shows ?% when no OAuth-derived Fable data is available', () => {
-    expect(render(FableWeeklyRateLimitWidget, makeCtx({}))).toContain('?%');
+  it('aligns its bar with the Session column of the daily row', () => {
+    const ctx: RenderContext = {
+      ...makeCtx({}),
+      fableRateLimit: { usedPercent: 89, resetsAt: RESETS_AT },
+    };
+    const fable = render(FableWeeklyRateLimitWidget, ctx);
+    const session = render(
+      SessionRateLimitWidget,
+      makeCtx({ five_hour: { used_percentage: 30, resets_at: RESETS_AT } }),
+    );
+    expect(fable.indexOf('■')).toBe(session.indexOf('■'));
+  });
+
+  it('hides entirely when no OAuth-derived Fable data is available', () => {
+    // Without credentials this bar can never resolve (macOS keeps the token in the
+    // Keychain), so a permanent `?%` would sit in the status line forever.
+    expect(FableWeeklyRateLimitWidget.render(makeCtx({}), {})).toBeNull();
   });
 });

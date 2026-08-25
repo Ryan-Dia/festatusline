@@ -73,7 +73,7 @@ The setup command writes the following into `~/.claude/settings.json`:
 
 ```
 Daily   │ Ctx ■■■■■■■■■■  38% (75K/200K)  │ Session ■■■■■■■■■■  30% (3h 0m)
-Weekly  │ all ■■■■■■■■■■  25% (4d 0h)
+Weekly  │ all ■■■■■■■■■■  25% (4d 0h)     │ Fable   ■■■■■■■■■■  89% (4d 0h)
 Codex   │ 7d  ■■■■■■■■■■  10% (1d 0h)
 
 ⚡70% │ ⏱ 30m │ $0.420
@@ -84,11 +84,37 @@ That is the `max` preset with the optional Codex row added. Colors are rendered 
 ANSI — filled and empty bar cells use the same `■` glyph at different brightness, so the bars
 look solid once color is stripped. Output varies by preset, Codex opt-in, and locale.
 
+The `Fable` bar only appears when Fable quota data is available; on a machine where it isn't
+(see the platform note under [Widgets](#-widgets)) the weekly row is just `all` and everything
+else is unchanged.
+
 ---
 
 ## ⚙️ Configuration
 
 Settings are stored at `~/.config/festatusline/settings.json` (respects `$XDG_CONFIG_HOME`).
+
+Setup records which preset you picked, not the widget rows it expands to:
+
+```jsonc
+{
+  "preset": "pro",
+  "codexRow": true,
+  "theme": "default",
+  "locale": "ko",
+  "weeklyAnchorDay": null,
+  "separator": " │ "
+}
+```
+
+That way a release which adds a widget to a preset reaches you on `/festatusline:update` — no
+re-running setup, no editing this file. Configs written before 0.6.0 stored the expanded rows
+instead; if those rows still match the preset they came from, they are recognised and follow
+updates too.
+
+To pin a layout instead, give it `lines` — an array of rows, each rendered as its own output
+line. `lines` always wins over `preset`, so an update never rearranges a layout you tuned
+yourself (the widget editor writes this for you):
 
 ```jsonc
 {
@@ -97,14 +123,10 @@ Settings are stored at `~/.config/festatusline/settings.json` (respects `$XDG_CO
     [{ "id": "weeklyUsage" }, { "id": "weeklyRateLimit" }],
     [{ "id": "model" }, { "id": "gitRepo" }]
   ],
-  "theme": "default",
-  "locale": "ko",
-  "weeklyAnchorDay": null,
-  "separator": " │ "
+  "theme": "default"
 }
 ```
 
-`lines` is an array of rows — each row is rendered as a separate output line.  
 Each widget entry can include an optional `"color": "#hexcode"` override.
 
 Edit manually or use `/festatusline:setup` in Claude Code to reconfigure.
@@ -129,7 +151,7 @@ Edit manually or use `/festatusline:setup` in Claude Code to reconfigure.
 | `sonnetWeeklyReset` | `S↺ 2d 3h` | Countdown to Sonnet weekly reset |
 | `fableWeeklyUsage` | `F:42K` / `F:1.3M` | Fable model tokens consumed this week |
 | `fableWeeklyReset` | `F↺ 2d 3h` | Countdown to Fable weekly reset |
-| `fableWeeklyRateLimit` | `F   ■■■■■■■■□□  89% (4d 2h)` | Fable's own weekly quota, fetched from Anthropic's OAuth usage endpoint |
+| `fableWeeklyRateLimit` | `Fable   ■■■■■■■■□□  89% (4d 2h)` | Fable's own weekly quota, from Anthropic's OAuth usage endpoint. Hidden when that data is unavailable |
 | `sessionCost` | `$0.0042` / `$1.23` | Session cost in USD |
 | `cacheHit` | `⚡74%` | Cache hit ratio (cache_read / total input tokens) |
 | `cacheTtl` | `⏱ 1h 0m` | Remaining cache TTL (1h for ephemeral, 5m otherwise) |
@@ -231,7 +253,9 @@ Select a theme in the TUI or set `"theme"` in settings.json.
 | `max` | 5 | pro + `cacheHit` + `cacheTtl` + `sessionCost` row |
 
 The daily row is `dailyUsage` + `context` + `sessionRateLimit`, and the weekly row is
-`weeklyUsage` + `weeklyRateLimit` — the `all` bar is padded to sit under the `Ctx` column.
+`weeklyUsage` + `weeklyRateLimit` + `fableWeeklyRateLimit` — each column is padded to sit under
+the one above it. The `Fable` bar hides itself where that data isn't available, leaving a
+two-column weekly row.
 
 Apply a preset via `/festatusline:setup` in Claude Code. The setup wizard and the preset menu both
 render a live preview of the highlighted preset — sample usage numbers, your current theme and

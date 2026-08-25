@@ -12,6 +12,7 @@ import {
 import { readClaudeSettings } from '../data/claude-settings.js';
 import { getLastCacheCreation, getLastModelFromTranscript } from '../data/jsonl.js';
 import { loadSettings } from '../config/load.js';
+import { resolveLines } from '../config/presets.js';
 import { getTheme } from '../theme/index.js';
 import { createTranslator } from '../i18n/index.js';
 import { renderAllLines } from './line.js';
@@ -183,6 +184,6 @@ export async function renderFromStdin(): Promise<void> {
     cacheTtlMs,
   };
 
-  const output = renderAllLines(settings.lines, ctx, settings.separator);
+  const output = renderAllLines(resolveLines(settings), ctx, settings.separator);
   process.stdout.write(`${output}\n`);
 }

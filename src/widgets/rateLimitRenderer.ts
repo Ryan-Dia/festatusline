@@ -59,6 +59,13 @@ interface RateLimitWidgetParams {
   timeFormat?: RateLimitTimeFormat;
   prefixWidth?: number;
   timeExprWidth?: number;
+  /**
+   * Hide the widget entirely when there is no slot, instead of drawing an empty `?%` bar.
+   * For buckets that arrive on the stdin payload, `?%` is the right answer — the data is
+   * merely late and will fill in. For one sourced elsewhere it can be permanently absent
+   * (no OAuth credentials, macOS), and a bar that never resolves is just noise.
+   */
+  hideWhenMissing?: boolean;
 }
 
 export function createRateLimitWidget(params: RateLimitWidgetParams): Widget {
@@ -68,6 +75,7 @@ export function createRateLimitWidget(params: RateLimitWidgetParams): Widget {
     labelKey,
     render(ctx: RenderContext, _cfg: WidgetConfig): string | null {
       const slot = getSlot(ctx);
+      if (!slot && params.hideWhenMissing) return null;
       return renderRateLimitSlot({
         prefix,
         color,

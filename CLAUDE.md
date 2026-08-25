@@ -61,6 +61,22 @@ src/
 - 설정: `~/.config/festatusline/settings.json`
 - Claude 통합: `~/.claude/settings.json` 의 `statusLine` 필드
 
+### 프리셋 추적 (0.6.0~)
+
+- 셋업은 전개된 `lines` 가 아니라 **`preset` 이름 + `codexRow` 불리언**을 저장한다. 그래야
+  프리셋에 위젯을 추가하는 릴리스가 기존 사용자에게 업데이트만으로 도달한다. 0.5.0 까지는
+  전개 결과만 저장해서, 새 위젯이 아무에게도 안 갔다.
+- 실제 렌더 행은 `resolveLines(settings)` (`config/presets.ts`) 가 결정한다. 우선순위:
+  `lines`(직접 편집) > 레거시 지문 대조 > `preset` > 기본 프리셋(`minimal`).
+- `lines` 는 **위젯 편집기로 직접 손봤을 때만** 기록된다. 기록되는 순간 `preset` 을 지워서,
+  이후 릴리스가 직접 만든 레이아웃을 덮어쓰지 않게 한다.
+- 0.6.0 이전 설정에는 `preset` 이 없다. `config/legacyPresets.ts` 가 **0.5.0 시점의 프리셋
+  레이아웃 스냅샷**과 대조해서 일치하면 그 프리셋으로 간주한다. 이 표는 **역사적 스냅샷이라
+  PRESETS 를 바꿔도 절대 같이 바꾸면 안 된다** — 바꾸면 옛 설정이 매칭에서 탈락한다.
+  위젯에 `color` 오버라이드가 하나라도 있으면 프리셋 전개 시 색이 날아가므로 매칭을 포기한다.
+- 렌더 경로에서 설정 파일을 **다시 쓰지 않는다.** 매 렌더가 새 프로세스라 동시 쓰기가 겹친다.
+  레거시 대조는 읽기 전용으로 매번 수행한다.
+
 ## 배포
 
 npm 에 발행하지 않는다. 배포 경로는 GitHub 플러그인 마켓플레이스이므로 **`dist/` 를 커밋해야
@@ -92,7 +108,7 @@ npm 에 발행하지 않는다. 배포 경로는 GitHub 플러그인 마켓플�
 | `sonnetWeeklyReset` | Sonnet 주간 리셋까지 남은 시간 |
 | `fableWeeklyUsage` | 최근 7일 Fable 모델 토큰 수 |
 | `fableWeeklyReset` | Fable 주간 리셋까지 남은 시간 |
-| `fableWeeklyRateLimit` | Fable 전용 주간 한도 바 (OAuth API 조회, `/usage`가 보여주는 실제 잔여율) |
+| `fableWeeklyRateLimit` | Fable 전용 주간 한도 바 (OAuth 조회, `/usage` 와 동일 값). 데이터 없으면 숨김 |
 | `modelMix` | 주간 사용량의 모델 계열별 비중 (`/usage` 동일 가중치) |
 | `gptUsage` | 오늘 Codex CLI 요청 수 |
 | `codexWeeklyRateLimit` | Codex 7일 한도 바 |

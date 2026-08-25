@@ -1,5 +1,5 @@
-import { PRESETS } from '../config/presets.js';
-import { SettingsSchema, type Settings } from '../config/schema.js';
+import { PRESETS, resolveLines } from '../config/presets.js';
+import { SettingsSchema, type Settings, type WidgetCfg } from '../config/schema.js';
 import { renderAllLines } from '../render/line.js';
 import { getTheme } from '../theme/index.js';
 import { createTranslator } from '../i18n/index.js';
@@ -79,9 +79,9 @@ export type PreviewLine = {
 };
 
 /** Renders an arbitrary line layout exactly as the statusline would, for the preview pane. */
-export function renderLinesPreview(lines: Settings['lines'], settings: Settings): PreviewLine[] {
+export function renderLinesPreview(lines: WidgetCfg[][], settings: Settings): PreviewLine[] {
   const merged = SettingsSchema.parse({ ...settings, lines });
-  const output = renderAllLines(merged.lines, buildPreviewContext(merged), merged.separator);
+  const output = renderAllLines(lines, buildPreviewContext(merged), merged.separator);
   if (!output) return [];
   return output.split('\n').map((text, i) => ({ id: `lines:${i}`, text }));
 }
@@ -91,7 +91,11 @@ export function renderPresetPreview(name: string, settings: Settings): PreviewLi
   const preset = PRESETS[name];
   if (!preset) return [];
   const merged = SettingsSchema.parse({ ...settings, ...preset });
-  const output = renderAllLines(merged.lines, buildPreviewContext(merged), merged.separator);
+  const output = renderAllLines(
+    resolveLines(merged),
+    buildPreviewContext(merged),
+    merged.separator,
+  );
   if (!output) return [];
   return output.split('\n').map((text, i) => ({ id: `${name}:${i}`, text }));
 }

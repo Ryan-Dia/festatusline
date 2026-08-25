@@ -47,8 +47,14 @@ export default function PresetMenu({
             onBack();
             return;
           }
-          const preset = PRESETS[item.value] ?? {};
-          const next = SettingsSchema.parse({ ...currentSettings, ...preset });
+          // Same as setup: store the name so the layout follows the preset across releases.
+          const next = SettingsSchema.parse({
+            ...currentSettings,
+            ...(PRESETS[item.value] ?? {}),
+            preset: item.value,
+            codexRow: false,
+            lines: undefined,
+          });
           await onSelect(next);
         }}
       />
