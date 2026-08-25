@@ -7,7 +7,7 @@ import {
   getTheme,
   renderAllLines,
   t
-} from "./chunk-VGK3S3F3.js";
+} from "./chunk-ASQAXTWT.js";
 
 // src/config/save.ts
 import fs from "fs";
@@ -45,6 +45,7 @@ var PRESETS = {
         { id: "weeklyReset" },
         { id: "sonnetWeeklyUsage" },
         { id: "sonnetWeeklyReset" },
+        { id: "fableWeeklyRateLimit" },
         { id: "gptUsage" }
       ]
     ]
@@ -61,6 +62,7 @@ var PRESETS = {
         { id: "weeklyReset" },
         { id: "sonnetWeeklyUsage" },
         { id: "sonnetWeeklyReset" },
+        { id: "fableWeeklyRateLimit" },
         { id: "gptUsage" }
       ]
     ]
@@ -154,6 +156,7 @@ function buildPreviewContext(settings) {
       dailyTokens: 48e4,
       weeklyTokens: 31e5,
       sonnetWeeklyTokens: 13e5,
+      fableWeeklyTokens: 0,
       weightedDaily: 24e6,
       weightedWeekly: 155e6,
       weightedWeeklyByFamily: {
@@ -173,6 +176,7 @@ function buildPreviewContext(settings) {
       },
       model: "gpt-5"
     },
+    fableRateLimit: { usedPercent: 89, resetsAt: unixAfter(4 * DAY_MS) },
     theme: getTheme(settings.theme),
     t: createTranslator(settings.locale),
     now,
@@ -216,4 +220,4 @@ export {
   LanguageSelect,
   PresetPreview
 };
-//# sourceMappingURL=chunk-FKS36VZ3.js.map
+//# sourceMappingURL=chunk-PAGFXNET.js.map

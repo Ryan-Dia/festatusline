@@ -12,6 +12,81 @@ summarised under [Earlier](#earlier).
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-08-25
+
+### Added
+
+- `fableWeeklyUsage` and `fableWeeklyReset` widgets. Fable was already tracked internally
+  (`modelTier.ts`, `modelMix`), but there was no way to see its raw weekly token count or reset
+  countdown on their own, unlike Sonnet which already had `sonnetWeeklyUsage` /
+  `sonnetWeeklyReset`. Same caveat as `sonnetWeeklyUsage`: this counts local jsonl transcript
+  tokens, not a Claude Code-reported per-model rate limit — those still aren't exposed to
+  statuslines (see the `weeklyRateLimit` note).
+- `fableWeeklyRateLimit` widget and `src/data/claudeOAuthUsage.ts` — Fable's actual weekly quota
+  percentage, the same number `/usage` shows. This is the first widget that makes a network
+  call: Claude Code never puts per-model rate limits on the statusline stdin payload, so there
+  is no local-file way to get it. Verified by reading the source of
+  [Orca](https://github.com/stablyai/orca), a third-party Claude Code client that already
+  displays this — it reads the OAuth access token Claude Code stores at
+  `~/.claude/.credentials.json` and calls Anthropic's own (undocumented) `/api/oauth/usage`
+  endpoint directly, the same one the CLI's `/usage` command and Orca's PTY-scraping fallback
+  both ultimately read from. festatusline follows the same OAuth-call path only (no PTY
+  fallback — this process isn't long-lived enough to spawn and scrape a hidden terminal).
+  Because that endpoint is undocumented and not meant to be hit on every render, the result is
+  cached to disk at `~/.cache/festatusline/oauth_usage.json` with a 5-minute TTL — an
+  in-memory cache would do nothing here since the CLI is a fresh process every render. A
+  failed refresh (network error, missing credentials, unrecognized response shape) falls back
+  to the last good cached value instead of blanking the widget. No equivalent exists yet for
+  Opus or Sonnet — only Fable's response shape was reverse-engineered.
+- `fableWeeklyRateLimit` added to the `full` and `korean-dev` presets, next to
+  `sonnetWeeklyReset`.
+
+### Changed
+
+- `sessionRateLimit` and `weeklyRateLimit` now fall back to the same OAuth-fetched account
+  state `fableWeeklyRateLimit` uses, instead of only ever falling back to the last stdin
+  `rate_limits` this process itself cached. Reason: stdin's `rate_limits.five_hour`/
+  `seven_day` are piggybacked on this *session's own* last actual API call (confirmed via
+  Orca's `claude-statusline-rate-limits.ts`) — accurate the moment they arrive, but frozen
+  until this session sends another message. Running Claude concurrently from more than one
+  device means an idle session's bars stay stuck at their last-seen value while the shared
+  quota drains elsewhere. `getOAuthUsageSlots()` (renamed from the Fable-only
+  `getFableRateLimit()`) now fetches `fable`, `session`, and `weekly` together in one request
+  and caches them together, and `render/index.ts`'s new `mergeRateLimits()` resolves each
+  bucket independently. It does *not* simply rank the sources: Claude Code keeps re-sending
+  the same stale snapshot on every idle refresh, so "stdin if present" would never once hand
+  over to OAuth while idle — the exact case this exists for. Neither source carries a
+  timestamp, but the windows do the job: within one reset window usage only climbs, so the
+  higher percentage is the newer reading; across windows the later `resets_at` is newer;
+  ties go to stdin. The on-disk stdin cache only stands in when stdin itself is unusable.
+  Every environment without extractable OAuth credentials keeps working exactly as before.
+- The OAuth fetch now backs off for 60s after a failure (`failedAt` in the cache entry, kept
+  separate from `fetchedAt` so a failure is never mistaken for fresh data), and the request
+  timeout is 3s rather than 5s. Without the backoff, an offline or proxied machine (Node's
+  `fetch` ignores `HTTPS_PROXY`) would re-attempt — and stall the whole status line for the
+  timeout — on every single render once the cache aged past its TTL.
+
+### Fixed
+
+- `mergeRateLimits` was treating a present-but-empty stdin period (Claude Code sends
+  `{ used_percentage: null, resets_at: null }` rather than omitting `five_hour`/`seven_day`
+  outright — see stdin.ts's own nullish-everywhere note) as a real value, so it won the `??`
+  chain and blocked the OAuth/cache fallback from ever kicking in. That shell shows up exactly
+  before this session's first API call — the moment this whole fallback was built to cover —
+  so `sessionRateLimit`/`weeklyRateLimit` would render `?%` there instead of falling through.
+  A stdin (or cached) period now only counts as usable when `resets_at != null`, mirroring what
+  `RateLimit.ts` itself already treats as "no data."
+- The on-disk stdin `rate_limits` cache is no longer overwritten with the empty
+  `{ used_percentage: null, resets_at: null }` shell Claude Code sends before a session's first
+  API call. That shell is truthy, so the old `if (stdin.rate_limits)` guard let it clobber the
+  last real values at every session start — which is why the cache never actually helped at
+  startup and the bars showed `?%` until the first turn. Pre-existing, but it matters more now:
+  for an environment without OAuth credentials (macOS, see the platform note) that cache is
+  the only startup fallback there is.
+- `claudeOAuthUsage.ts` now clamps a parsed `usedPercent` into 0–100. The endpoint is
+  undocumented and can drift without notice; an out-of-range value would otherwise render a
+  visibly broken label (`137%`, `-4%`) next to a bar that was already clamped independently.
+
 ## [0.4.1] - 2026-08-25
 
 ### Changed

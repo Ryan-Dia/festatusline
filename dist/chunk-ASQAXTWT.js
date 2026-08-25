@@ -4591,6 +4591,9 @@ var ko = {
   "widget.weeklyReset": "\uC8FC\uAC04 \uCD08\uAE30\uD654",
   "widget.sonnetWeeklyUsage": "\uC18C\uB137 \uC8FC\uAC04 \uC0AC\uC6A9\uB7C9",
   "widget.sonnetWeeklyReset": "\uC18C\uB137 \uC8FC\uAC04 \uCD08\uAE30\uD654",
+  "widget.fableWeeklyUsage": "\uD398\uC774\uBE14 \uC8FC\uAC04 \uC0AC\uC6A9\uB7C9",
+  "widget.fableWeeklyReset": "\uD398\uC774\uBE14 \uC8FC\uAC04 \uCD08\uAE30\uD654",
+  "widget.fableWeeklyRateLimit": "\uD398\uC774\uBE14 \uC8FC\uAC04 \uD55C\uB3C4",
   "widget.gptUsage": "GPT \uC0AC\uC6A9\uB7C9",
   "widget.codexWeeklyRateLimit": "Codex 7\uC77C \uD55C\uB3C4",
   "widget.spacer": "\uACF5\uBC31",
@@ -4651,6 +4654,9 @@ var en = {
   "widget.weeklyReset": "Weekly Reset",
   "widget.sonnetWeeklyUsage": "Sonnet Weekly",
   "widget.sonnetWeeklyReset": "Sonnet Weekly Reset",
+  "widget.fableWeeklyUsage": "Fable Weekly",
+  "widget.fableWeeklyReset": "Fable Weekly Reset",
+  "widget.fableWeeklyRateLimit": "Fable Weekly Limit",
   "widget.gptUsage": "GPT Usage",
   "widget.codexWeeklyRateLimit": "Codex 7d Limit",
   "widget.spacer": "Spacer",
@@ -4711,6 +4717,9 @@ var zh = {
   "widget.weeklyReset": "\u5468\u91CD\u7F6E",
   "widget.sonnetWeeklyUsage": "Sonnet \u5468\u7528\u91CF",
   "widget.sonnetWeeklyReset": "Sonnet \u5468\u91CD\u7F6E",
+  "widget.fableWeeklyUsage": "Fable \u5468\u7528\u91CF",
+  "widget.fableWeeklyReset": "Fable \u5468\u91CD\u7F6E",
+  "widget.fableWeeklyRateLimit": "Fable \u5468\u9650\u989D",
   "widget.gptUsage": "GPT \u7528\u91CF",
   "widget.codexWeeklyRateLimit": "Codex 7\u5929\u9650\u989D",
   "widget.spacer": "\u95F4\u9694",
@@ -5289,15 +5298,23 @@ var SonnetWeeklyResetTimerWidget = createResetTimerWidget({
   getTimer: (ctx) => getWeeklyReset(ctx.weeklyAnchorDay, ctx.now)
 });
 
-// src/widgets/GptUsage.ts
-var GptUsageWidget = {
-  id: "gptUsage",
-  labelKey: "widget.gptUsage",
+// src/widgets/FableWeeklyUsage.ts
+var FableWeeklyUsageWidget = {
+  id: "fableWeeklyUsage",
+  labelKey: "widget.fableWeeklyUsage",
   render(ctx, _cfg) {
-    if (!ctx.codex?.available) return null;
-    return `GPT:${ctx.codex.dailyRequests}req`;
+    if (!ctx.usage) return null;
+    return `F:${formatTokens(ctx.usage.fableWeeklyTokens)}`;
   }
 };
+
+// src/widgets/FableWeeklyResetTimer.ts
+var FableWeeklyResetTimerWidget = createResetTimerWidget({
+  id: "fableWeeklyReset",
+  labelKey: "widget.fableWeeklyReset",
+  prefix: "F\u21BA",
+  getTimer: (ctx) => getWeeklyReset(ctx.weeklyAnchorDay, ctx.now)
+});
 
 // src/widgets/rateLimitRenderer.ts
 function renderRateLimitSlot(params) {
@@ -5349,6 +5366,27 @@ function createRateLimitWidget(params) {
   };
 }
 
+// src/widgets/FableRateLimit.ts
+var PREFIX_WIDTH = 3;
+var FableWeeklyRateLimitWidget = createRateLimitWidget({
+  id: "fableWeeklyRateLimit",
+  labelKey: "widget.fableWeeklyRateLimit",
+  prefix: "F",
+  color: "#ff79c6",
+  prefixWidth: PREFIX_WIDTH,
+  getSlot: (ctx) => ctx.fableRateLimit
+});
+
+// src/widgets/GptUsage.ts
+var GptUsageWidget = {
+  id: "gptUsage",
+  labelKey: "widget.gptUsage",
+  render(ctx, _cfg) {
+    if (!ctx.codex?.available) return null;
+    return `GPT:${ctx.codex.dailyRequests}req`;
+  }
+};
+
 // src/widgets/RateLimit.ts
 var WEEKLY_PREFIX_WIDTH = 3;
 var SESSION_PREFIX_WIDTH = 7;
@@ -5378,7 +5416,7 @@ var WeeklyRateLimitWidget = createRateLimitWidget({
 });
 
 // src/widgets/CodexRateLimit.ts
-var PREFIX_WIDTH = 3;
+var PREFIX_WIDTH2 = 3;
 var TIME_EXPR_WIDTH = 11;
 var CodexWeeklyRateLimitWidget = createRateLimitWidget({
   id: "codexWeeklyRateLimit",
@@ -5387,7 +5425,7 @@ var CodexWeeklyRateLimitWidget = createRateLimitWidget({
   color: "#48dbfb",
   getSlot: (ctx) => selectLongestWindowSlot(ctx.codex?.rateLimits ?? null),
   timeFormat: "remaining",
-  prefixWidth: PREFIX_WIDTH,
+  prefixWidth: PREFIX_WIDTH2,
   timeExprWidth: TIME_EXPR_WIDTH
 });
 
@@ -5546,6 +5584,9 @@ function familyLabel(family) {
 function isSonnetModel(model) {
   return modelFamily(model) === "sonnet";
 }
+function isFableModel(model) {
+  return modelFamily(model) === "fable";
+}
 function weightedCost(entry) {
   const perToken = entry.cacheReadTokens * CACHE_READ_WEIGHT + entry.inputTokens * INPUT_WEIGHT + entry.cacheCreationTokens * CACHE_WRITE_WEIGHT + entry.outputTokens * OUTPUT_WEIGHT;
   return perToken * modelTier(entry.model);
@@ -5644,6 +5685,9 @@ var ALL_WIDGETS = [
   WeeklyResetTimerWidget,
   SonnetWeeklyUsageWidget,
   SonnetWeeklyResetTimerWidget,
+  FableWeeklyUsageWidget,
+  FableWeeklyResetTimerWidget,
+  FableWeeklyRateLimitWidget,
   ModelMixWidget,
   GptUsageWidget,
   CodexWeeklyRateLimitWidget,
@@ -5693,6 +5737,7 @@ export {
   getTimeWindows,
   modelFamily,
   isSonnetModel,
+  isFableModel,
   weightedCost,
   emptyFamilyTotals,
   getCodexSnapshot,
@@ -5705,4 +5750,4 @@ export {
   ALL_WIDGETS,
   renderAllLines
 };
-//# sourceMappingURL=chunk-VGK3S3F3.js.map
+//# sourceMappingURL=chunk-ASQAXTWT.js.map

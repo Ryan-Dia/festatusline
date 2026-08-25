@@ -9,6 +9,7 @@ import {
   getCodexSnapshot,
   getTheme,
   getTimeWindows,
+  isFableModel,
   isSonnetModel,
   loadSettings,
   modelFamily,
@@ -17,12 +18,12 @@ import {
   source_default,
   t,
   weightedCost
-} from "./chunk-VGK3S3F3.js";
+} from "./chunk-ASQAXTWT.js";
 
 // src/render/index.ts
-import { promises as fs3 } from "fs";
-import { homedir } from "os";
-import { join } from "path";
+import { promises as fs4 } from "fs";
+import { homedir as homedir2 } from "os";
+import { join as join2 } from "path";
 
 // src/data/stdin.ts
 var nullableNumber = () => external_exports.number().nullish();
@@ -288,6 +289,7 @@ async function getUsageSnapshot() {
     let dailyTokens = 0;
     let weeklyTokens = 0;
     let sonnetWeeklyTokens = 0;
+    let fableWeeklyTokens = 0;
     let weightedDaily = 0;
     let weightedWeekly = 0;
     const weightedWeeklyByFamily = emptyFamilyTotals();
@@ -303,12 +305,14 @@ async function getUsageSnapshot() {
         weightedWeekly += weighted;
         weightedWeeklyByFamily[modelFamily(e.model)] += weighted;
         if (isSonnetModel(e.model)) sonnetWeeklyTokens += total;
+        if (isFableModel(e.model)) fableWeeklyTokens += total;
       }
     }
     return {
       dailyTokens,
       weeklyTokens,
       sonnetWeeklyTokens,
+      fableWeeklyTokens,
       weightedDaily,
       weightedWeekly,
       weightedWeeklyByFamily,
@@ -317,8 +321,171 @@ async function getUsageSnapshot() {
   });
 }
 
+// src/data/claudeOAuthUsage.ts
+import { promises as fs2 } from "fs";
+import { homedir } from "os";
+import { join } from "path";
+var OAUTH_USAGE_URL = "https://api.anthropic.com/api/oauth/usage";
+var OAUTH_BETA_HEADER = "oauth-2025-04-20";
+var USER_AGENT = "claude-code/2.1.0";
+var FETCH_TIMEOUT_MS = 3e3;
+var TTL_MS = 5 * 60 * 1e3;
+var FAILURE_BACKOFF_MS = 60 * 1e3;
+var CACHE_DIR = process.env.XDG_CACHE_HOME ? join(process.env.XDG_CACHE_HOME, "festatusline") : join(homedir(), ".cache", "festatusline");
+var CACHE_PATH = join(CACHE_DIR, "oauth_usage.json");
+var EMPTY_SLOTS = { fable: null, session: null, weekly: null };
+var CredentialsSchema = external_exports.object({
+  claudeAiOauth: external_exports.object({
+    accessToken: external_exports.string().nullish()
+  }).nullish()
+});
+var ResetsAtSchema = external_exports.union([external_exports.string(), external_exports.number()]).nullish();
+var ScopedLimitSchema = external_exports.object({
+  kind: external_exports.string().nullish(),
+  percent: external_exports.number().nullish(),
+  resets_at: ResetsAtSchema,
+  scope: external_exports.object({
+    model: external_exports.object({
+      display_name: external_exports.string().nullish()
+    }).nullish()
+  }).nullish()
+});
+var UsageWindowSchema = external_exports.object({
+  utilization: external_exports.number().nullish(),
+  used_percentage: external_exports.number().nullish(),
+  resets_at: ResetsAtSchema
+});
+var OAuthUsageResponseSchema = external_exports.object({
+  five_hour: UsageWindowSchema.nullish(),
+  seven_day: UsageWindowSchema.nullish(),
+  fable_weekly: UsageWindowSchema.nullish(),
+  fable_seven_day: UsageWindowSchema.nullish(),
+  seven_day_fable: UsageWindowSchema.nullish(),
+  limits: external_exports.array(ScopedLimitSchema).nullish()
+});
+function parseResetTimestampMs(value) {
+  if (value == null) return null;
+  if (typeof value === "number") {
+    if (!Number.isFinite(value)) return null;
+    return value > 1e10 ? value : value * 1e3;
+  }
+  const numeric = Number(value);
+  if (Number.isFinite(numeric) && value.trim() !== "") {
+    return numeric > 1e10 ? numeric : numeric * 1e3;
+  }
+  const parsed = new Date(value).getTime();
+  return Number.isNaN(parsed) ? null : parsed;
+}
+function clampPercent(pct) {
+  return Math.min(100, Math.max(0, pct));
+}
+function extractWindowSlot(window) {
+  if (!window) return null;
+  const pct = window.utilization ?? window.used_percentage;
+  if (typeof pct !== "number") return null;
+  const resetsAtMs = parseResetTimestampMs(window.resets_at);
+  if (resetsAtMs == null) return null;
+  return { usedPercent: clampPercent(pct), resetsAt: Math.floor(resetsAtMs / 1e3) };
+}
+function extractFableSlot(data) {
+  const scoped = data.limits?.find(
+    (limit) => limit.kind === "weekly_scoped" && typeof limit.percent === "number" && limit.scope?.model?.display_name?.trim().toLowerCase() === "fable"
+  );
+  if (scoped && typeof scoped.percent === "number") {
+    const resetsAtMs = parseResetTimestampMs(scoped.resets_at);
+    if (resetsAtMs != null) {
+      return { usedPercent: clampPercent(scoped.percent), resetsAt: Math.floor(resetsAtMs / 1e3) };
+    }
+  }
+  for (const legacy of [data.fable_weekly, data.fable_seven_day, data.seven_day_fable]) {
+    const slot = extractWindowSlot(legacy);
+    if (slot) return slot;
+  }
+  return null;
+}
+function extractSlots(data) {
+  return {
+    fable: extractFableSlot(data),
+    session: extractWindowSlot(data.five_hour),
+    weekly: extractWindowSlot(data.seven_day)
+  };
+}
+async function readAccessToken() {
+  try {
+    const raw = await fs2.readFile(join(getClaudeDir(), ".credentials.json"), "utf8");
+    const result = CredentialsSchema.safeParse(JSON.parse(raw));
+    return result.success ? result.data.claudeAiOauth?.accessToken ?? null : null;
+  } catch {
+    return null;
+  }
+}
+async function readCache() {
+  try {
+    const raw = await fs2.readFile(CACHE_PATH, "utf8");
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+async function writeCache(entry) {
+  try {
+    await fs2.mkdir(CACHE_DIR, { recursive: true });
+    await fs2.writeFile(CACHE_PATH, JSON.stringify(entry), "utf8");
+  } catch {
+  }
+}
+async function fetchOAuthSlots(token) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  try {
+    const res = await fetch(OAUTH_USAGE_URL, {
+      headers: {
+        authorization: `Bearer ${token}`,
+        "anthropic-beta": OAUTH_BETA_HEADER,
+        "user-agent": USER_AGENT
+      },
+      // The bearer token must never be forwarded anywhere but the URL above. This endpoint
+      // has no reason to redirect, so treat any redirect as a failure rather than following
+      // it (older Node 18 fetch implementations did not reliably strip Authorization on a
+      // cross-origin redirect).
+      redirect: "error",
+      signal: controller.signal
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    const result = OAuthUsageResponseSchema.safeParse(json);
+    return result.success ? extractSlots(result.data) : null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+async function getOAuthUsageSlots() {
+  const cache2 = await readCache();
+  const now = Date.now();
+  if (cache2 && now - cache2.fetchedAt < TTL_MS) {
+    return cache2.slots;
+  }
+  if (cache2?.failedAt != null && now - cache2.failedAt < FAILURE_BACKOFF_MS) {
+    return cache2.slots;
+  }
+  const token = await readAccessToken();
+  if (!token) {
+    return cache2?.slots ?? EMPTY_SLOTS;
+  }
+  const slots = await fetchOAuthSlots(token);
+  if (slots) {
+    await writeCache({ fetchedAt: now, slots });
+    return slots;
+  }
+  const stale = cache2 ?? { fetchedAt: 0, slots: EMPTY_SLOTS };
+  await writeCache({ ...stale, failedAt: now });
+  return stale.slots;
+}
+
 // src/data/claude-settings.ts
-import fs2 from "fs";
+import fs3 from "fs";
 import path2 from "path";
 var ClaudeSettingsSchema = external_exports.object({
   // Session-scoped flag, normally supplied via --settings. `/effort ultracode` picked in
@@ -329,7 +496,7 @@ var ClaudeSettingsSchema = external_exports.object({
 async function readClaudeSettings() {
   const settingsPath = path2.join(getClaudeDir(), "settings.json");
   try {
-    const raw = await fs2.promises.readFile(settingsPath, "utf8");
+    const raw = await fs3.promises.readFile(settingsPath, "utf8");
     const result = ClaudeSettingsSchema.safeParse(JSON.parse(raw));
     return result.success ? result.data : {};
   } catch {
@@ -338,8 +505,8 @@ async function readClaudeSettings() {
 }
 
 // src/render/index.ts
-var CACHE_DIR = process.env.XDG_CACHE_HOME ? join(process.env.XDG_CACHE_HOME, "festatusline") : join(homedir(), ".cache", "festatusline");
-var RATE_LIMITS_CACHE_PATH = join(CACHE_DIR, "rate_limits.json");
+var CACHE_DIR2 = process.env.XDG_CACHE_HOME ? join2(process.env.XDG_CACHE_HOME, "festatusline") : join2(homedir2(), ".cache", "festatusline");
+var RATE_LIMITS_CACHE_PATH = join2(CACHE_DIR2, "rate_limits.json");
 var RateLimitsCacheSchema = RateLimitsSchema;
 async function tryOrNull(fn) {
   try {
@@ -350,29 +517,73 @@ async function tryOrNull(fn) {
 }
 async function readRateLimitsCache() {
   return tryOrNull(async () => {
-    const raw = await fs3.readFile(RATE_LIMITS_CACHE_PATH, "utf8");
+    const raw = await fs4.readFile(RATE_LIMITS_CACHE_PATH, "utf8");
     const result = RateLimitsCacheSchema.safeParse(JSON.parse(raw));
     return result.success ? result.data : null;
   });
 }
 async function writeRateLimitsCache(rateLimits) {
   await tryOrNull(async () => {
-    await fs3.mkdir(CACHE_DIR, { recursive: true });
-    await fs3.writeFile(RATE_LIMITS_CACHE_PATH, JSON.stringify(rateLimits), "utf8");
+    await fs4.mkdir(CACHE_DIR2, { recursive: true });
+    await fs4.writeFile(RATE_LIMITS_CACHE_PATH, JSON.stringify(rateLimits), "utf8");
   });
 }
+function toRateLimitPeriod(slot) {
+  return slot ? { used_percentage: slot.usedPercent, resets_at: slot.resetsAt } : null;
+}
+function usablePeriod(period) {
+  return period && period.resets_at != null ? period : null;
+}
+function hasUsableRateLimit(rateLimits) {
+  return usablePeriod(rateLimits?.five_hour) != null || usablePeriod(rateLimits?.seven_day) != null;
+}
+var SAME_WINDOW_TOLERANCE_S = 120;
+function fresher(a, b) {
+  if (!a) return b;
+  if (!b) return a;
+  const windowGap = (b.resets_at ?? 0) - (a.resets_at ?? 0);
+  if (Math.abs(windowGap) > SAME_WINDOW_TOLERANCE_S) return windowGap > 0 ? b : a;
+  return (b.used_percentage ?? 0) > (a.used_percentage ?? 0) ? b : a;
+}
+function mergeRateLimits(stdinRateLimits, oauthSlots, cachedRateLimits) {
+  const pick = (stdin, oauth, cached) => {
+    const local = usablePeriod(stdin) ?? usablePeriod(cached);
+    return fresher(local, toRateLimitPeriod(oauth ?? null)) ?? void 0;
+  };
+  const fiveHour = pick(
+    stdinRateLimits?.five_hour,
+    oauthSlots?.session,
+    cachedRateLimits?.five_hour
+  );
+  const sevenDay = pick(
+    stdinRateLimits?.seven_day,
+    oauthSlots?.weekly,
+    cachedRateLimits?.seven_day
+  );
+  return fiveHour || sevenDay ? { five_hour: fiveHour, seven_day: sevenDay } : void 0;
+}
 async function renderFromStdin() {
-  const [stdin, settings, claudeSettings, usage, codex, cachedRateLimits, lastCacheCreation] = await Promise.all([
+  const [
+    stdin,
+    settings,
+    claudeSettings,
+    usage,
+    codex,
+    oauthSlots,
+    cachedRateLimits,
+    lastCacheCreation
+  ] = await Promise.all([
     readStdin(),
     loadSettings(),
     readClaudeSettings(),
     tryOrNull(getUsageSnapshot),
     tryOrNull(getCodexSnapshot),
+    tryOrNull(getOAuthUsageSlots),
     readRateLimitsCache(),
     tryOrNull(getLastCacheCreation)
   ]);
   const t2 = createTranslator(settings.locale);
-  if (stdin.rate_limits) {
+  if (hasUsableRateLimit(stdin.rate_limits)) {
     writeRateLimitsCache(stdin.rate_limits).catch(() => {
     });
   }
@@ -388,10 +599,11 @@ async function renderFromStdin() {
   const ctx = {
     stdin: {
       ...stdin,
-      rate_limits: stdin.rate_limits ?? cachedRateLimits ?? void 0
+      rate_limits: mergeRateLimits(stdin.rate_limits, oauthSlots, cachedRateLimits)
     },
     usage,
     codex,
+    fableRateLimit: oauthSlots?.fable ?? null,
     sessionLastModel,
     theme,
     t: t2,
@@ -408,7 +620,7 @@ async function renderFromStdin() {
 }
 
 // src/config/install.ts
-import fs4 from "fs";
+import fs5 from "fs";
 import path3 from "path";
 import { fileURLToPath } from "url";
 var ClaudeSettingsSchema2 = external_exports.object({ statusLine: external_exports.record(external_exports.unknown()).optional() }).catchall(external_exports.unknown());
@@ -424,7 +636,7 @@ async function resolveCliPath() {
     "festatusline"
   );
   try {
-    const versions = await fs4.promises.readdir(pluginCacheBase);
+    const versions = await fs5.promises.readdir(pluginCacheBase);
     const sorted = versions.filter((v) => /^\d+\.\d+\.\d+$/.test(v)).sort((a, b) => a.localeCompare(b, void 0, { numeric: true }));
     const latest = sorted.at(-1);
     if (latest) {
@@ -438,7 +650,7 @@ async function installToClaude(force = false) {
   const settingsPath = getClaudeSettingsPath();
   let current = {};
   try {
-    const raw = await fs4.promises.readFile(settingsPath, "utf8");
+    const raw = await fs5.promises.readFile(settingsPath, "utf8");
     const parsed = ClaudeSettingsSchema2.safeParse(JSON.parse(raw));
     if (parsed.success) current = parsed.data;
   } catch {
@@ -454,7 +666,7 @@ async function installToClaude(force = false) {
   }
   const backup = `${settingsPath}.bak`;
   if (Object.keys(current).length > 0) {
-    await fs4.promises.writeFile(backup, `${JSON.stringify(current, null, 2)}
+    await fs5.promises.writeFile(backup, `${JSON.stringify(current, null, 2)}
 `, "utf8");
   }
   const cliPath = await resolveCliPath();
@@ -463,20 +675,20 @@ async function installToClaude(force = false) {
     command: `node ${cliPath}`,
     refreshIntervalMs: 6e4
   };
-  await fs4.promises.mkdir(path3.dirname(settingsPath), { recursive: true });
-  await fs4.promises.writeFile(settingsPath, `${JSON.stringify(current, null, 2)}
+  await fs5.promises.mkdir(path3.dirname(settingsPath), { recursive: true });
+  await fs5.promises.writeFile(settingsPath, `${JSON.stringify(current, null, 2)}
 `, "utf8");
   process.stdout.write(`${t("install.success")}
 `);
 }
 
 // src/config/doctor.ts
-import fs5 from "fs";
+import fs6 from "fs";
 import path4 from "path";
 import os from "os";
 async function exists(p) {
   try {
-    await fs5.promises.access(p);
+    await fs6.promises.access(p);
     return true;
   } catch {
     return false;
@@ -504,7 +716,7 @@ function isLocale(v) {
 }
 var commands = {
   setup: async () => {
-    const { runSetupWizard } = await import("./setup-HYYXIEO6.js");
+    const { runSetupWizard } = await import("./setup-52N7A4RN.js");
     return runSetupWizard();
   },
   install: (args) => installToClaude(args.includes("--force")),
@@ -521,7 +733,7 @@ async function dispatch(argv) {
     await renderFromStdin();
     return;
   }
-  const { runTui } = await import("./tui-BZDUYLAV.js");
+  const { runTui } = await import("./tui-L2JF3EAG.js");
   await runTui();
 }
 async function main() {
