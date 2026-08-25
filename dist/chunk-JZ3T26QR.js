@@ -4552,11 +4552,13 @@ var WidgetConfigSchema = external_exports.object({
   color: external_exports.string().optional()
 });
 var SettingsSchema = external_exports.object({
-  lines: external_exports.array(external_exports.array(WidgetConfigSchema)).default([
-    [{ id: "dailyUsage" }, { id: "context" }],
-    [{ id: "weeklyUsage" }, { id: "weeklyRateLimit" }],
-    [{ id: "model" }]
-  ]),
+  // Setup records the preset name and the Codex opt-in rather than the rows they expand to,
+  // so a release that adds a widget to that preset reaches existing users on update. `lines`
+  // is written only when someone edits their layout by hand, and then it takes over — see
+  // resolveLines in presets.ts for the full precedence.
+  preset: external_exports.string().optional(),
+  codexRow: external_exports.boolean().optional(),
+  lines: external_exports.array(external_exports.array(WidgetConfigSchema)).optional(),
   theme: external_exports.string().default("default"),
   locale: external_exports.enum(["ko", "en", "zh"]).default("en"),
   weeklyAnchorDay: external_exports.number().min(0).max(6).nullable().default(null),
@@ -5016,6 +5018,148 @@ async function getCodexSnapshot() {
   });
 }
 
+// src/config/legacyPresets.ts
+var DAILY_ROW = ["dailyUsage", "context", "sessionRateLimit"];
+var WEEKLY_ROW = ["weeklyUsage", "weeklyRateLimit"];
+var CODEX_ROW = ["codexModel", "codexWeeklyRateLimit"];
+var DENSE_ROW = [
+  "model",
+  "context",
+  "dailyUsage",
+  "dailyReset",
+  "weeklyUsage",
+  "weeklyReset",
+  "sonnetWeeklyUsage",
+  "sonnetWeeklyReset"
+];
+var LEGACY_LAYOUTS = [
+  ["minimal", [["dailyUsage", "context"], WEEKLY_ROW, ["model"]]],
+  // 0.5.0 slipped fableWeeklyRateLimit into these two; earlier releases had neither.
+  ["full", [[...DENSE_ROW, "gptUsage"]]],
+  ["full", [[...DENSE_ROW, "fableWeeklyRateLimit", "gptUsage"]]],
+  ["korean-dev", [[...DENSE_ROW, "gptUsage"]]],
+  ["korean-dev", [[...DENSE_ROW, "fableWeeklyRateLimit", "gptUsage"]]],
+  ["multi-cli", [["model", "dailyUsage", "gptUsage"]]],
+  ["basic", [DAILY_ROW, WEEKLY_ROW]],
+  ["pro", [DAILY_ROW, WEEKLY_ROW, ["spacer"], ["model", "gitRepo"]]],
+  [
+    "max",
+    [
+      DAILY_ROW,
+      WEEKLY_ROW,
+      ["spacer"],
+      ["cacheHit", "cacheTtl", "sessionCost"],
+      ["model", "gitRepo"]
+    ]
+  ]
+];
+function withCodexRowIds(lines) {
+  return [...lines.slice(0, 2), CODEX_ROW, ...lines.slice(2)];
+}
+function sameLayout(a, b) {
+  return a.length === b.length && a.every((row, i) => {
+    const other = b[i];
+    return other?.length === row.length && row.every((id, j) => other[j] === id);
+  });
+}
+function detectLegacyPreset(lines) {
+  if (lines.some((row) => row.some((w) => w.color != null))) return null;
+  const ids = lines.map((row) => row.map((w) => w.id));
+  for (const [name, layout] of LEGACY_LAYOUTS) {
+    if (sameLayout(ids, layout)) return { name, codexRow: false };
+    if (sameLayout(ids, withCodexRowIds(layout))) return { name, codexRow: true };
+  }
+  return null;
+}
+
+// src/config/presets.ts
+var DAILY_ROW2 = [{ id: "dailyUsage" }, { id: "context" }, { id: "sessionRateLimit" }];
+var WEEKLY_ROW2 = [
+  { id: "weeklyUsage" },
+  { id: "weeklyRateLimit" },
+  { id: "fableWeeklyRateLimit" }
+];
+var CODEX_ROW2 = [{ id: "codexModel" }, { id: "codexWeeklyRateLimit" }];
+function withCodexRow(lines) {
+  return [...lines.slice(0, 2), CODEX_ROW2, ...lines.slice(2)];
+}
+var PRESETS = {
+  minimal: {
+    lines: [
+      [{ id: "dailyUsage" }, { id: "context" }],
+      [{ id: "weeklyUsage" }, { id: "weeklyRateLimit" }],
+      [{ id: "model" }]
+    ]
+  },
+  full: {
+    lines: [
+      [
+        { id: "model" },
+        { id: "context" },
+        { id: "dailyUsage" },
+        { id: "dailyReset" },
+        { id: "weeklyUsage" },
+        { id: "weeklyReset" },
+        { id: "sonnetWeeklyUsage" },
+        { id: "sonnetWeeklyReset" },
+        { id: "fableWeeklyRateLimit" },
+        { id: "gptUsage" }
+      ]
+    ]
+  },
+  "korean-dev": {
+    locale: "ko",
+    lines: [
+      [
+        { id: "model" },
+        { id: "context" },
+        { id: "dailyUsage" },
+        { id: "dailyReset" },
+        { id: "weeklyUsage" },
+        { id: "weeklyReset" },
+        { id: "sonnetWeeklyUsage" },
+        { id: "sonnetWeeklyReset" },
+        { id: "fableWeeklyRateLimit" },
+        { id: "gptUsage" }
+      ]
+    ]
+  },
+  "multi-cli": {
+    lines: [[{ id: "model" }, { id: "dailyUsage" }, { id: "gptUsage" }]]
+  },
+  basic: {
+    lines: [DAILY_ROW2, WEEKLY_ROW2]
+  },
+  pro: {
+    lines: [DAILY_ROW2, WEEKLY_ROW2, [{ id: "spacer" }], [{ id: "model" }, { id: "gitRepo" }]]
+  },
+  max: {
+    lines: [
+      DAILY_ROW2,
+      WEEKLY_ROW2,
+      [{ id: "spacer" }],
+      [{ id: "cacheHit" }, { id: "cacheTtl" }, { id: "sessionCost" }],
+      [{ id: "model" }, { id: "gitRepo" }]
+    ]
+  }
+};
+var PRESET_NAMES = Object.keys(PRESETS);
+var DEFAULT_PRESET = "minimal";
+function expandPreset(name, codexRow = false) {
+  const lines = PRESETS[name]?.lines ?? PRESETS[DEFAULT_PRESET]?.lines ?? [];
+  return codexRow ? withCodexRow(lines) : lines;
+}
+function resolveLines(settings) {
+  if (settings.lines) {
+    if (!settings.preset) {
+      const detected = detectLegacyPreset(settings.lines);
+      if (detected) return expandPreset(detected.name, detected.codexRow);
+    }
+    return settings.lines;
+  }
+  return expandPreset(settings.preset ?? DEFAULT_PRESET, settings.codexRow ?? false);
+}
+
 // src/theme/themes.ts
 var themes = {
   default: {
@@ -5352,6 +5496,7 @@ function createRateLimitWidget(params) {
     labelKey,
     render(ctx, _cfg) {
       const slot = getSlot(ctx);
+      if (!slot && params.hideWhenMissing) return null;
       return renderRateLimitSlot({
         prefix,
         color,
@@ -5367,14 +5512,17 @@ function createRateLimitWidget(params) {
 }
 
 // src/widgets/FableRateLimit.ts
-var PREFIX_WIDTH = 3;
+var PREFIX_WIDTH = 7;
 var FableWeeklyRateLimitWidget = createRateLimitWidget({
   id: "fableWeeklyRateLimit",
   labelKey: "widget.fableWeeklyRateLimit",
-  prefix: "F",
+  prefix: "Fable",
   color: "#ff79c6",
   prefixWidth: PREFIX_WIDTH,
-  getSlot: (ctx) => ctx.fableRateLimit
+  getSlot: (ctx) => ctx.fableRateLimit,
+  // Unlike the stdin-backed bars, this one has no data at all without OAuth credentials
+  // (macOS keeps the token in the Keychain), where a permanent `?%` would be pure noise.
+  hideWhenMissing: true
 });
 
 // src/widgets/GptUsage.ts
@@ -5389,6 +5537,7 @@ var GptUsageWidget = {
 
 // src/widgets/RateLimit.ts
 var WEEKLY_PREFIX_WIDTH = 3;
+var WEEKLY_TIME_EXPR_WIDTH = 11;
 var SESSION_PREFIX_WIDTH = 7;
 var SessionRateLimitWidget = createRateLimitWidget({
   id: "sessionRateLimit",
@@ -5408,6 +5557,7 @@ var WeeklyRateLimitWidget = createRateLimitWidget({
   prefix: "all",
   color: "#6bcb77",
   prefixWidth: WEEKLY_PREFIX_WIDTH,
+  timeExprWidth: WEEKLY_TIME_EXPR_WIDTH,
   getSlot: (ctx) => {
     const s = ctx.stdin.rate_limits?.seven_day;
     if (!s || s.resets_at == null) return null;
@@ -5741,6 +5891,11 @@ export {
   weightedCost,
   emptyFamilyTotals,
   getCodexSnapshot,
+  withCodexRow,
+  PRESETS,
+  PRESET_NAMES,
+  expandPreset,
+  resolveLines,
   themes,
   THEME_NAMES,
   getTheme,
@@ -5750,4 +5905,4 @@ export {
   ALL_WIDGETS,
   renderAllLines
 };
-//# sourceMappingURL=chunk-ASQAXTWT.js.map
+//# sourceMappingURL=chunk-JZ3T26QR.js.map

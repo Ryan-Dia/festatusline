@@ -12,6 +12,36 @@ summarised under [Earlier](#earlier).
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-08-25
+
+### Added
+
+- Settings now record `preset` and `codexRow` instead of the widget rows they expand to, so a
+  release that adds a widget to a preset reaches existing users on `/festatusline:update`
+  alone. Until now setup wrote the expanded `lines` and nothing recorded where they came from,
+  which meant every widget added to a preset — including 0.5.0's Fable bar — reached nobody who
+  had already run setup. `resolveLines()` resolves rows at render time with the precedence
+  hand-written `lines` > legacy fingerprint > `preset` > default preset.
+- `config/legacyPresets.ts` recognises a pre-0.6.0 config by comparing its rows against the
+  preset layouts as they shipped through 0.5.0, so configs written before this mechanism
+  existed adopt their preset and follow updates too. A config carrying any per-widget `color`
+  is left alone — re-expanding the preset would silently drop those colors. That table is a
+  fixed historical snapshot and must not be updated alongside `PRESETS`.
+- `fableWeeklyRateLimit` is now in the `basic`, `pro`, and `max` presets, in the weekly row's
+  third slot, under the daily row's `Session` bar.
+
+### Changed
+
+- `fableWeeklyRateLimit` hides itself when there is no Fable data, rather than drawing an empty
+  `?%` bar. For the stdin-backed bars `?%` means "data is late and will fill in", but this one
+  is sourced from the OAuth endpoint and can be permanently absent (no credentials, macOS), so
+  it would have sat there forever — including for everyone on the `full`/`korean-dev` presets
+  that 0.5.0 put it in. Its prefix is now `Fable` padded to 7, matching `Session` above it.
+- `weeklyRateLimit` pads its time expression to 11 characters, the same way the Codex row
+  already did. The `all` column was 4 characters narrower than the `Ctx` column above it, which
+  went unnoticed while the weekly row had nothing in its third slot and became visible as soon
+  as the Fable bar landed there.
+
 ## [0.5.0] - 2026-08-25
 
 ### Added

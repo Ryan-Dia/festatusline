@@ -1,17 +1,18 @@
 #!/usr/bin/env node
 import {
   LanguageSelect,
-  PRESETS,
   PresetPreview,
-  saveSettings,
-  withCodexRow
-} from "./chunk-PAGFXNET.js";
+  saveSettings
+} from "./chunk-QJF4TD2Y.js";
 import {
+  PRESETS,
   SettingsSchema,
+  expandPreset,
   loadSettings,
   setLocale,
-  t
-} from "./chunk-ASQAXTWT.js";
+  t,
+  withCodexRow
+} from "./chunk-JZ3T26QR.js";
 
 // src/tui/setup.ts
 import React2 from "react";
@@ -74,7 +75,7 @@ function SetupWizard({ initialSettings, onSave }) {
       }
     ), /* @__PURE__ */ React.createElement(PresetPreview, { name: highlighted, settings }));
   }
-  const baseLines = PRESETS[chosenPreset]?.lines ?? [];
+  const baseLines = expandPreset(chosenPreset);
   const codexItems = [
     { label: t("tui.setup.codexNo"), value: "no" },
     { label: t("tui.setup.codexYes"), value: "yes" },
@@ -92,9 +93,13 @@ function SetupWizard({ initialSettings, onSave }) {
           setStep("preset");
           return;
         }
-        const lines = item.value === "yes" ? withCodexRow(baseLines) : baseLines;
-        const preset = { ...PRESETS[chosenPreset], lines };
-        const next = SettingsSchema.parse({ ...settings, ...preset });
+        const next = SettingsSchema.parse({
+          ...settings,
+          ...PRESETS[chosenPreset],
+          preset: chosenPreset,
+          codexRow: item.value === "yes",
+          lines: void 0
+        });
         await onSave(next);
         exit();
       }
@@ -119,4 +124,4 @@ async function runSetupWizard() {
 export {
   runSetupWizard
 };
-//# sourceMappingURL=setup-52N7A4RN.js.map
+//# sourceMappingURL=setup-YGKCCL7E.js.map

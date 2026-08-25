@@ -1,13 +1,15 @@
 #!/usr/bin/env node
 import {
+  PRESETS,
   SettingsSchema,
   createTranslator,
   emptyFamilyTotals,
   getConfigPath,
   getTheme,
   renderAllLines,
+  resolveLines,
   t
-} from "./chunk-ASQAXTWT.js";
+} from "./chunk-JZ3T26QR.js";
 
 // src/config/save.ts
 import fs from "fs";
@@ -18,75 +20,6 @@ async function saveSettings(settings) {
   await fs.promises.writeFile(configPath, `${JSON.stringify(settings, null, 2)}
 `, "utf8");
 }
-
-// src/config/presets.ts
-var DAILY_ROW = [{ id: "dailyUsage" }, { id: "context" }, { id: "sessionRateLimit" }];
-var WEEKLY_ROW = [{ id: "weeklyUsage" }, { id: "weeklyRateLimit" }];
-var CODEX_ROW = [{ id: "codexModel" }, { id: "codexWeeklyRateLimit" }];
-function withCodexRow(lines) {
-  return [...lines.slice(0, 2), CODEX_ROW, ...lines.slice(2)];
-}
-var PRESETS = {
-  minimal: {
-    lines: [
-      [{ id: "dailyUsage" }, { id: "context" }],
-      [{ id: "weeklyUsage" }, { id: "weeklyRateLimit" }],
-      [{ id: "model" }]
-    ]
-  },
-  full: {
-    lines: [
-      [
-        { id: "model" },
-        { id: "context" },
-        { id: "dailyUsage" },
-        { id: "dailyReset" },
-        { id: "weeklyUsage" },
-        { id: "weeklyReset" },
-        { id: "sonnetWeeklyUsage" },
-        { id: "sonnetWeeklyReset" },
-        { id: "fableWeeklyRateLimit" },
-        { id: "gptUsage" }
-      ]
-    ]
-  },
-  "korean-dev": {
-    locale: "ko",
-    lines: [
-      [
-        { id: "model" },
-        { id: "context" },
-        { id: "dailyUsage" },
-        { id: "dailyReset" },
-        { id: "weeklyUsage" },
-        { id: "weeklyReset" },
-        { id: "sonnetWeeklyUsage" },
-        { id: "sonnetWeeklyReset" },
-        { id: "fableWeeklyRateLimit" },
-        { id: "gptUsage" }
-      ]
-    ]
-  },
-  "multi-cli": {
-    lines: [[{ id: "model" }, { id: "dailyUsage" }, { id: "gptUsage" }]]
-  },
-  basic: {
-    lines: [DAILY_ROW, WEEKLY_ROW]
-  },
-  pro: {
-    lines: [DAILY_ROW, WEEKLY_ROW, [{ id: "spacer" }], [{ id: "model" }, { id: "gitRepo" }]]
-  },
-  max: {
-    lines: [
-      DAILY_ROW,
-      WEEKLY_ROW,
-      [{ id: "spacer" }],
-      [{ id: "cacheHit" }, { id: "cacheTtl" }, { id: "sessionCost" }],
-      [{ id: "model" }, { id: "gitRepo" }]
-    ]
-  }
-};
-var PRESET_NAMES = Object.keys(PRESETS);
 
 // src/tui/screens/LanguageSelect.tsx
 import React from "react";
@@ -187,7 +120,7 @@ function buildPreviewContext(settings) {
 }
 function renderLinesPreview(lines, settings) {
   const merged = SettingsSchema.parse({ ...settings, lines });
-  const output = renderAllLines(merged.lines, buildPreviewContext(merged), merged.separator);
+  const output = renderAllLines(lines, buildPreviewContext(merged), merged.separator);
   if (!output) return [];
   return output.split("\n").map((text, i) => ({ id: `lines:${i}`, text }));
 }
@@ -195,7 +128,11 @@ function renderPresetPreview(name, settings) {
   const preset = PRESETS[name];
   if (!preset) return [];
   const merged = SettingsSchema.parse({ ...settings, ...preset });
-  const output = renderAllLines(merged.lines, buildPreviewContext(merged), merged.separator);
+  const output = renderAllLines(
+    resolveLines(merged),
+    buildPreviewContext(merged),
+    merged.separator
+  );
   if (!output) return [];
   return output.split("\n").map((text, i) => ({ id: `${name}:${i}`, text }));
 }
@@ -214,10 +151,7 @@ function PresetPreview({ name, lines, settings }) {
 
 export {
   saveSettings,
-  withCodexRow,
-  PRESETS,
-  PRESET_NAMES,
   LanguageSelect,
   PresetPreview
 };
-//# sourceMappingURL=chunk-PAGFXNET.js.map
+//# sourceMappingURL=chunk-QJF4TD2Y.js.map

@@ -14,11 +14,12 @@ import {
   loadSettings,
   modelFamily,
   renderAllLines,
+  resolveLines,
   setLocale,
   source_default,
   t,
   weightedCost
-} from "./chunk-ASQAXTWT.js";
+} from "./chunk-JZ3T26QR.js";
 
 // src/render/index.ts
 import { promises as fs4 } from "fs";
@@ -614,7 +615,7 @@ async function renderFromStdin() {
     cacheTtlCreatedAt,
     cacheTtlMs
   };
-  const output = renderAllLines(settings.lines, ctx, settings.separator);
+  const output = renderAllLines(resolveLines(settings), ctx, settings.separator);
   process.stdout.write(`${output}
 `);
 }
@@ -716,7 +717,7 @@ function isLocale(v) {
 }
 var commands = {
   setup: async () => {
-    const { runSetupWizard } = await import("./setup-52N7A4RN.js");
+    const { runSetupWizard } = await import("./setup-YGKCCL7E.js");
     return runSetupWizard();
   },
   install: (args) => installToClaude(args.includes("--force")),
@@ -733,7 +734,7 @@ async function dispatch(argv) {
     await renderFromStdin();
     return;
   }
-  const { runTui } = await import("./tui-L2JF3EAG.js");
+  const { runTui } = await import("./tui-IW7U2ZZO.js");
   await runTui();
 }
 async function main() {

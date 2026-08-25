@@ -1,6 +1,6 @@
 {
   "name": "festatusline",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Customizable Claude Code statusline with i18n (ko/en/zh), themes, and multi-CLI usage widgets.",
   "type": "module",
   "bin": {

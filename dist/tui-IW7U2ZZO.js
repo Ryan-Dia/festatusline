@@ -1,20 +1,21 @@
 #!/usr/bin/env node
 import {
   LanguageSelect,
-  PRESETS,
-  PRESET_NAMES,
   PresetPreview,
   saveSettings
-} from "./chunk-PAGFXNET.js";
+} from "./chunk-QJF4TD2Y.js";
 import {
   ALL_WIDGETS,
+  PRESETS,
+  PRESET_NAMES,
   SettingsSchema,
   THEME_NAMES,
   loadSettings,
+  resolveLines,
   setLocale,
   t,
   themes
-} from "./chunk-ASQAXTWT.js";
+} from "./chunk-JZ3T26QR.js";
 
 // src/tui/index.ts
 import React6 from "react";
@@ -75,8 +76,13 @@ function PresetMenu({
           onBack();
           return;
         }
-        const preset = PRESETS[item.value] ?? {};
-        const next = SettingsSchema.parse({ ...currentSettings, ...preset });
+        const next = SettingsSchema.parse({
+          ...currentSettings,
+          ...PRESETS[item.value] ?? {},
+          preset: item.value,
+          codexRow: false,
+          lines: void 0
+        });
         await onSelect(next);
       }
     }
@@ -275,9 +281,9 @@ function App({ initialSettings, onSave }) {
     return /* @__PURE__ */ React5.createElement(
       WidgetEditor,
       {
-        lines: settings.lines,
+        lines: resolveLines(settings),
         onSave: async (lines) => {
-          await handleSave({ ...settings, lines });
+          await handleSave({ ...settings, lines, preset: void 0, codexRow: void 0 });
           setScreen("main");
         },
         onBack: () => setScreen("main")
@@ -307,4 +313,4 @@ async function runTui() {
 export {
   runTui
 };
-//# sourceMappingURL=tui-L2JF3EAG.js.map
+//# sourceMappingURL=tui-IW7U2ZZO.js.map
