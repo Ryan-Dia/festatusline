@@ -3,8 +3,12 @@
 All notable changes to festatusline are recorded here.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project
-adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Releases before this
-file existed are recorded only as git tags (`v0.2.3` through `v0.3.4`).
+adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+Entries for `0.2.3` through `0.3.4` were reconstructed from the git tags and commit messages
+after the fact, so they cover what each release changed but are less detailed than entries
+written alongside the work. `0.2.3` is the earliest tagged release; everything before it is
+summarised under [Earlier](#earlier).
 
 ## [Unreleased]
 
@@ -74,3 +78,113 @@ assigned.
 - Ultracode cannot be detected. Claude Code reports it as `xhigh` on every channel it exposes
   — the payload, `CLAUDE_EFFORT`, and the transcript's own `effort` field — so only a settings
   file that pins `ultracode: true` distinguishes it from plain `xhigh`.
+
+## [0.3.4] - 2026-08-14
+
+### Fixed
+
+- The `model` widget could show an unrelated session's model. When the payload carried no
+  model it fell back to the most recently used model across every project on the machine, so
+  right after `/clear` it could name a model the session was not running. The fallback is now
+  scoped to the current session's own transcript via `stdin.transcript_path`.
+
+## [0.3.3] - 2026-08-14
+
+### Fixed
+
+- Codex usage read only `CODEX_CONFIG_DIR`, an environment variable the real Codex CLI never
+  sets, so accounts using `CODEX_HOME` always looked unavailable. The rate-limit schema also
+  required a non-null secondary window that single-window plans never send, and daily history
+  counting looked for a `timestamp` field where `history.jsonl` actually writes `ts` in epoch
+  seconds. Each of those silently zeroed the Codex widgets even with data present.
+- The Codex session file was picked by filename, which encodes when a session *started*, not
+  when it was last written. A long-running session kept receiving fresh rate-limit events
+  while a later-started, abandoned session sorted ahead of it, so the widget showed a stale
+  snapshot. Selection is now by mtime.
+
+## [0.3.2] - 2026-08-14
+
+### Changed
+
+- The Codex row is a per-setup opt-in instead of being bundled into the `max` preset. Only
+  `max` carried it before, leaving `basic` and `pro` users no way to show Codex status at all.
+  It is now offered as its own step in the setup wizard, so any tier can carry it, and still
+  lands directly below the weekly row. `max` is 5 lines rather than 6.
+
+## [0.3.1] - 2026-08-13
+
+### Fixed
+
+- The effort label read `~/.claude/settings.json`, which never records session-only levels, so
+  `/effort max` kept rendering the stale saved value. Claude Code 2.1.119 and later send the
+  resolved level on the payload, which is now preferred, with the file used only for older
+  versions that do not send it.
+
+### Added
+
+- An `ultracode` label for xhigh sessions pinned through the settings file, which the payload
+  alone cannot distinguish.
+
+## [0.3.0] - 2026-08-06
+
+### Changed
+
+- The weekly rate limit prefix is `all` rather than `7d`, padded to sit under the daily row's
+  `Ctx` column.
+- The `lite` and `plus` presets are replaced by a `basic` / `pro` / `max` ladder sharing the
+  same daily and weekly rows.
+
+### Added
+
+- A live preview of the highlighted preset in both the setup wizard and the preset menu.
+
+### Fixed
+
+- The README widget tables listed `peakTime` and `claudePeak`, neither of which is registered
+  in `ALL_WIDGETS`, and the per-section widget counts were wrong. Both READMEs now also state
+  that per-model weekly limits cannot be shown: Claude Code tracks Opus, Sonnet and Fable
+  buckets internally and displays them in `/usage`, but never sends them to status lines.
+
+## [0.2.5] - 2026-07-27
+
+### Fixed
+
+- Every `/plugin update` silently broke the status line. `dist/cli.js` imported chalk, zod,
+  react and ink from `node_modules`, which the plugin cache only populated on first install,
+  so an update fetched fresh source with nothing to import from. chalk and zod are now bundled
+  into `dist/cli.js` and the ink/react TUI is lazy-loaded through a dynamic import, so the
+  render path — the part the `statusLine` hook invokes on every message — never needs
+  `node_modules` at all.
+- The Quick Start docs never mentioned adding the custom marketplace first, so
+  `/plugin install festatusline` always failed, and the `/plugin marketplace update` step was
+  missing.
+
+## [0.2.3] - 2026-07-27
+
+### Added
+
+- `sessionRateLimit` widget. Anthropic's usage dialog still shows a rolling current-session
+  limit — the same `used_percentage` / `resets_at` shape as the removed five-hour field, just
+  relabelled — so it fills the slot the old `rateLimit` widget left empty on the daily row.
+
+### Removed
+
+- The `rateLimit` and `codexRateLimit` widgets, which showed 5-hour bars. Anthropic and OpenAI
+  both dropped 5-hour rate limiting, leaving only weekly quotas.
+
+### Changed
+
+- The weekly bars share a `7d` prefix (Claude's was `All`), and the Codex model widget is
+  prefixed `Codex` so the Codex/GPT line reads clearly next to the Claude lines. The Claude
+  weekly row's static label went from `7days` to `Weekly`.
+- The `Codex` row label always renders instead of hiding until Codex CLI has been used once,
+  so the row layout is visible from the start.
+
+## Earlier
+
+`0.2.3` is the earliest tagged release. Development before it (2026-04-17 through 2026-05-12)
+built the project up to roughly its current shape and is not itemised here — see the git
+history for detail. In outline: the JSONL data layer and usage aggregation, the widget
+registry, ko/en/zh localisation, the five themes, the config system with presets and the
+install helper, the stdin render pipeline, the Ink TUI, Claude Code plugin support, the Codex
+CLI widgets, `cacheHit` / `cacheTtl` / `sessionCost`, and the git widgets.
