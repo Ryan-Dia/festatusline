@@ -2,11 +2,12 @@
 import {
   SettingsSchema,
   createTranslator,
+  emptyFamilyTotals,
   getConfigPath,
   getTheme,
   renderAllLines,
   t
-} from "./chunk-CRAZLCZ7.js";
+} from "./chunk-VGK3S3F3.js";
 
 // src/config/save.ts
 import fs from "fs";
@@ -130,7 +131,6 @@ function buildPreviewContext(settings) {
     stdin: {
       type: "statusLine",
       model: { id: "claude-opus-5", display_name: "Claude Opus 5" },
-      cost: { total_cost_usd: 0.42 },
       context_window: {
         context_window_size: 2e5,
         used_percentage: 38,
@@ -144,12 +144,23 @@ function buildPreviewContext(settings) {
       rate_limits: {
         five_hour: { used_percentage: 30, resets_at: unixAfter(3 * HOUR_MS) },
         seven_day: { used_percentage: 25, resets_at: unixAfter(4 * DAY_MS) }
-      }
+      },
+      cost: { total_cost_usd: 0.42, total_lines_added: 156, total_lines_removed: 23 },
+      fast_mode: false,
+      pr: { number: 1234, url: "https://example.com/pull/1234", review_state: "approved" },
+      effort: { level: "xhigh" }
     },
     usage: {
       dailyTokens: 48e4,
       weeklyTokens: 31e5,
       sonnetWeeklyTokens: 13e5,
+      weightedDaily: 24e6,
+      weightedWeekly: 155e6,
+      weightedWeeklyByFamily: {
+        ...emptyFamilyTotals(),
+        opus: 11625e4,
+        sonnet: 3875e4
+      },
       allEntries: []
     },
     codex: {
@@ -166,7 +177,6 @@ function buildPreviewContext(settings) {
     t: createTranslator(settings.locale),
     now,
     weeklyAnchorDay: settings.weeklyAnchorDay,
-    effortLevel: "high",
     cacheTtlCreatedAt: now.getTime() - 30 * 60 * 1e3,
     cacheTtlMs: HOUR_MS
   };
@@ -206,4 +216,4 @@ export {
   LanguageSelect,
   PresetPreview
 };
-//# sourceMappingURL=chunk-X5P5AGL4.js.map
+//# sourceMappingURL=chunk-FKS36VZ3.js.map

@@ -3,17 +3,21 @@ import {
   createMtimeCache,
   createTranslator,
   createTtlCache,
+  emptyFamilyTotals,
   external_exports,
   getClaudeDir,
   getCodexSnapshot,
   getTheme,
   getTimeWindows,
+  isSonnetModel,
   loadSettings,
+  modelFamily,
   renderAllLines,
   setLocale,
   source_default,
-  t
-} from "./chunk-CRAZLCZ7.js";
+  t,
+  weightedCost
+} from "./chunk-VGK3S3F3.js";
 
 // src/render/index.ts
 import { promises as fs3 } from "fs";
@@ -21,81 +25,136 @@ import { homedir } from "os";
 import { join } from "path";
 
 // src/data/stdin.ts
+var nullableNumber = () => external_exports.number().nullish();
+var nullableString = () => external_exports.string().nullish();
 var ModelSchema = external_exports.object({
-  id: external_exports.string(),
-  display_name: external_exports.string().optional(),
-  max_output_tokens: external_exports.number().optional()
+  id: nullableString(),
+  display_name: nullableString()
 });
 var ContextWindowCurrentUsageSchema = external_exports.object({
-  input_tokens: external_exports.number().optional(),
-  output_tokens: external_exports.number().optional(),
-  cache_creation_input_tokens: external_exports.number().optional(),
-  cache_read_input_tokens: external_exports.number().optional()
+  input_tokens: nullableNumber(),
+  output_tokens: nullableNumber(),
+  cache_creation_input_tokens: nullableNumber(),
+  cache_read_input_tokens: nullableNumber()
 });
 var ContextWindowSchema = external_exports.object({
-  total_input_tokens: external_exports.number().optional(),
-  total_output_tokens: external_exports.number().optional(),
-  context_window_size: external_exports.number().optional(),
-  current_usage: ContextWindowCurrentUsageSchema.optional(),
-  used_percentage: external_exports.number().optional(),
-  remaining_percentage: external_exports.number().optional()
+  total_input_tokens: nullableNumber(),
+  total_output_tokens: nullableNumber(),
+  context_window_size: nullableNumber(),
+  current_usage: ContextWindowCurrentUsageSchema.nullish(),
+  used_percentage: nullableNumber(),
+  remaining_percentage: nullableNumber()
 });
 var RateLimitPeriodSchema = external_exports.object({
-  used_percentage: external_exports.number().optional(),
-  resets_at: external_exports.number().optional()
+  used_percentage: nullableNumber(),
+  resets_at: nullableNumber()
 });
 var RateLimitsSchema = external_exports.object({
-  five_hour: RateLimitPeriodSchema.optional(),
-  seven_day: RateLimitPeriodSchema.optional()
+  five_hour: RateLimitPeriodSchema.nullish(),
+  seven_day: RateLimitPeriodSchema.nullish()
 });
 var CostSchema = external_exports.object({
-  total_cost_usd: external_exports.number().optional(),
-  total_duration_ms: external_exports.number().optional(),
-  total_api_duration_ms: external_exports.number().optional()
+  total_cost_usd: nullableNumber(),
+  total_duration_ms: nullableNumber(),
+  total_api_duration_ms: nullableNumber(),
+  total_lines_added: nullableNumber(),
+  total_lines_removed: nullableNumber()
+});
+var RepoSchema = external_exports.object({
+  host: nullableString(),
+  owner: nullableString(),
+  name: nullableString()
 });
 var WorkspaceSchema = external_exports.object({
-  current_dir: external_exports.string().optional(),
-  project_dir: external_exports.string().optional()
+  current_dir: nullableString(),
+  project_dir: nullableString(),
+  added_dirs: external_exports.array(external_exports.string()).nullish(),
+  // Set for any linked worktree created with `git worktree add`, unlike the top-level
+  // `worktree` object which only appears for --worktree sessions.
+  git_worktree: nullableString(),
+  repo: RepoSchema.nullish()
 });
 var OutputStyleSchema = external_exports.object({
-  name: external_exports.string().optional()
+  name: nullableString()
 });
 var EffortSchema = external_exports.object({
-  level: external_exports.string().optional()
+  level: nullableString()
 });
-var ClaudeStdinSchema = external_exports.object({
-  type: external_exports.string().optional(),
-  model: ModelSchema.optional(),
-  session_id: external_exports.string().optional(),
-  session_name: external_exports.string().optional(),
-  transcript_path: external_exports.string().optional(),
-  cwd: external_exports.string().optional(),
-  cost: CostSchema.optional(),
-  context_window: ContextWindowSchema.optional(),
-  workspace: WorkspaceSchema.optional(),
-  hook_event_name: external_exports.string().optional(),
-  version: external_exports.string().optional(),
-  output_style: OutputStyleSchema.optional(),
-  rate_limits: RateLimitsSchema.optional(),
-  exceeds_200k_tokens: external_exports.boolean().optional(),
-  effort: EffortSchema.optional()
+var ThinkingSchema = external_exports.object({
+  enabled: external_exports.boolean().nullish()
 });
+var VimSchema = external_exports.object({
+  mode: nullableString()
+});
+var AgentSchema = external_exports.object({
+  name: nullableString()
+});
+var PrSchema = external_exports.object({
+  number: nullableNumber(),
+  url: nullableString(),
+  review_state: nullableString(),
+  kind: nullableString()
+});
+var WorktreeSchema = external_exports.object({
+  name: nullableString(),
+  path: nullableString(),
+  branch: nullableString(),
+  original_cwd: nullableString(),
+  original_branch: nullableString()
+});
+var stdinShape = {
+  type: nullableString(),
+  model: ModelSchema.nullish(),
+  session_id: nullableString(),
+  session_name: nullableString(),
+  prompt_id: nullableString(),
+  transcript_path: nullableString(),
+  cwd: nullableString(),
+  cost: CostSchema.nullish(),
+  context_window: ContextWindowSchema.nullish(),
+  workspace: WorkspaceSchema.nullish(),
+  hook_event_name: nullableString(),
+  version: nullableString(),
+  output_style: OutputStyleSchema.nullish(),
+  rate_limits: RateLimitsSchema.nullish(),
+  exceeds_200k_tokens: external_exports.boolean().nullish(),
+  fast_mode: external_exports.boolean().nullish(),
+  effort: EffortSchema.nullish(),
+  thinking: ThinkingSchema.nullish(),
+  vim: VimSchema.nullish(),
+  agent: AgentSchema.nullish(),
+  pr: PrSchema.nullish(),
+  worktree: WorktreeSchema.nullish()
+};
+var ClaudeStdinSchema = external_exports.object(stdinShape);
+function salvageStdin(raw) {
+  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) return {};
+  const source = raw;
+  const salvaged = {};
+  for (const [key, schema] of Object.entries(stdinShape)) {
+    const result = schema.safeParse(source[key]);
+    if (result.success && result.data != null) salvaged[key] = result.data;
+  }
+  return salvaged;
+}
+function parseStdin(raw) {
+  const trimmed = raw.trim();
+  if (!trimmed) return {};
+  let json;
+  try {
+    json = JSON.parse(trimmed);
+  } catch {
+    return {};
+  }
+  const result = ClaudeStdinSchema.safeParse(json);
+  return result.success ? result.data : salvageStdin(json);
+}
 async function readStdin() {
   return new Promise((resolve, reject) => {
     const chunks = [];
     process.stdin.on("data", (chunk) => chunks.push(chunk));
     process.stdin.on("end", () => {
-      const raw = Buffer.concat(chunks).toString("utf8").trim();
-      if (!raw) {
-        resolve({});
-        return;
-      }
-      try {
-        const parsed = ClaudeStdinSchema.parse(JSON.parse(raw));
-        resolve(parsed);
-      } catch {
-        resolve({});
-      }
+      resolve(parseStdin(Buffer.concat(chunks).toString("utf8")));
     });
     process.stdin.on("error", reject);
   });
@@ -221,9 +280,6 @@ async function getLastCacheCreation() {
 function totalTokens(e) {
   return e.inputTokens + e.outputTokens + e.cacheCreationTokens + e.cacheReadTokens;
 }
-function isSonnet(model) {
-  return /sonnet/i.test(model);
-}
 var cache = createTtlCache(3e4);
 async function getUsageSnapshot() {
   return cache.get(async () => {
@@ -232,15 +288,32 @@ async function getUsageSnapshot() {
     let dailyTokens = 0;
     let weeklyTokens = 0;
     let sonnetWeeklyTokens = 0;
+    let weightedDaily = 0;
+    let weightedWeekly = 0;
+    const weightedWeeklyByFamily = emptyFamilyTotals();
     for (const e of entries) {
       const total = totalTokens(e);
-      if (e.timestamp >= todayStartMs) dailyTokens += total;
+      const weighted = weightedCost(e);
+      if (e.timestamp >= todayStartMs) {
+        dailyTokens += total;
+        weightedDaily += weighted;
+      }
       if (e.timestamp >= weekStartMs) {
         weeklyTokens += total;
-        if (isSonnet(e.model)) sonnetWeeklyTokens += total;
+        weightedWeekly += weighted;
+        weightedWeeklyByFamily[modelFamily(e.model)] += weighted;
+        if (isSonnetModel(e.model)) sonnetWeeklyTokens += total;
       }
     }
-    return { dailyTokens, weeklyTokens, sonnetWeeklyTokens, allEntries: entries };
+    return {
+      dailyTokens,
+      weeklyTokens,
+      sonnetWeeklyTokens,
+      weightedDaily,
+      weightedWeekly,
+      weightedWeeklyByFamily,
+      allEntries: entries
+    };
   });
 }
 
@@ -248,9 +321,9 @@ async function getUsageSnapshot() {
 import fs2 from "fs";
 import path2 from "path";
 var ClaudeSettingsSchema = external_exports.object({
-  effortLevel: external_exports.string().optional(),
   // Session-scoped flag, normally supplied via --settings. `/effort ultracode` picked in
-  // the TUI never lands here, so this only catches sessions pinned through the file.
+  // the TUI never lands here, so this only catches sessions pinned through the file — and
+  // it is the only channel that distinguishes ultracode from plain xhigh at all.
   ultracode: external_exports.boolean().optional()
 });
 async function readClaudeSettings() {
@@ -267,14 +340,7 @@ async function readClaudeSettings() {
 // src/render/index.ts
 var CACHE_DIR = process.env.XDG_CACHE_HOME ? join(process.env.XDG_CACHE_HOME, "festatusline") : join(homedir(), ".cache", "festatusline");
 var RATE_LIMITS_CACHE_PATH = join(CACHE_DIR, "rate_limits.json");
-var RateLimitPeriodSchema2 = external_exports.object({
-  used_percentage: external_exports.number().optional(),
-  resets_at: external_exports.number().optional()
-});
-var RateLimitsCacheSchema = external_exports.object({
-  five_hour: RateLimitPeriodSchema2.optional(),
-  seven_day: RateLimitPeriodSchema2.optional()
-});
+var RateLimitsCacheSchema = RateLimitsSchema;
 async function tryOrNull(fn) {
   try {
     return await fn();
@@ -331,7 +397,7 @@ async function renderFromStdin() {
     t: t2,
     now: /* @__PURE__ */ new Date(),
     weeklyAnchorDay: settings.weeklyAnchorDay,
-    effortLevel: claudeSettings.effortLevel,
+    envEffortLevel: process.env.CLAUDE_EFFORT,
     ultracode: claudeSettings.ultracode,
     cacheTtlCreatedAt,
     cacheTtlMs
@@ -438,7 +504,7 @@ function isLocale(v) {
 }
 var commands = {
   setup: async () => {
-    const { runSetupWizard } = await import("./setup-UUM4HROO.js");
+    const { runSetupWizard } = await import("./setup-HYYXIEO6.js");
     return runSetupWizard();
   },
   install: (args) => installToClaude(args.includes("--force")),
@@ -455,7 +521,7 @@ async function dispatch(argv) {
     await renderFromStdin();
     return;
   }
-  const { runTui } = await import("./tui-R4KVS2ER.js");
+  const { runTui } = await import("./tui-BZDUYLAV.js");
   await runTui();
 }
 async function main() {

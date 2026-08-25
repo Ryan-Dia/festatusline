@@ -4585,9 +4585,9 @@ async function loadSettings() {
 var ko = {
   "widget.model": "\uBAA8\uB378",
   "widget.context": "\uCEE8\uD14D\uC2A4\uD2B8",
-  "widget.dailyUsage": "\uC77C\uAC04 \uC0AC\uC6A9\uB7C9",
+  "widget.dailyUsage": "\uC77C\uAC04 \uB808\uC774\uBE14",
   "widget.dailyReset": "\uC77C\uAC04 \uCD08\uAE30\uD654",
-  "widget.weeklyUsage": "\uC8FC\uAC04 \uC0AC\uC6A9\uB7C9",
+  "widget.weeklyUsage": "\uC8FC\uAC04 \uB808\uC774\uBE14",
   "widget.weeklyReset": "\uC8FC\uAC04 \uCD08\uAE30\uD654",
   "widget.sonnetWeeklyUsage": "\uC18C\uB137 \uC8FC\uAC04 \uC0AC\uC6A9\uB7C9",
   "widget.sonnetWeeklyReset": "\uC18C\uB137 \uC8FC\uAC04 \uCD08\uAE30\uD654",
@@ -4602,6 +4602,10 @@ var ko = {
   "widget.cacheTtl": "\uCE90\uC2DC \uC720\uD6A8\uC2DC\uAC04",
   "widget.gitBranch": "Git \uBE0C\uB79C\uCE58",
   "widget.gitRepo": "Git \uB808\uD3EC",
+  "widget.modelMix": "\uC8FC\uAC04 \uBAA8\uB378 \uBE44\uC911",
+  "widget.pr": "PR / MR \uC0C1\uD0DC",
+  "widget.fastMode": "\uD328\uC2A4\uD2B8 \uBAA8\uB4DC",
+  "widget.linesChanged": "\uBCC0\uACBD \uC904 \uC218",
   "reset.until": "\uAE4C\uC9C0",
   "reset.na": "\u2013",
   "usage.tokens": "\uD1A0\uD070",
@@ -4641,9 +4645,9 @@ var ko = {
 var en = {
   "widget.model": "Model",
   "widget.context": "Context",
-  "widget.dailyUsage": "Daily Usage",
+  "widget.dailyUsage": "Daily Label",
   "widget.dailyReset": "Daily Reset",
-  "widget.weeklyUsage": "Weekly Usage",
+  "widget.weeklyUsage": "Weekly Label",
   "widget.weeklyReset": "Weekly Reset",
   "widget.sonnetWeeklyUsage": "Sonnet Weekly",
   "widget.sonnetWeeklyReset": "Sonnet Weekly Reset",
@@ -4658,6 +4662,10 @@ var en = {
   "widget.cacheTtl": "Cache TTL",
   "widget.gitBranch": "Git Branch",
   "widget.gitRepo": "Git Repo",
+  "widget.modelMix": "Weekly Model Mix",
+  "widget.pr": "PR / MR Status",
+  "widget.fastMode": "Fast Mode",
+  "widget.linesChanged": "Lines Changed",
   "reset.until": "until reset",
   "reset.na": "\u2013",
   "usage.tokens": "tokens",
@@ -4697,9 +4705,9 @@ var en = {
 var zh = {
   "widget.model": "\u6A21\u578B",
   "widget.context": "\u4E0A\u4E0B\u6587",
-  "widget.dailyUsage": "\u65E5\u7528\u91CF",
+  "widget.dailyUsage": "\u65E5\u7528\u91CF\u6807\u7B7E",
   "widget.dailyReset": "\u65E5\u91CD\u7F6E",
-  "widget.weeklyUsage": "\u5468\u7528\u91CF",
+  "widget.weeklyUsage": "\u5468\u7528\u91CF\u6807\u7B7E",
   "widget.weeklyReset": "\u5468\u91CD\u7F6E",
   "widget.sonnetWeeklyUsage": "Sonnet \u5468\u7528\u91CF",
   "widget.sonnetWeeklyReset": "Sonnet \u5468\u91CD\u7F6E",
@@ -4714,6 +4722,10 @@ var zh = {
   "widget.cacheTtl": "\u7F13\u5B58\u6709\u6548\u671F",
   "widget.gitBranch": "Git \u5206\u652F",
   "widget.gitRepo": "Git \u4ED3\u5E93",
+  "widget.modelMix": "\u6BCF\u5468\u6A21\u578B\u5360\u6BD4",
+  "widget.pr": "PR / MR \u72B6\u6001",
+  "widget.fastMode": "\u5FEB\u901F\u6A21\u5F0F",
+  "widget.linesChanged": "\u53D8\u66F4\u884C\u6570",
   "reset.until": "\u91CD\u7F6E\u5012\u8BA1\u65F6",
   "reset.na": "\u2013",
   "usage.tokens": "\u4EE4\u724C",
@@ -5059,36 +5071,32 @@ function getTheme(name) {
 var EFFORT_LABELS = {
   "max-tokens": "max"
 };
-var EFFORT_IN_STDIN_SINCE = [2, 1, 119];
-function isAtLeast(version, min) {
-  if (!version) return false;
-  const parts = version.split(".").map((part) => Number.parseInt(part, 10));
-  if (parts.length < min.length || parts.some((part) => Number.isNaN(part))) return false;
-  for (let i = 0; i < min.length; i += 1) {
-    const part = parts[i] ?? 0;
-    const floor = min[i] ?? 0;
-    if (part !== floor) return part > floor;
-  }
-  return true;
-}
 function effortLabel(ctx) {
-  const fromStdin = ctx.stdin.effort?.level;
-  const stale = isAtLeast(ctx.stdin.version, EFFORT_IN_STDIN_SINCE) ? void 0 : ctx.effortLevel;
-  const level = fromStdin ?? stale;
+  const level = ctx.stdin.effort?.level ?? ctx.envEffortLevel;
   if (!level || level === "normal") return null;
   if (ctx.ultracode && level === "xhigh") return "ultracode";
   return EFFORT_LABELS[level] ?? level;
 }
+var MODEL_ID_RE = /^([a-z]+(?:-[a-z]+)*)-(\d+)(?:-(\d+))?(?:-\d+)*$/i;
 function shortName(raw) {
   const stripped = raw.replace(/^Claude\s+/i, "");
   if (stripped !== raw) return stripped;
   const withoutPrefix = raw.replace(/^claude-/i, "");
-  const match = withoutPrefix.match(/^([a-z]+(?:-[a-z]+)*)-(\d+)-(\d+)(?:-\d+)*$/i);
+  const match = withoutPrefix.match(MODEL_ID_RE);
   if (match) {
     const name = match[1].replace(/-/g, " ");
-    return `${name.charAt(0).toUpperCase()}${name.slice(1)} ${match[2]}.${match[3]}`;
+    const version = match[3] ? `${match[2]}.${match[3]}` : match[2];
+    return `${name.charAt(0).toUpperCase()}${name.slice(1)} ${version}`;
   }
   return withoutPrefix;
+}
+function modelFlags(ctx) {
+  const flags = [];
+  const effort = effortLabel(ctx);
+  if (effort) flags.push(effort);
+  if (ctx.stdin.fast_mode === true) flags.push("fast");
+  if (ctx.stdin.thinking?.enabled === false) flags.push("no-think");
+  return flags;
 }
 var ModelWidget = {
   id: "model",
@@ -5097,8 +5105,8 @@ var ModelWidget = {
     const rawName = ctx.stdin.model?.display_name ?? ctx.stdin.model?.id ?? ctx.sessionLastModel ?? null;
     if (!rawName) return "?";
     const name = shortName(rawName);
-    const label = effortLabel(ctx);
-    return label ? `${name} [${label}]` : name;
+    const flags = modelFlags(ctx);
+    return flags.length > 0 ? `${name} [${flags.join(", ")}]` : name;
   }
 };
 
@@ -5124,9 +5132,16 @@ function fmtPct(pct) {
 
 // src/utils/tokens.ts
 function formatTokens(n) {
-  if (n >= 1e6) return `${(n / 1e6).toFixed(1)}M`;
-  if (n >= 1e3) return `${Math.round(n / 1e3)}K`;
-  return String(n);
+  if (!Number.isFinite(n) || n <= 0) return "0";
+  if (n >= 999500) {
+    const m = n / 1e6;
+    const formatted = m.toFixed(1);
+    return formatted.endsWith(".0") ? `${Math.round(m)}M` : `${formatted}M`;
+  }
+  if (n >= 995) {
+    return `${Math.round(n / 1e3)}K`;
+  }
+  return String(Math.round(n));
 }
 
 // src/widgets/Context.ts
@@ -5135,12 +5150,25 @@ var ContextWidget = {
   labelKey: "widget.context",
   render(ctx, _cfg) {
     const cw = ctx.stdin.context_window;
-    if (!cw?.context_window_size)
+    const max = cw?.context_window_size ?? (ctx.stdin.exceeds_200k_tokens ? 1e6 : 2e5);
+    const usage = cw?.current_usage;
+    const currentUsageTokens = (usage?.input_tokens ?? 0) + (usage?.output_tokens ?? 0) + (usage?.cache_creation_input_tokens ?? 0) + (usage?.cache_read_input_tokens ?? 0);
+    const totalTokens = (cw?.total_input_tokens ?? 0) + (cw?.total_output_tokens ?? 0);
+    let used = currentUsageTokens || totalTokens;
+    let pct;
+    if (cw?.used_percentage != null) {
+      pct = Math.round(cw.used_percentage);
+      if (used === 0 && pct > 0 && max > 0) {
+        used = Math.round(pct / 100 * max);
+      }
+    } else if (max > 0 && used > 0) {
+      pct = Math.min(100, Math.round(used / max * 100));
+    } else {
+      pct = 0;
+    }
+    if (!cw && !ctx.stdin.model && used === 0) {
       return `Ctx ${buildBar(0, "#22d3ee")} ${fmtPct(0)} ${"(-/-)".padEnd(11)}`;
-    const usage = cw.current_usage;
-    const used = (usage?.input_tokens ?? 0) + (usage?.output_tokens ?? 0) + (usage?.cache_creation_input_tokens ?? 0) + (usage?.cache_read_input_tokens ?? 0);
-    const max = cw.context_window_size;
-    const pct = Math.round(cw.used_percentage ?? Math.min(100, used / max * 100));
+    }
     const tokenExpr = `(${formatTokens(used)}/${formatTokens(max)})`.padEnd(11);
     return `Ctx ${buildBar(pct, "#22d3ee")} ${fmtPct(pct)} ${tokenExpr}`;
   }
@@ -5439,8 +5467,14 @@ function gitCommand(args, cwd) {
     return null;
   }
 }
+function workspaceDir(ctx) {
+  return ctx.stdin.workspace?.current_dir ?? ctx.stdin.cwd ?? process.cwd();
+}
 var branchCache = /* @__PURE__ */ new Map();
-function getCachedBranch(cwd) {
+function getCachedBranch(ctx) {
+  const fromStdin = ctx.stdin.worktree?.branch;
+  if (fromStdin) return fromStdin;
+  const cwd = workspaceDir(ctx);
   const now = Date.now();
   const cached = branchCache.get(cwd);
   if (cached && now < cached.expiresAt) return cached.value;
@@ -5448,24 +5482,153 @@ function getCachedBranch(cwd) {
   branchCache.set(cwd, { value, expiresAt: now + 5e3 });
   return value;
 }
+function getRepoName(ctx) {
+  const fromStdin = ctx.stdin.workspace?.repo?.name;
+  if (fromStdin) return fromStdin;
+  const topLevel = gitCommand(["rev-parse", "--show-toplevel"], workspaceDir(ctx));
+  return topLevel ? basename(topLevel) : null;
+}
 var GitBranchWidget = {
   id: "gitBranch",
   labelKey: "widget.gitBranch",
   render(ctx, _cfg) {
-    const cwd = ctx.stdin.cwd ?? process.cwd();
-    return getCachedBranch(cwd);
+    return getCachedBranch(ctx);
   }
 };
 var GitRepoWidget = {
   id: "gitRepo",
   labelKey: "widget.gitRepo",
   render(ctx, _cfg) {
-    const cwd = ctx.stdin.cwd ?? process.cwd();
-    const topLevel = gitCommand(["rev-parse", "--show-toplevel"], cwd);
-    if (!topLevel) return null;
-    const repo = basename(topLevel);
-    const branch = getCachedBranch(cwd);
+    const repo = getRepoName(ctx);
+    if (!repo) return null;
+    const branch = getCachedBranch(ctx);
     return branch ? `\u{1F4C1} ${repo}(${branch})` : `\u{1F4C1} ${repo}`;
+  }
+};
+
+// src/data/modelTier.ts
+var FAMILY_PATTERNS = [
+  ["fable", /fable/i],
+  ["opus", /opus/i],
+  ["haiku", /haiku/i],
+  ["sonnet", /sonnet/i]
+];
+var FAMILY_TIERS = {
+  fable: 10,
+  opus: 5,
+  sonnet: 3,
+  haiku: 1,
+  // An unrecognized or missing model name lands on the same tier Claude Code defaults to.
+  other: 3
+};
+var FAMILY_LABELS = {
+  fable: "Fable",
+  opus: "Opus",
+  sonnet: "Sonnet",
+  haiku: "Haiku",
+  other: "Other"
+};
+var CACHE_READ_WEIGHT = 1;
+var INPUT_WEIGHT = 10;
+var CACHE_WRITE_WEIGHT = 12.5;
+var OUTPUT_WEIGHT = 50;
+function modelFamily(model) {
+  if (!model) return "other";
+  const matched = FAMILY_PATTERNS.find(([, pattern]) => pattern.test(model));
+  return matched ? matched[0] : "other";
+}
+function modelTier(model) {
+  return FAMILY_TIERS[modelFamily(model)];
+}
+function familyLabel(family) {
+  return FAMILY_LABELS[family];
+}
+function isSonnetModel(model) {
+  return modelFamily(model) === "sonnet";
+}
+function weightedCost(entry) {
+  const perToken = entry.cacheReadTokens * CACHE_READ_WEIGHT + entry.inputTokens * INPUT_WEIGHT + entry.cacheCreationTokens * CACHE_WRITE_WEIGHT + entry.outputTokens * OUTPUT_WEIGHT;
+  return perToken * modelTier(entry.model);
+}
+function emptyFamilyTotals() {
+  return { fable: 0, opus: 0, sonnet: 0, haiku: 0, other: 0 };
+}
+
+// src/widgets/ModelMix.ts
+var MIN_SHARE_PCT = 1;
+function roundToHundred(exact) {
+  const floored = exact.map((entry) => ({
+    family: entry.family,
+    pct: Math.floor(entry.exactPct),
+    remainder: entry.exactPct - Math.floor(entry.exactPct)
+  }));
+  const assigned = floored.reduce((sum, entry) => sum + entry.pct, 0);
+  const byRemainder = [...floored].sort((a, b) => b.remainder - a.remainder);
+  for (let i = 0; i < 100 - assigned; i += 1) {
+    const target = byRemainder[i % byRemainder.length];
+    if (target) target.pct += 1;
+  }
+  return floored.map(({ family, pct }) => ({ family, pct }));
+}
+var ModelMixWidget = {
+  id: "modelMix",
+  labelKey: "widget.modelMix",
+  render(ctx, _cfg) {
+    if (!ctx.usage) return null;
+    const { weightedWeekly, weightedWeeklyByFamily } = ctx.usage;
+    if (weightedWeekly <= 0) return null;
+    const entries = Object.entries(weightedWeeklyByFamily);
+    const kept = entries.filter(
+      ([, weighted]) => weighted / weightedWeekly * 100 >= MIN_SHARE_PCT
+    );
+    const keptTotal = kept.reduce((sum, [, weighted]) => sum + weighted, 0);
+    if (keptTotal <= 0) return null;
+    const shares = roundToHundred(
+      kept.map(([family, weighted]) => ({ family, exactPct: weighted / keptTotal * 100 }))
+    ).sort((a, b) => b.pct - a.pct);
+    return shares.map(({ family, pct }) => `${familyLabel(family)} ${pct}%`).join(" \xB7 ");
+  }
+};
+
+// src/widgets/PrStatus.ts
+var MR_KIND = "mr";
+var REVIEW_GLYPHS = {
+  approved: "\u2713",
+  changes_requested: "\u2717",
+  pending: "\xB7",
+  draft: "\u25CB"
+};
+var PrStatusWidget = {
+  id: "pr",
+  labelKey: "widget.pr",
+  render(ctx, _cfg) {
+    const { pr } = ctx.stdin;
+    if (!pr || pr.number == null) return null;
+    const isMergeRequest = pr.kind === MR_KIND;
+    const head = isMergeRequest ? `MR !${pr.number}` : `PR #${pr.number}`;
+    const glyph = pr.review_state ? REVIEW_GLYPHS[pr.review_state] : void 0;
+    return glyph ? `${head} ${glyph}` : head;
+  }
+};
+
+// src/widgets/FastMode.ts
+var FastModeWidget = {
+  id: "fastMode",
+  labelKey: "widget.fastMode",
+  render(ctx, _cfg) {
+    return ctx.stdin.fast_mode === true ? "\xBBfast" : null;
+  }
+};
+
+// src/widgets/LinesChanged.ts
+var LinesChangedWidget = {
+  id: "linesChanged",
+  labelKey: "widget.linesChanged",
+  render(ctx, _cfg) {
+    const added = ctx.stdin.cost?.total_lines_added ?? 0;
+    const removed = ctx.stdin.cost?.total_lines_removed ?? 0;
+    if (added === 0 && removed === 0) return null;
+    return `+${added}/-${removed}`;
   }
 };
 
@@ -5481,6 +5644,7 @@ var ALL_WIDGETS = [
   WeeklyResetTimerWidget,
   SonnetWeeklyUsageWidget,
   SonnetWeeklyResetTimerWidget,
+  ModelMixWidget,
   GptUsageWidget,
   CodexWeeklyRateLimitWidget,
   SpacerWidget,
@@ -5489,7 +5653,10 @@ var ALL_WIDGETS = [
   CacheHitWidget,
   CacheTtlWidget,
   GitBranchWidget,
-  GitRepoWidget
+  GitRepoWidget,
+  PrStatusWidget,
+  FastModeWidget,
+  LinesChangedWidget
 ];
 var registry = new Map(ALL_WIDGETS.map((w) => [w.id, w]));
 function getWidget(id) {
@@ -5524,6 +5691,10 @@ export {
   getConfigPath,
   loadSettings,
   getTimeWindows,
+  modelFamily,
+  isSonnetModel,
+  weightedCost,
+  emptyFamilyTotals,
   getCodexSnapshot,
   themes,
   THEME_NAMES,
@@ -5534,4 +5705,4 @@ export {
   ALL_WIDGETS,
   renderAllLines
 };
-//# sourceMappingURL=chunk-CRAZLCZ7.js.map
+//# sourceMappingURL=chunk-VGK3S3F3.js.map
