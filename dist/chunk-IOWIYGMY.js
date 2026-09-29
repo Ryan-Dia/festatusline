@@ -5085,11 +5085,7 @@ function withCodexRow(lines) {
 }
 var PRESETS = {
   minimal: {
-    lines: [
-      [{ id: "dailyUsage" }, { id: "context" }],
-      [{ id: "weeklyUsage" }, { id: "weeklyRateLimit" }],
-      [{ id: "model" }]
-    ]
+    lines: [[{ id: "dailyUsage" }, { id: "context" }], WEEKLY_ROW2, [{ id: "model" }]]
   },
   full: {
     lines: [
@@ -5905,4 +5901,4 @@ export {
   ALL_WIDGETS,
   renderAllLines
 };
-//# sourceMappingURL=chunk-JZ3T26QR.js.map
+//# sourceMappingURL=chunk-IOWIYGMY.js.map

@@ -3,7 +3,7 @@ import {
   LanguageSelect,
   PresetPreview,
   saveSettings
-} from "./chunk-QJF4TD2Y.js";
+} from "./chunk-OVARFCHT.js";
 import {
   PRESETS,
   SettingsSchema,
@@ -12,7 +12,7 @@ import {
   setLocale,
   t,
   withCodexRow
-} from "./chunk-JZ3T26QR.js";
+} from "./chunk-IOWIYGMY.js";
 
 // src/tui/setup.ts
 import React2 from "react";
@@ -124,4 +124,4 @@ async function runSetupWizard() {
 export {
   runSetupWizard
 };
-//# sourceMappingURL=setup-YGKCCL7E.js.map
+//# sourceMappingURL=setup-IQFBBJNC.js.map

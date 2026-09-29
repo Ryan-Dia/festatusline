@@ -12,6 +12,25 @@ summarised under [Earlier](#earlier).
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-09-29
+
+### Changed
+
+- `minimal` — the default preset when no settings file exists — now carries the `Fable` bar in
+  its weekly row, same as `basic`/`pro`/`max`. Installing the plugin without running setup
+  left users on `minimal`, the one tier the Fable bar never reached. Legacy `minimal` configs
+  follow automatically through the 0.5.0 snapshot match.
+
+### Fixed
+
+- `/festatusline:setup` now writes `preset` + `codexRow` instead of the expanded `lines`
+  array. The command was never updated for 0.6.0's preset tracking, so it kept writing a
+  hand-edited-looking layout that skipped the `Fable` bar and froze the user out of future
+  preset changes. It only showed Fable at all because the written rows happened to match the
+  0.5.0 legacy snapshot — any deviation by the model writing the file (reordering, an extra
+  field on a widget) fell through to a frozen two-column weekly row. Previews now show the
+  `Fable` column too.
+
 ## [0.7.0] - 2026-08-25
 
 ### Added
