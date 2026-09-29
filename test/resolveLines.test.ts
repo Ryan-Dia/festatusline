@@ -81,8 +81,8 @@ describe('detectLegacyPreset', () => {
 });
 
 describe('preset definitions', () => {
-  it('gives basic, pro, and max the Fable bar via the shared weekly row', () => {
-    for (const name of ['basic', 'pro', 'max']) {
+  it('gives minimal, basic, pro, and max the Fable bar via the shared weekly row', () => {
+    for (const name of ['minimal', 'basic', 'pro', 'max']) {
       const weeklyRow = PRESETS[name]?.lines?.[1]?.map((w) => w.id) ?? [];
       expect(weeklyRow, name).toContain('fableWeeklyRateLimit');
     }

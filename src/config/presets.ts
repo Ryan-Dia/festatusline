@@ -4,6 +4,7 @@ import { detectLegacyPreset } from './legacyPresets.js';
 // Shared by the basic/pro/max ladder so the two usage rows stay column-aligned. The weekly
 // row's third slot sits under the daily row's `Session` bar; `fableWeeklyRateLimit` hides
 // itself when there is no Fable data, so this stays a two-column row for everyone else.
+// minimal reuses the weekly row too, so the default layout shows Fable as well.
 const DAILY_ROW = [{ id: 'dailyUsage' }, { id: 'context' }, { id: 'sessionRateLimit' }];
 const WEEKLY_ROW = [
   { id: 'weeklyUsage' },
@@ -22,11 +23,7 @@ export function withCodexRow(lines: WidgetCfg[][]): WidgetCfg[][] {
 
 export const PRESETS: Record<string, Partial<Settings>> = {
   minimal: {
-    lines: [
-      [{ id: 'dailyUsage' }, { id: 'context' }],
-      [{ id: 'weeklyUsage' }, { id: 'weeklyRateLimit' }],
-      [{ id: 'model' }],
-    ],
+    lines: [[{ id: 'dailyUsage' }, { id: 'context' }], WEEKLY_ROW, [{ id: 'model' }]],
   },
   full: {
     lines: [

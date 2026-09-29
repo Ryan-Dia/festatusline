@@ -263,7 +263,8 @@ Claude Code 에서 `/festatusline:setup` 으로 적용할 수 있습니다. setu
 종속되지 않습니다.
 
 `minimal`, `full`, `korean-dev`, `multi-cli` 는 프리셋 메뉴에는 남아 있지만 setup 마법사에는
-나오지 않습니다.
+나오지 않습니다. `minimal` 은 설정 파일이 아직 없을 때 쓰이는 기본 프리셋이며, 주간 행이 위와
+같아서 `Fable` 바도 함께 나옵니다.
 
 ---
 

@@ -268,7 +268,8 @@ below the weekly row. The setup wizard asks about it as a separate step after th
 it is not tied to any one tier.
 
 `minimal`, `full`, `korean-dev` and `multi-cli` remain available in the preset menu but are not
-offered by the setup wizard.
+offered by the setup wizard. `minimal` is what renders when no settings file exists yet; its weekly
+row is the same one as above, so the `Fable` bar shows there too.
 
 ---
 

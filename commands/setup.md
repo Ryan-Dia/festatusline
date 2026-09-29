@@ -31,6 +31,7 @@ Configure the festatusline status line plugin.
 | `sonnetWeeklyReset` | Time until Sonnet weekly reset |
 | `gptUsage` | Today's Codex CLI request count |
 | `weeklyRateLimit` | Weekly rate limit status |
+| `fableWeeklyRateLimit` | Fable's own weekly quota (hidden when unavailable) |
 | `cacheHit` | Prompt cache hit rate |
 | `cacheTtl` | Cache TTL remaining time |
 | `sessionCost` | Estimated session cost |
@@ -56,13 +57,13 @@ Ask all questions in a single AskUserQuestion call:
      preview (use actual newlines \n between lines):
      ```
      Daily   │ Ctx ■■■□□□□□□□  38% (75K/200K)  │ Session ■■■□□□□□□□  30% (3h 0m)
-     Weekly  │ all ■■□□□□□□□□  25% (4d 0h)
+     Weekly  │ all ■■□□□□□□□□  25% (4d 0h)     │ Fable   ■■■■■■■■□□  89% (4d 0h)
      ```
    - `pro` (4 lines, recommended): basic + spacer + model/repo line
      preview:
      ```
      Daily   │ Ctx ■■■□□□□□□□  38% (75K/200K)  │ Session ■■■□□□□□□□  30% (3h 0m)
-     Weekly  │ all ■■□□□□□□□□  25% (4d 0h)
+     Weekly  │ all ■■□□□□□□□□  25% (4d 0h)     │ Fable   ■■■■■■■■□□  89% (4d 0h)
 
      Opus 5 [high] │ 📁 my-repo(main)
      ```
@@ -70,7 +71,7 @@ Ask all questions in a single AskUserQuestion call:
      preview:
      ```
      Daily   │ Ctx ■■■□□□□□□□  38% (75K/200K)  │ Session ■■■□□□□□□□  30% (3h 0m)
-     Weekly  │ all ■■□□□□□□□□  25% (4d 0h)
+     Weekly  │ all ■■□□□□□□□□  25% (4d 0h)     │ Fable   ■■■■■■■■□□  89% (4d 0h)
 
      ⚡70% │ ⏱ 30m │ $0.420
      Opus 5 [high] │ 📁 my-repo(main)
@@ -85,7 +86,7 @@ Ask all questions in a single AskUserQuestion call:
      `pro` + Codex:
      ```
      Daily   │ Ctx ■■■□□□□□□□  38% (75K/200K)  │ Session ■■■□□□□□□□  30% (3h 0m)
-     Weekly  │ all ■■□□□□□□□□  25% (4d 0h)
+     Weekly  │ all ■■□□□□□□□□  25% (4d 0h)     │ Fable   ■■■■■■■■□□  89% (4d 0h)
      Codex   │ 7d  ■□□□□□□□□□  10% (1d 0h)
 
      Opus 5 [high] │ 📁 my-repo(main)
@@ -97,61 +98,26 @@ choice (default: `no`).
 
 ### 2. Build settings JSON
 
-Map the chosen preset to the `lines` array:
+Record the chosen preset **by name** — do not expand it into a `lines` array. The renderer
+expands `preset` at render time, so a later release that adds a widget to that preset (e.g.
+the `Fable` bar in the weekly row) reaches this user on `/plugin update` without re-running
+setup. A written-out `lines` array is treated as a hand-edited layout and freezes it.
 
-**basic:**
 ```json
 {
-  "lines": [
-    [{"id":"dailyUsage"},{"id":"context"},{"id":"sessionRateLimit"}],
-    [{"id":"weeklyUsage"},{"id":"weeklyRateLimit"}]
-  ]
+  "preset": "pro",
+  "codexRow": false
 }
 ```
 
-**pro:**
-```json
-{
-  "lines": [
-    [{"id":"dailyUsage"},{"id":"context"},{"id":"sessionRateLimit"}],
-    [{"id":"weeklyUsage"},{"id":"weeklyRateLimit"}],
-    [{"id":"spacer"}],
-    [{"id":"model"},{"id":"gitRepo"}]
-  ]
-}
-```
+- `preset`: `basic`, `pro`, or `max`
+- `codexRow`: `true` if Codex was requested (`$3` is `yes`, or the interactive question was
+  answered `Yes`), otherwise `false`. The renderer inserts the Codex row right below the
+  weekly row on any tier.
 
-**max:**
-```json
-{
-  "lines": [
-    [{"id":"dailyUsage"},{"id":"context"},{"id":"sessionRateLimit"}],
-    [{"id":"weeklyUsage"},{"id":"weeklyRateLimit"}],
-    [{"id":"spacer"}],
-    [{"id":"cacheHit"},{"id":"cacheTtl"},{"id":"sessionCost"}],
-    [{"id":"model"},{"id":"gitRepo"}]
-  ]
-}
-```
-
-> The daily and weekly rows are identical across all three presets and are padded so the
-> `all` bar sits directly under the `Ctx` column.
-
-**If Codex was requested (`$3` is `yes`, or the interactive question was answered `Yes`):**
-Insert `[{"id":"codexModel"},{"id":"codexWeeklyRateLimit"}]` as a new row right after the
-weekly row (index 2, i.e. the 3rd entry in `lines`) — regardless of which preset was
-picked. For example, `pro` + Codex becomes:
-```json
-{
-  "lines": [
-    [{"id":"dailyUsage"},{"id":"context"},{"id":"sessionRateLimit"}],
-    [{"id":"weeklyUsage"},{"id":"weeklyRateLimit"}],
-    [{"id":"codexModel"},{"id":"codexWeeklyRateLimit"}],
-    [{"id":"spacer"}],
-    [{"id":"model"},{"id":"gitRepo"}]
-  ]
-}
-```
+The daily and weekly rows are identical across all three presets and are padded so the
+columns line up. The `Fable` bar hides itself when Fable quota data can't be fetched, leaving
+the weekly row two columns wide.
 
 ### 3. Write settings file
 
@@ -160,7 +126,9 @@ Create `~/.config/festatusline/settings.json`:
 mkdir -p ~/.config/festatusline
 ```
 
-Write the complete settings object with `lines`, `theme`, `locale`, `separator` (` │ `), and `weeklyAnchorDay` (null).
+Write the complete settings object with `preset`, `codexRow`, `theme`, `locale`, `separator`
+(` │ `), and `weeklyAnchorDay` (null). **Do not include `lines`** — if an existing
+settings file has one, drop it, otherwise it overrides the preset.
 
 ### 4. Update statusLine in Claude settings
 
