@@ -558,7 +558,7 @@ function hasExpiredSlot(slots, nowMs) {
 async function getOAuthUsageSlots(cliVersion) {
   const cache2 = await readCache();
   const now = Date.now();
-  if (cache2) {
+  if (cache2 && "resetPass" in cache2.slots) {
     const ttl = hasExpiredSlot(cache2.slots, now) ? EXPIRED_TTL_MS : TTL_MS;
     if (now - cache2.fetchedAt < ttl) return cache2.slots;
   }

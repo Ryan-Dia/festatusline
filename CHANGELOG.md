@@ -12,6 +12,16 @@ summarised under [Earlier](#earlier).
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-10-08
+
+### Fixed
+
+- The `resetPass` widget no longer stays hidden for up to five minutes after updating from
+  0.8.x. A cached usage response from before 0.9.0 never asked for resets, so it carries no
+  `resetPass` key; such a cache is now refetched at once instead of being served until its
+  TTL runs out. 0.9.0+ always writes the key (null when none is held), so this triggers
+  only once.
+
 ## [0.9.0] - 2026-10-08
 
 ### Added
