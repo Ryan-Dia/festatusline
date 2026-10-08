@@ -12,6 +12,14 @@ summarised under [Earlier](#earlier).
 
 ## [Unreleased]
 
+## [0.8.1] - 2026-10-08
+
+### Fixed
+
+- `claudeOAuthUsage` tests now stub the macOS Keychain. On a Mac the "no credentials" cases
+  fell through to the developer's real login Keychain and sent that token to the stubbed
+  `fetch` — and a failing assertion printed it in the test output.
+
 ## [0.8.0] - 2026-09-29
 
 ### Changed
