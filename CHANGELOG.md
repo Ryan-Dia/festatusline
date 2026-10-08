@@ -12,6 +12,18 @@ summarised under [Earlier](#earlier).
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-10-08
+
+### Changed
+
+- The `context` and `sessionRateLimit` bars turn red (`#ff5555`), percent included, from 80%,
+  so the two limits that cut a session short stand out before they hit. Below 80% they keep
+  their usual colour; the weekly, Fable, and Codex bars never change. The red is fixed rather
+  than the theme's `danger`, because the default theme's danger is a pink that reads like the
+  Fable bar sitting right below it.
+- The `fableWeeklyRateLimit` bar is violet (`#bd93f9`) instead of pink (`#ff79c6`). Violet is
+  the one hue no other bar uses, and it stays clearly apart from the new 80% red.
+
 ## [0.9.1] - 2026-10-08
 
 ### Fixed

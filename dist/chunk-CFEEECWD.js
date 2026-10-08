@@ -5284,6 +5284,8 @@ var ModelWidget = {
 
 // src/utils/bar.ts
 var BAR_WIDTH = 10;
+var ALERT_COLOR = "#ff5555";
+var ALERT_PERCENT = 80;
 var DIM_FACTOR = 0.35;
 function dimColor(hex) {
   const r = Math.round(parseInt(hex.slice(1, 3), 16) * DIM_FACTOR).toString(16).padStart(2, "0");
@@ -5300,6 +5302,10 @@ function buildBar(pct, color, width = BAR_WIDTH) {
 }
 function fmtPct(pct) {
   return `${String(pct).padStart(3)}%`;
+}
+function barWithPct(pct, color, alertAt) {
+  if (alertAt == null || pct < alertAt) return `${buildBar(pct, color)} ${fmtPct(pct)}`;
+  return `${buildBar(pct, ALERT_COLOR)} ${source_default.hex(ALERT_COLOR)(fmtPct(pct))}`;
 }
 
 // src/utils/tokens.ts
@@ -5342,7 +5348,7 @@ var ContextWidget = {
       return `Ctx ${buildBar(0, "#22d3ee")} ${fmtPct(0)} ${"(-/-)".padEnd(11)}`;
     }
     const tokenExpr = `(${formatTokens(used)}/${formatTokens(max)})`.padEnd(11);
-    return `Ctx ${buildBar(pct, "#22d3ee")} ${fmtPct(pct)} ${tokenExpr}`;
+    return `Ctx ${barWithPct(pct, "#22d3ee", ALERT_PERCENT)} ${tokenExpr}`;
   }
 };
 
@@ -5489,7 +5495,8 @@ function renderRateLimitSlot(params) {
     now,
     timeFormat = "remaining",
     prefixWidth,
-    timeExprWidth
+    timeExprWidth,
+    alertAt
   } = params;
   const paddedPrefix = prefixWidth != null ? prefix.padEnd(prefixWidth) : prefix;
   if (usedPercent == null || resetsAtMs == null) {
@@ -5506,10 +5513,10 @@ function renderRateLimitSlot(params) {
     timeStr = formatRemainingHM(remainingMs);
   }
   const timeExpr = timeExprWidth != null ? `(${timeStr})`.padEnd(timeExprWidth) : `(${timeStr})`;
-  return `${paddedPrefix} ${buildBar(pct, color)} ${fmtPct(pct)} ${timeExpr}`;
+  return `${paddedPrefix} ${barWithPct(pct, color, alertAt)} ${timeExpr}`;
 }
 function createRateLimitWidget(params) {
-  const { id, labelKey, prefix, color, getSlot, timeFormat, prefixWidth, timeExprWidth } = params;
+  const { id, labelKey, prefix, color, getSlot, timeFormat, prefixWidth, timeExprWidth, alertAt } = params;
   return {
     id,
     labelKey,
@@ -5524,7 +5531,8 @@ function createRateLimitWidget(params) {
         now: ctx.now.getTime(),
         timeFormat,
         prefixWidth,
-        timeExprWidth
+        timeExprWidth,
+        alertAt
       });
     }
   };
@@ -5536,7 +5544,8 @@ var FableWeeklyRateLimitWidget = createRateLimitWidget({
   id: "fableWeeklyRateLimit",
   labelKey: "widget.fableWeeklyRateLimit",
   prefix: "Fable",
-  color: "#ff79c6",
+  // Violet: the one hue no other bar uses, and clear of the 80% alert red.
+  color: "#bd93f9",
   prefixWidth: PREFIX_WIDTH,
   getSlot: (ctx) => ctx.fableRateLimit,
   // Unlike the stdin-backed bars, this one has no data at all without OAuth credentials
@@ -5564,6 +5573,7 @@ var SessionRateLimitWidget = createRateLimitWidget({
   prefix: "Session",
   color: "#ffd93d",
   prefixWidth: SESSION_PREFIX_WIDTH,
+  alertAt: ALERT_PERCENT,
   getSlot: (ctx) => {
     const s = ctx.stdin.rate_limits?.five_hour;
     if (!s || s.resets_at == null) return null;
@@ -5954,4 +5964,4 @@ export {
   ALL_WIDGETS,
   renderAllLines
 };
-//# sourceMappingURL=chunk-VVZHKSFD.js.map
+//# sourceMappingURL=chunk-CFEEECWD.js.map
