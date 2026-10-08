@@ -12,6 +12,18 @@ summarised under [Earlier](#earlier).
 
 ## [Unreleased]
 
+## [0.11.2] - 2026-10-08
+
+### Fixed
+
+- Plugin install and update work again on Claude Code 2.1.294+, which now installs a plugin's
+  npm dependencies and failed on festatusline twice. `eslint-config-airbnb@19` (unmaintained
+  since 2021) declares a peer of `eslint-plugin-react-hooks@^4` against this project's `^7`,
+  so npm stopped with ERESOLVE; an `overrides` entry now points that peer at the project's own
+  version, keeping react-hooks 7. The 0.11.0 `.npmrc` workaround is removed, since the
+  plugin install ignores it. And `prepare` ran `husky`, which a production install doesn't
+  have; it now runs `.husky/install.mjs`, which skips husky when it can't load.
+
 ## [0.11.1] - 2026-10-08
 
 ### Changed
