@@ -321,7 +321,10 @@ function hasExpiredSlot(slots: OAuthUsageSlots, nowMs: number): boolean {
 export async function getOAuthUsageSlots(cliVersion?: string | null): Promise<OAuthUsageSlots> {
   const cache = await readCache();
   const now = Date.now();
-  if (cache) {
+  // A cache written before 0.9.0 has no `resetPass` key at all (0.9.0+ always writes one,
+  // null included) because it never asked for resets — trusting it would hide the reset
+  // widget for up to a whole TTL right after updating.
+  if (cache && 'resetPass' in cache.slots) {
     const ttl = hasExpiredSlot(cache.slots, now) ? EXPIRED_TTL_MS : TTL_MS;
     if (now - cache.fetchedAt < ttl) return cache.slots;
   }

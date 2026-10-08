@@ -276,7 +276,12 @@ describe('getOAuthUsageSlots', () => {
         // Older than the shortened expired-window TTL, younger than the normal one, so a
         // refetch here proves the expiry is what cut it short.
         fetchedAt: Date.now() - 90_000,
-        slots: { fable: null, session: { usedPercent: 62, resetsAt: past }, weekly: null },
+        slots: {
+          fable: null,
+          session: { usedPercent: 62, resetsAt: past },
+          weekly: null,
+          resetPass: null,
+        },
       }),
     );
     await fs.writeFile(
@@ -305,7 +310,12 @@ describe('getOAuthUsageSlots', () => {
         // Older than the shortened expired-window TTL, younger than the normal one, so a
         // refetch here proves the expiry is what cut it short.
         fetchedAt: Date.now() - 90_000,
-        slots: { fable: null, session: { usedPercent: 62, resetsAt: past }, weekly: null },
+        slots: {
+          fable: null,
+          session: { usedPercent: 62, resetsAt: past },
+          weekly: null,
+          resetPass: null,
+        },
       }),
     );
     await fs.writeFile(
@@ -472,6 +482,29 @@ describe('getOAuthUsageSlots reset pass', () => {
     const { fetchMock } = await slotsFor({ cedar_ember: cedarEmber }, '2.1.293\r\nx-evil: 1');
     const [, init] = fetchMock.mock.calls[0] as [string, { headers: Record<string, string> }];
     expect(init.headers['user-agent']).toMatch(/^claude-cli\/\d+\.\d+\.\d+ \(external, cli\)$/);
+  });
+
+  async function seedCache(slots: Record<string, unknown>): Promise<void> {
+    await fs.mkdir(join(cacheDir, 'festatusline'), { recursive: true });
+    await fs.writeFile(
+      join(cacheDir, 'festatusline', 'oauth_usage.json'),
+      JSON.stringify({ fetchedAt: Date.now(), slots }),
+    );
+  }
+
+  it('refetches a fresh pre-0.9.0 cache at once, since it never asked for resets', async () => {
+    // Otherwise the widget stays hidden for up to a whole TTL right after updating.
+    await seedCache({ fable: null, session: null, weekly: null });
+    const { slots, fetchMock } = await slotsFor({ cedar_ember: cedarEmber });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(slots.resetPass).toEqual({ count: 1, expiresAt: ENDS_AT });
+  });
+
+  it('serves a fresh cache that already answered for resets, even with none held', async () => {
+    await seedCache({ fable: null, session: null, weekly: null, resetPass: null });
+    const { slots, fetchMock } = await slotsFor({ cedar_ember: cedarEmber });
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(slots.resetPass).toBeNull();
   });
 
   it('retries without the reset query when the server rejects it', async () => {
