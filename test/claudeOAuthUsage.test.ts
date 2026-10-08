@@ -3,6 +3,10 @@ import { promises as fs } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
 
+// The real module falls back to the macOS login Keychain, which would hand these tests the
+// developer's own token and send it to the stubbed fetch. Every test here means "no Keychain".
+vi.mock('../src/data/macKeychain.js', () => ({ readKeychainToken: () => Promise.resolve(null) }));
+
 function jsonResponse(body: unknown, ok = true): Response {
   return {
     ok,
