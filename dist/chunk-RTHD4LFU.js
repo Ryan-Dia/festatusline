@@ -9,7 +9,7 @@ import {
   renderAllLines,
   resolveLines,
   t
-} from "./chunk-IOWIYGMY.js";
+} from "./chunk-VVZHKSFD.js";
 
 // src/config/save.ts
 import fs from "fs";
@@ -110,6 +110,7 @@ function buildPreviewContext(settings) {
       model: "gpt-5"
     },
     fableRateLimit: { usedPercent: 89, resetsAt: unixAfter(4 * DAY_MS) },
+    resetPass: { count: 1, expiresAt: unixAfter(15 * DAY_MS) },
     theme: getTheme(settings.theme),
     t: createTranslator(settings.locale),
     now,
@@ -154,4 +155,4 @@ export {
   LanguageSelect,
   PresetPreview
 };
-//# sourceMappingURL=chunk-OVARFCHT.js.map
+//# sourceMappingURL=chunk-RTHD4LFU.js.map

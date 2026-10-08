@@ -12,6 +12,26 @@ summarised under [Earlier](#earlier).
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-10-08
+
+### Added
+
+- `resetPass` widget — the limit resets claude.ai offers under Settings → Usage ("Reset for
+  free"), as `🎟 Reset 1 · D-15`. The deadline counts whole days up, then switches to hours
+  and minutes on the last day so it never hides whether 20h or 20m remain, and turns the
+  warning color within 3 days. Zero stays visible as `🎟 Resets 0`; the widget hides when the
+  server says the account isn't eligible. It sits at the far right of the bottom row on
+  `minimal`/`pro`/`max` and right after the `Fable` bar on `full`/`korean-dev`.
+
+### Changed
+
+- The OAuth usage request now asks for the reset inventory (`?cedar_ember=1&skip_spend=1`)
+  and identifies as `claude-cli/<Claude Code version> (external, cli)` instead of
+  `claude-code/2.1.0`. The server picks the client surface from the User-Agent: under the old
+  string it answered `eligible: false, ineligible_reason: "surface"` with no grants even for
+  an account holding one. Usage numbers are identical under both. If the server ever rejects
+  the query (400/403), the request is retried once without it so the bars keep working.
+
 ## [0.8.1] - 2026-10-08
 
 ### Fixed

@@ -4611,8 +4611,13 @@ var ko = {
   "widget.pr": "PR / MR \uC0C1\uD0DC",
   "widget.fastMode": "\uD328\uC2A4\uD2B8 \uBAA8\uB4DC",
   "widget.linesChanged": "\uBCC0\uACBD \uC904 \uC218",
+  "widget.resetPass": "\uB9AC\uC14B\uAD8C",
   "reset.until": "\uAE4C\uC9C0",
   "reset.na": "\u2013",
+  "resetPass.one": "\uB9AC\uC14B\uAD8C",
+  "resetPass.other": "\uB9AC\uC14B\uAD8C",
+  "resetPass.hoursLeft": "{n}\uC2DC\uAC04 \uB0A8\uC74C",
+  "resetPass.minutesLeft": "{n}\uBD84 \uB0A8\uC74C",
   "usage.tokens": "\uD1A0\uD070",
   "usage.cost": "\uBE44\uC6A9",
   "tui.title": "festatusline \uC124\uC815",
@@ -4674,8 +4679,13 @@ var en = {
   "widget.pr": "PR / MR Status",
   "widget.fastMode": "Fast Mode",
   "widget.linesChanged": "Lines Changed",
+  "widget.resetPass": "Limit Resets",
   "reset.until": "until reset",
   "reset.na": "\u2013",
+  "resetPass.one": "Reset",
+  "resetPass.other": "Resets",
+  "resetPass.hoursLeft": "{n}h left",
+  "resetPass.minutesLeft": "{n}m left",
   "usage.tokens": "tokens",
   "usage.cost": "cost",
   "tui.title": "festatusline Settings",
@@ -4737,8 +4747,13 @@ var zh = {
   "widget.pr": "PR / MR \u72B6\u6001",
   "widget.fastMode": "\u5FEB\u901F\u6A21\u5F0F",
   "widget.linesChanged": "\u53D8\u66F4\u884C\u6570",
+  "widget.resetPass": "\u91CD\u7F6E\u5238",
   "reset.until": "\u91CD\u7F6E\u5012\u8BA1\u65F6",
   "reset.na": "\u2013",
+  "resetPass.one": "\u91CD\u7F6E\u5238",
+  "resetPass.other": "\u91CD\u7F6E\u5238",
+  "resetPass.hoursLeft": "\u5269{n}\u5C0F\u65F6",
+  "resetPass.minutesLeft": "\u5269{n}\u5206\u949F",
   "usage.tokens": "\u4EE4\u724C",
   "usage.cost": "\u8D39\u7528",
   "tui.title": "festatusline \u8BBE\u7F6E",
@@ -5073,6 +5088,7 @@ function detectLegacyPreset(lines) {
 }
 
 // src/config/presets.ts
+var RESET_PASS = { id: "resetPass" };
 var DAILY_ROW2 = [{ id: "dailyUsage" }, { id: "context" }, { id: "sessionRateLimit" }];
 var WEEKLY_ROW2 = [
   { id: "weeklyUsage" },
@@ -5085,7 +5101,7 @@ function withCodexRow(lines) {
 }
 var PRESETS = {
   minimal: {
-    lines: [[{ id: "dailyUsage" }, { id: "context" }], WEEKLY_ROW2, [{ id: "model" }]]
+    lines: [[{ id: "dailyUsage" }, { id: "context" }], WEEKLY_ROW2, [{ id: "model" }, RESET_PASS]]
   },
   full: {
     lines: [
@@ -5099,6 +5115,7 @@ var PRESETS = {
         { id: "sonnetWeeklyUsage" },
         { id: "sonnetWeeklyReset" },
         { id: "fableWeeklyRateLimit" },
+        RESET_PASS,
         { id: "gptUsage" }
       ]
     ]
@@ -5116,6 +5133,7 @@ var PRESETS = {
         { id: "sonnetWeeklyUsage" },
         { id: "sonnetWeeklyReset" },
         { id: "fableWeeklyRateLimit" },
+        RESET_PASS,
         { id: "gptUsage" }
       ]
     ]
@@ -5127,7 +5145,12 @@ var PRESETS = {
     lines: [DAILY_ROW2, WEEKLY_ROW2]
   },
   pro: {
-    lines: [DAILY_ROW2, WEEKLY_ROW2, [{ id: "spacer" }], [{ id: "model" }, { id: "gitRepo" }]]
+    lines: [
+      DAILY_ROW2,
+      WEEKLY_ROW2,
+      [{ id: "spacer" }],
+      [{ id: "model" }, { id: "gitRepo" }, RESET_PASS]
+    ]
   },
   max: {
     lines: [
@@ -5135,7 +5158,7 @@ var PRESETS = {
       WEEKLY_ROW2,
       [{ id: "spacer" }],
       [{ id: "cacheHit" }, { id: "cacheTtl" }, { id: "sessionCost" }],
-      [{ id: "model" }, { id: "gitRepo" }]
+      [{ id: "model" }, { id: "gitRepo" }, RESET_PASS]
     ]
   }
 };
@@ -5819,6 +5842,35 @@ var LinesChangedWidget = {
   }
 };
 
+// src/widgets/ResetPass.ts
+var MINUTE_MS = 60 * 1e3;
+var HOUR_MS = 60 * MINUTE_MS;
+var DAY_MS = 24 * HOUR_MS;
+var WARN_WITHIN_MS = 3 * DAY_MS;
+function formatResetPassDeadline(ms, t2) {
+  if (ms >= DAY_MS) return `D-${Math.ceil(ms / DAY_MS)}`;
+  if (ms >= HOUR_MS) {
+    return t2("resetPass.hoursLeft").replace("{n}", String(Math.floor(ms / HOUR_MS)));
+  }
+  const minutes = Math.max(1, Math.ceil(ms / MINUTE_MS));
+  return t2("resetPass.minutesLeft").replace("{n}", String(minutes));
+}
+var ResetPassWidget = {
+  id: "resetPass",
+  labelKey: "widget.resetPass",
+  render(ctx, _cfg) {
+    const { resetPass } = ctx;
+    if (!resetPass) return null;
+    const remainingMs = resetPass.expiresAt == null ? null : resetPass.expiresAt * 1e3 - ctx.now.getTime();
+    const count = remainingMs != null && remainingMs <= 0 ? 0 : Math.max(0, resetPass.count);
+    const label = `\u{1F39F} ${ctx.t(count === 1 ? "resetPass.one" : "resetPass.other")} ${count}`;
+    if (count === 0 || remainingMs == null) return label;
+    const deadline = formatResetPassDeadline(remainingMs, ctx.t);
+    const shown = remainingMs <= WARN_WITHIN_MS ? source_default.hex(ctx.theme.warn)(deadline) : deadline;
+    return `${label} \xB7 ${shown}`;
+  }
+};
+
 // src/widgets/index.ts
 var ALL_WIDGETS = [
   ModelWidget,
@@ -5846,7 +5898,8 @@ var ALL_WIDGETS = [
   GitRepoWidget,
   PrStatusWidget,
   FastModeWidget,
-  LinesChangedWidget
+  LinesChangedWidget,
+  ResetPassWidget
 ];
 var registry = new Map(ALL_WIDGETS.map((w) => [w.id, w]));
 function getWidget(id) {
@@ -5901,4 +5954,4 @@ export {
   ALL_WIDGETS,
   renderAllLines
 };
-//# sourceMappingURL=chunk-IOWIYGMY.js.map
+//# sourceMappingURL=chunk-VVZHKSFD.js.map

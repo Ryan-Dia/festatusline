@@ -19,7 +19,7 @@ import {
   source_default,
   t,
   weightedCost
-} from "./chunk-IOWIYGMY.js";
+} from "./chunk-VVZHKSFD.js";
 
 // src/render/index.ts
 import { promises as fs4 } from "fs";
@@ -367,15 +367,21 @@ async function readKeychainToken(configDir, run = runSecurity) {
 
 // src/data/claudeOAuthUsage.ts
 var OAUTH_USAGE_URL = "https://api.anthropic.com/api/oauth/usage";
+var OAUTH_USAGE_WITH_RESETS_URL = `${OAUTH_USAGE_URL}?cedar_ember=1&skip_spend=1`;
 var OAUTH_BETA_HEADER = "oauth-2025-04-20";
-var USER_AGENT = "claude-code/2.1.0";
+var FALLBACK_CLI_VERSION = "2.1.293";
+var CLI_VERSION_RE = /^\d+\.\d+\.\d+$/;
+function userAgent(cliVersion) {
+  const version = cliVersion && CLI_VERSION_RE.test(cliVersion) ? cliVersion : FALLBACK_CLI_VERSION;
+  return `claude-cli/${version} (external, cli)`;
+}
 var FETCH_TIMEOUT_MS = 3e3;
 var TTL_MS = 5 * 60 * 1e3;
 var FAILURE_BACKOFF_MS = 60 * 1e3;
 var EXPIRED_TTL_MS = 60 * 1e3;
 var CACHE_DIR = process.env.XDG_CACHE_HOME ? join(process.env.XDG_CACHE_HOME, "festatusline") : join(homedir(), ".cache", "festatusline");
 var CACHE_PATH = join(CACHE_DIR, "oauth_usage.json");
-var EMPTY_SLOTS = { fable: null, session: null, weekly: null };
+var EMPTY_SLOTS = { fable: null, session: null, weekly: null, resetPass: null };
 var CredentialsSchema = external_exports.object({
   claudeAiOauth: external_exports.object({
     accessToken: external_exports.string().nullish()
@@ -403,7 +409,19 @@ var OAuthUsageResponseSchema = external_exports.object({
   fable_weekly: UsageWindowSchema.nullish(),
   fable_seven_day: UsageWindowSchema.nullish(),
   seven_day_fable: UsageWindowSchema.nullish(),
-  limits: external_exports.array(ScopedLimitSchema).nullish()
+  limits: external_exports.array(ScopedLimitSchema).nullish(),
+  // Parsed on its own (ResetInventorySchema) so a drifted reset block can't cost the bars.
+  cedar_ember: external_exports.unknown().nullish()
+});
+var ResetInventorySchema = external_exports.object({
+  eligible: external_exports.boolean(),
+  grants: external_exports.array(external_exports.unknown()).nullish()
+});
+var ResetGrantSchema = external_exports.object({
+  resets_left: external_exports.number().int().nonnegative(),
+  paused: external_exports.boolean().nullish(),
+  starts_at: ResetsAtSchema,
+  ends_at: ResetsAtSchema
 });
 function parseResetTimestampMs(value) {
   if (value == null) return null;
@@ -445,11 +463,32 @@ function extractFableSlot(data) {
   }
   return null;
 }
-function extractSlots(data) {
+function extractResetPass(raw, nowMs) {
+  const inventory = ResetInventorySchema.safeParse(raw);
+  if (!inventory.success || !inventory.data.eligible) return null;
+  const usable = (inventory.data.grants ?? []).flatMap((item) => {
+    const result = ResetGrantSchema.safeParse(item);
+    if (!result.success) return [];
+    const { resets_left: left, paused, starts_at: startsAt, ends_at: endsAt } = result.data;
+    const startsMs = parseResetTimestampMs(startsAt);
+    const endsMs = parseResetTimestampMs(endsAt);
+    if (paused || left === 0) return [];
+    if (startsMs != null && startsMs > nowMs) return [];
+    if (endsMs != null && endsMs <= nowMs) return [];
+    return [{ left, endsMs }];
+  });
+  const deadlines = usable.flatMap(({ endsMs }) => endsMs == null ? [] : [endsMs]);
+  return {
+    count: usable.reduce((sum, { left }) => sum + left, 0),
+    expiresAt: deadlines.length > 0 ? Math.floor(Math.min(...deadlines) / 1e3) : null
+  };
+}
+function extractSlots(data, nowMs) {
   return {
     fable: extractFableSlot(data),
     session: extractWindowSlot(data.five_hour),
-    weekly: extractWindowSlot(data.seven_day)
+    weekly: extractWindowSlot(data.seven_day),
+    resetPass: extractResetPass(data.cedar_ember, nowMs)
   };
 }
 async function readAccessToken() {
@@ -478,15 +517,15 @@ async function writeCache(entry) {
   } catch {
   }
 }
-async function fetchOAuthSlots(token) {
+async function requestUsage(url, token, cliVersion) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
   try {
-    const res = await fetch(OAUTH_USAGE_URL, {
+    const res = await fetch(url, {
       headers: {
         authorization: `Bearer ${token}`,
         "anthropic-beta": OAUTH_BETA_HEADER,
-        "user-agent": USER_AGENT
+        "user-agent": userAgent(cliVersion)
       },
       // The bearer token must never be forwarded anywhere but the URL above. This endpoint
       // has no reason to redirect, so treat any redirect as a failure rather than following
@@ -495,20 +534,28 @@ async function fetchOAuthSlots(token) {
       redirect: "error",
       signal: controller.signal
     });
+    if (res.status === 400 || res.status === 403) return "rejected";
     if (!res.ok) return null;
     const json = await res.json();
     const result = OAuthUsageResponseSchema.safeParse(json);
-    return result.success ? extractSlots(result.data) : null;
+    return result.success ? extractSlots(result.data, Date.now()) : null;
   } catch {
     return null;
   } finally {
     clearTimeout(timeout);
   }
 }
-function hasExpiredSlot(slots, nowMs) {
-  return Object.values(slots).some((slot) => slot != null && slot.resetsAt * 1e3 <= nowMs);
+async function fetchOAuthSlots(token, cliVersion) {
+  const res = await requestUsage(OAUTH_USAGE_WITH_RESETS_URL, token, cliVersion);
+  if (res !== "rejected") return res;
+  const plain = await requestUsage(OAUTH_USAGE_URL, token, cliVersion);
+  return plain === "rejected" ? null : plain;
 }
-async function getOAuthUsageSlots() {
+function hasExpiredSlot(slots, nowMs) {
+  const { fable, session, weekly } = slots;
+  return [fable, session, weekly].some((slot) => slot != null && slot.resetsAt * 1e3 <= nowMs);
+}
+async function getOAuthUsageSlots(cliVersion) {
   const cache2 = await readCache();
   const now = Date.now();
   if (cache2) {
@@ -522,7 +569,7 @@ async function getOAuthUsageSlots() {
   if (!token) {
     return cache2?.slots ?? EMPTY_SLOTS;
   }
-  const slots = await fetchOAuthSlots(token);
+  const slots = await fetchOAuthSlots(token, cliVersion);
   if (slots) {
     await writeCache({ fetchedAt: now, slots });
     return slots;
@@ -611,6 +658,7 @@ function mergeRateLimits(stdinRateLimits, oauthSlots, cachedRateLimits) {
   return fiveHour || sevenDay ? { five_hour: fiveHour, seven_day: sevenDay } : void 0;
 }
 async function renderFromStdin() {
+  const stdinPromise = readStdin();
   const [
     stdin,
     settings,
@@ -621,12 +669,12 @@ async function renderFromStdin() {
     cachedRateLimits,
     lastCacheCreation
   ] = await Promise.all([
-    readStdin(),
+    stdinPromise,
     loadSettings(),
     readClaudeSettings(),
     tryOrNull(getUsageSnapshot),
     tryOrNull(getCodexSnapshot),
-    tryOrNull(getOAuthUsageSlots),
+    tryOrNull(async () => getOAuthUsageSlots((await stdinPromise).version)),
     readRateLimitsCache(),
     tryOrNull(getLastCacheCreation)
   ]);
@@ -652,6 +700,7 @@ async function renderFromStdin() {
     usage,
     codex,
     fableRateLimit: oauthSlots?.fable ?? null,
+    resetPass: oauthSlots?.resetPass ?? null,
     sessionLastModel,
     theme,
     t: t2,
@@ -764,7 +813,7 @@ function isLocale(v) {
 }
 var commands = {
   setup: async () => {
-    const { runSetupWizard } = await import("./setup-IQFBBJNC.js");
+    const { runSetupWizard } = await import("./setup-73INLR6R.js");
     return runSetupWizard();
   },
   install: (args) => installToClaude(args.includes("--force")),
@@ -781,7 +830,7 @@ async function dispatch(argv) {
     await renderFromStdin();
     return;
   }
-  const { runTui } = await import("./tui-QAAOC5HZ.js");
+  const { runTui } = await import("./tui-DVFMZUIU.js");
   await runTui();
 }
 async function main() {
