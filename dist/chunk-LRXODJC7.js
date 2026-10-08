@@ -4614,6 +4614,11 @@ var ko = {
   "widget.resetPass": "\uB9AC\uC14B\uAD8C",
   "reset.until": "\uAE4C\uC9C0",
   "reset.na": "\u2013",
+  "row.daily": "\uC77C\uAC04",
+  "row.weekly": "\uC8FC\uAC04",
+  "bar.session": "\uC138\uC158",
+  "bar.all": "\uC804\uCCB4",
+  "bar.reset": "\uCD08\uAE30\uD654",
   "resetPass.one": "\uB9AC\uC14B\uAD8C",
   "resetPass.other": "\uB9AC\uC14B\uAD8C",
   "resetPass.hoursLeft": "{n}\uC2DC\uAC04 \uB0A8\uC74C",
@@ -4682,6 +4687,11 @@ var en = {
   "widget.resetPass": "Limit Resets",
   "reset.until": "until reset",
   "reset.na": "\u2013",
+  "row.daily": "Daily",
+  "row.weekly": "Weekly",
+  "bar.session": "Session",
+  "bar.all": "all",
+  "bar.reset": "reset",
   "resetPass.one": "Reset",
   "resetPass.other": "Resets",
   "resetPass.hoursLeft": "{n}h left",
@@ -4750,6 +4760,11 @@ var zh = {
   "widget.resetPass": "\u91CD\u7F6E\u5238",
   "reset.until": "\u91CD\u7F6E\u5012\u8BA1\u65F6",
   "reset.na": "\u2013",
+  "row.daily": "\u6BCF\u65E5",
+  "row.weekly": "\u6BCF\u5468",
+  "bar.session": "\u4F1A\u8BDD",
+  "bar.all": "\u5168\u90E8",
+  "bar.reset": "\u5DF2\u91CD\u7F6E",
   "resetPass.one": "\u91CD\u7F6E\u5238",
   "resetPass.other": "\u91CD\u7F6E\u5238",
   "resetPass.hoursLeft": "\u5269{n}\u5C0F\u65F6",
@@ -4789,9 +4804,13 @@ var zh = {
 
 // src/i18n/index.ts
 var bundles = { ko, en, zh };
-function detectLocale() {
+function envLocale() {
   const override = process.env.FESTATUSLINE_LOCALE;
-  if (override === "ko" || override === "en" || override === "zh") return override;
+  return override === "ko" || override === "en" || override === "zh" ? override : null;
+}
+function detectLocale() {
+  const override = envLocale();
+  if (override) return override;
   const lang = (process.env.LANG ?? "").toLowerCase();
   if (lang.startsWith("ko")) return "ko";
   if (lang.startsWith("zh")) return "zh";
@@ -5322,6 +5341,45 @@ function formatTokens(n) {
   return String(Math.round(n));
 }
 
+// src/utils/width.ts
+var WIDE_RANGES = [
+  [4352, 4447],
+  [11904, 12350],
+  [12353, 13311],
+  [13312, 19903],
+  [19968, 40959],
+  [40960, 42191],
+  [44032, 55203],
+  [63744, 64255],
+  [65072, 65103],
+  [65280, 65376],
+  [65504, 65510],
+  [127744, 128591],
+  [129280, 129535],
+  [131072, 262141]
+];
+function isWide(codePoint) {
+  return WIDE_RANGES.some(([lo, hi]) => codePoint >= lo && codePoint <= hi);
+}
+function displayWidth(text) {
+  return [...text].reduce((sum, ch) => sum + (isWide(ch.codePointAt(0) ?? 0) ? 2 : 1), 0);
+}
+function padDisplay(text, width) {
+  return text + " ".repeat(Math.max(0, width - displayWidth(text)));
+}
+
+// src/widgets/columns.ts
+var widest = (labels) => Math.max(...labels.map(displayWidth));
+function rowLabelWidth(t2) {
+  return widest([t2("row.daily"), t2("row.weekly"), "Codex"]) + 1;
+}
+function firstBarPrefixWidth(t2) {
+  return widest(["Ctx", t2("bar.all"), "7d"]);
+}
+function secondBarPrefixWidth(t2) {
+  return widest([t2("bar.session"), "Fable"]);
+}
+
 // src/widgets/Context.ts
 var ContextWidget = {
   id: "context",
@@ -5344,21 +5402,21 @@ var ContextWidget = {
     } else {
       pct = 0;
     }
+    const prefix = padDisplay("Ctx", firstBarPrefixWidth(ctx.t));
     if (!cw && !ctx.stdin.model && used === 0) {
-      return `Ctx ${buildBar(0, "#22d3ee")} ${fmtPct(0)} ${"(-/-)".padEnd(11)}`;
+      return `${prefix} ${buildBar(0, "#22d3ee")} ${fmtPct(0)} ${"(-/-)".padEnd(11)}`;
     }
     const tokenExpr = `(${formatTokens(used)}/${formatTokens(max)})`.padEnd(11);
-    return `Ctx ${barWithPct(pct, "#22d3ee", ALERT_PERCENT)} ${tokenExpr}`;
+    return `${prefix} ${barWithPct(pct, "#22d3ee", ALERT_PERCENT)} ${tokenExpr}`;
   }
 };
 
-// src/widgets/types.ts
-function staticLabel(id, labelKey, text) {
-  return { id, labelKey, render: () => text };
-}
-
 // src/widgets/DailyUsage.ts
-var DailyUsageWidget = staticLabel("dailyUsage", "widget.dailyUsage", "Daily  ");
+var DailyUsageWidget = {
+  id: "dailyUsage",
+  labelKey: "widget.dailyUsage",
+  render: (ctx) => padDisplay(ctx.t("row.daily"), rowLabelWidth(ctx.t))
+};
 
 // src/utils/duration.ts
 function formatRemainingHM(ms) {
@@ -5439,7 +5497,11 @@ var DailyResetTimerWidget = createResetTimerWidget({
 });
 
 // src/widgets/WeeklyUsage.ts
-var WeeklyUsageWidget = staticLabel("weeklyUsage", "widget.weeklyUsage", "Weekly ");
+var WeeklyUsageWidget = {
+  id: "weeklyUsage",
+  labelKey: "widget.weeklyUsage",
+  render: (ctx) => padDisplay(ctx.t("row.weekly"), rowLabelWidth(ctx.t))
+};
 
 // src/widgets/WeeklyResetTimer.ts
 var WeeklyResetTimerWidget = createResetTimerWidget({
@@ -5496,9 +5558,10 @@ function renderRateLimitSlot(params) {
     timeFormat = "remaining",
     prefixWidth,
     timeExprWidth,
-    alertAt
+    alertAt,
+    resetLabel = "reset"
   } = params;
-  const paddedPrefix = prefixWidth != null ? prefix.padEnd(prefixWidth) : prefix;
+  const paddedPrefix = prefixWidth != null ? padDisplay(prefix, prefixWidth) : prefix;
   if (usedPercent == null || resetsAtMs == null) {
     return `${paddedPrefix} ${buildBar(0, color)}  ?%`;
   }
@@ -5506,17 +5569,18 @@ function renderRateLimitSlot(params) {
   const pct = remainingMs <= 0 ? 0 : Math.round(usedPercent);
   let timeStr;
   if (remainingMs <= 0) {
-    timeStr = "reset";
+    timeStr = resetLabel;
   } else if (timeFormat === "abs") {
     timeStr = formatAbsDatetime(resetsAtMs / 1e3);
   } else {
     timeStr = formatRemainingHM(remainingMs);
   }
-  const timeExpr = timeExprWidth != null ? `(${timeStr})`.padEnd(timeExprWidth) : `(${timeStr})`;
+  const timeExpr = timeExprWidth != null ? padDisplay(`(${timeStr})`, timeExprWidth) : `(${timeStr})`;
   return `${paddedPrefix} ${barWithPct(pct, color, alertAt)} ${timeExpr}`;
 }
 function createRateLimitWidget(params) {
-  const { id, labelKey, prefix, color, getSlot, timeFormat, prefixWidth, timeExprWidth, alertAt } = params;
+  const { id, labelKey, prefix, color, getSlot, timeFormat, column, timeExprWidth, alertAt } = params;
+  const columnWidth = { first: firstBarPrefixWidth, second: secondBarPrefixWidth };
   return {
     id,
     labelKey,
@@ -5524,29 +5588,30 @@ function createRateLimitWidget(params) {
       const slot = getSlot(ctx);
       if (!slot && params.hideWhenMissing) return null;
       return renderRateLimitSlot({
-        prefix,
+        prefix: typeof prefix === "string" ? prefix : ctx.t(prefix.key),
         color,
         usedPercent: slot?.usedPercent ?? null,
         resetsAtMs: slot?.resetsAt != null ? slot.resetsAt * 1e3 : null,
         now: ctx.now.getTime(),
         timeFormat,
-        prefixWidth,
+        prefixWidth: column ? columnWidth[column](ctx.t) : void 0,
         timeExprWidth,
-        alertAt
+        alertAt,
+        resetLabel: ctx.t("bar.reset")
       });
     }
   };
 }
 
 // src/widgets/FableRateLimit.ts
-var PREFIX_WIDTH = 7;
 var FableWeeklyRateLimitWidget = createRateLimitWidget({
   id: "fableWeeklyRateLimit",
   labelKey: "widget.fableWeeklyRateLimit",
   prefix: "Fable",
   // Violet: the one hue no other bar uses, and clear of the 80% alert red.
   color: "#bd93f9",
-  prefixWidth: PREFIX_WIDTH,
+  // Shares the `Session` column with the daily row, so the two bars line up.
+  column: "second",
   getSlot: (ctx) => ctx.fableRateLimit,
   // Unlike the stdin-backed bars, this one has no data at all without OAuth credentials
   // (macOS keeps the token in the Keychain), where a permanent `?%` would be pure noise.
@@ -5564,15 +5629,13 @@ var GptUsageWidget = {
 };
 
 // src/widgets/RateLimit.ts
-var WEEKLY_PREFIX_WIDTH = 3;
 var WEEKLY_TIME_EXPR_WIDTH = 11;
-var SESSION_PREFIX_WIDTH = 7;
 var SessionRateLimitWidget = createRateLimitWidget({
   id: "sessionRateLimit",
   labelKey: "widget.sessionRateLimit",
-  prefix: "Session",
+  prefix: { key: "bar.session" },
   color: "#ffd93d",
-  prefixWidth: SESSION_PREFIX_WIDTH,
+  column: "second",
   alertAt: ALERT_PERCENT,
   getSlot: (ctx) => {
     const s = ctx.stdin.rate_limits?.five_hour;
@@ -5583,9 +5646,9 @@ var SessionRateLimitWidget = createRateLimitWidget({
 var WeeklyRateLimitWidget = createRateLimitWidget({
   id: "weeklyRateLimit",
   labelKey: "widget.weeklyRateLimit",
-  prefix: "all",
+  prefix: { key: "bar.all" },
   color: "#6bcb77",
-  prefixWidth: WEEKLY_PREFIX_WIDTH,
+  column: "first",
   timeExprWidth: WEEKLY_TIME_EXPR_WIDTH,
   getSlot: (ctx) => {
     const s = ctx.stdin.rate_limits?.seven_day;
@@ -5595,7 +5658,6 @@ var WeeklyRateLimitWidget = createRateLimitWidget({
 });
 
 // src/widgets/CodexRateLimit.ts
-var PREFIX_WIDTH2 = 3;
 var TIME_EXPR_WIDTH = 11;
 var CodexWeeklyRateLimitWidget = createRateLimitWidget({
   id: "codexWeeklyRateLimit",
@@ -5604,7 +5666,7 @@ var CodexWeeklyRateLimitWidget = createRateLimitWidget({
   color: "#48dbfb",
   getSlot: (ctx) => selectLongestWindowSlot(ctx.codex?.rateLimits ?? null),
   timeFormat: "remaining",
-  prefixWidth: PREFIX_WIDTH2,
+  column: "first",
   timeExprWidth: TIME_EXPR_WIDTH
 });
 
@@ -5621,8 +5683,8 @@ var SpacerWidget = {
 var CodexModelWidget = {
   id: "codexModel",
   labelKey: "widget.codexModel",
-  render(_ctx, _cfg) {
-    return "Codex  ";
+  render(ctx, _cfg) {
+    return padDisplay("Codex", rowLabelWidth(ctx.t));
   }
 };
 
@@ -5958,10 +6020,11 @@ export {
   themes,
   THEME_NAMES,
   getTheme,
+  envLocale,
   setLocale,
   t,
   createTranslator,
   ALL_WIDGETS,
   renderAllLines
 };
-//# sourceMappingURL=chunk-CFEEECWD.js.map
+//# sourceMappingURL=chunk-LRXODJC7.js.map

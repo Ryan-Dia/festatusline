@@ -4,9 +4,11 @@ import {
   createTranslator,
   createTtlCache,
   emptyFamilyTotals,
+  envLocale,
   external_exports,
   getClaudeDir,
   getCodexSnapshot,
+  getConfigPath,
   getTheme,
   getTimeWindows,
   isFableModel,
@@ -19,7 +21,7 @@ import {
   source_default,
   t,
   weightedCost
-} from "./chunk-CFEEECWD.js";
+} from "./chunk-LRXODJC7.js";
 
 // src/render/index.ts
 import { promises as fs4 } from "fs";
@@ -678,7 +680,7 @@ async function renderFromStdin() {
     readRateLimitsCache(),
     tryOrNull(getLastCacheCreation)
   ]);
-  const t2 = createTranslator(settings.locale);
+  const t2 = createTranslator(envLocale() ?? settings.locale);
   if (hasUsableRateLimit(stdin.rate_limits)) {
     writeRateLimitsCache(stdin.rate_limits).catch(() => {
     });
@@ -717,37 +719,88 @@ async function renderFromStdin() {
 }
 
 // src/config/install.ts
+import fs6 from "fs";
+import path4 from "path";
+
+// src/config/launcher.ts
 import fs5 from "fs";
 import path3 from "path";
-import { fileURLToPath } from "url";
-var ClaudeSettingsSchema2 = external_exports.object({ statusLine: external_exports.record(external_exports.unknown()).optional() }).catchall(external_exports.unknown());
-function getClaudeSettingsPath() {
-  return path3.join(getClaudeDir(), "settings.json");
+function launcherPath() {
+  return path3.join(path3.dirname(getConfigPath()), "statusline.mjs");
 }
-async function resolveCliPath() {
-  const pluginCacheBase = path3.join(
-    getClaudeDir(),
-    "plugins",
-    "cache",
-    "festatusline",
-    "festatusline"
-  );
+function launcherSource(fallbackCli) {
+  return `// festatusline statusline launcher, written by \`festatusline install\`. It looks up the
+// installed plugin version on every run, so a plugin update needs no settings.json edit.
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
+
+const FALLBACK_CLI = ${JSON.stringify(fallbackCli)};
+const PLUGIN_ID = 'festatusline@festatusline';
+const pluginsDir = join(process.env.CLAUDE_CONFIG_DIR ?? join(homedir(), '.claude'), 'plugins');
+
+function existing(cli) {
+  return existsSync(cli) ? cli : null;
+}
+
+function fromRegistry() {
   try {
-    const versions = await fs5.promises.readdir(pluginCacheBase);
-    const sorted = versions.filter((v) => /^\d+\.\d+\.\d+$/.test(v)).sort((a, b) => a.localeCompare(b, void 0, { numeric: true }));
-    const latest = sorted.at(-1);
-    if (latest) {
-      return path3.join(pluginCacheBase, latest, "dist", "cli.js");
+    const registry = JSON.parse(readFileSync(join(pluginsDir, 'installed_plugins.json'), 'utf8'));
+    const entries = registry?.plugins?.[PLUGIN_ID] ?? [];
+    // A user-scope install is the one statusLine belongs to; project scopes come after.
+    const ordered = [...entries].sort((a, b) => (a.scope === 'user' ? -1 : b.scope === 'user' ? 1 : 0));
+    for (const entry of ordered) {
+      const cli = typeof entry?.installPath === 'string' ? existing(join(entry.installPath, 'dist', 'cli.js')) : null;
+      if (cli) return cli;
     }
   } catch {
+    // No registry, or one this launcher can't read: fall through.
   }
-  return fileURLToPath(import.meta.url);
+  return null;
+}
+
+function newestCached() {
+  const base = join(pluginsDir, 'cache', 'festatusline', 'festatusline');
+  try {
+    const versions = readdirSync(base)
+      .filter((v) => /^\\d+\\.\\d+\\.\\d+$/.test(v))
+      .sort((a, b) => b.localeCompare(a, undefined, { numeric: true }));
+    for (const version of versions) {
+      const cli = existing(join(base, version, 'dist', 'cli.js'));
+      if (cli) return cli;
+    }
+  } catch {
+    // Not installed as a plugin.
+  }
+  return null;
+}
+
+const cli = fromRegistry() ?? newestCached() ?? existing(FALLBACK_CLI);
+if (cli) {
+  await import(pathToFileURL(cli).href);
+} else {
+  process.stdout.write('festatusline is not installed. Run /festatusline:setup\\n');
+}
+`;
+}
+async function writeLauncher(fallbackCli) {
+  const target = launcherPath();
+  await fs5.promises.mkdir(path3.dirname(target), { recursive: true });
+  await fs5.promises.writeFile(target, launcherSource(fallbackCli), "utf8");
+  return `node ${JSON.stringify(target)}`;
+}
+
+// src/config/install.ts
+var ClaudeSettingsSchema2 = external_exports.object({ statusLine: external_exports.record(external_exports.unknown()).optional() }).catchall(external_exports.unknown());
+function getClaudeSettingsPath() {
+  return path4.join(getClaudeDir(), "settings.json");
 }
 async function installToClaude(force = false) {
   const settingsPath = getClaudeSettingsPath();
   let current = {};
   try {
-    const raw = await fs5.promises.readFile(settingsPath, "utf8");
+    const raw = await fs6.promises.readFile(settingsPath, "utf8");
     const parsed = ClaudeSettingsSchema2.safeParse(JSON.parse(raw));
     if (parsed.success) current = parsed.data;
   } catch {
@@ -763,29 +816,29 @@ async function installToClaude(force = false) {
   }
   const backup = `${settingsPath}.bak`;
   if (Object.keys(current).length > 0) {
-    await fs5.promises.writeFile(backup, `${JSON.stringify(current, null, 2)}
+    await fs6.promises.writeFile(backup, `${JSON.stringify(current, null, 2)}
 `, "utf8");
   }
-  const cliPath = await resolveCliPath();
+  const command = await writeLauncher(path4.resolve(process.argv[1] ?? ""));
   current.statusLine = {
     type: "command",
-    command: `node ${cliPath}`,
+    command,
     refreshIntervalMs: 6e4
   };
-  await fs5.promises.mkdir(path3.dirname(settingsPath), { recursive: true });
-  await fs5.promises.writeFile(settingsPath, `${JSON.stringify(current, null, 2)}
+  await fs6.promises.mkdir(path4.dirname(settingsPath), { recursive: true });
+  await fs6.promises.writeFile(settingsPath, `${JSON.stringify(current, null, 2)}
 `, "utf8");
   process.stdout.write(`${t("install.success")}
 `);
 }
 
 // src/config/doctor.ts
-import fs6 from "fs";
-import path4 from "path";
+import fs7 from "fs";
+import path5 from "path";
 import os from "os";
 async function exists(p) {
   try {
-    await fs6.promises.access(p);
+    await fs7.promises.access(p);
     return true;
   } catch {
     return false;
@@ -793,7 +846,7 @@ async function exists(p) {
 }
 async function runDoctor() {
   const claudeDir = getClaudeDir();
-  const codexDir = process.env.CODEX_CONFIG_DIR ?? process.env.CODEX_HOME ?? path4.join(os.homedir(), ".codex");
+  const codexDir = process.env.CODEX_CONFIG_DIR ?? process.env.CODEX_HOME ?? path5.join(os.homedir(), ".codex");
   const claudeOk = await exists(claudeDir);
   const codexOk = await exists(codexDir);
   process.stdout.write(
@@ -813,7 +866,7 @@ function isLocale(v) {
 }
 var commands = {
   setup: async () => {
-    const { runSetupWizard } = await import("./setup-6GA7DG65.js");
+    const { runSetupWizard } = await import("./setup-LSHRFS6A.js");
     return runSetupWizard();
   },
   install: (args) => installToClaude(args.includes("--force")),
@@ -830,13 +883,13 @@ async function dispatch(argv) {
     await renderFromStdin();
     return;
   }
-  const { runTui } = await import("./tui-6GSCHIZ5.js");
+  const { runTui } = await import("./tui-OXARIPXI.js");
   await runTui();
 }
 async function main() {
   const settings = await loadSettings();
-  const envLocale = process.env.FESTATUSLINE_LOCALE;
-  setLocale(isLocale(envLocale) ? envLocale : settings.locale);
+  const envLocale2 = process.env.FESTATUSLINE_LOCALE;
+  setLocale(isLocale(envLocale2) ? envLocale2 : settings.locale);
   await dispatch(process.argv);
 }
 main().catch((err) => {

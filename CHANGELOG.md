@@ -12,6 +12,41 @@ summarised under [Earlier](#earlier).
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-10-08
+
+### Added
+
+- A version-independent statusline launcher at `~/.config/festatusline/statusline.mjs`.
+  `install` (and so `/festatusline:setup` and `/festatusline:update`) writes it and points
+  `statusLine` at it. On every run it finds the installed version: Claude Code's plugin
+  registry (`installed_plugins.json`), then the newest cached version, then the CLI that ran
+  `install`. `statusLine` used to name one version's cache folder, so each plugin update kept
+  running the old version until `statusLine` was edited and Claude Code restarted. Now an
+  update shows up on the next refresh. `/festatusline:update` moves older setups over once.
+
+### Changed
+
+- The statusline is translated. Row labels (`Daily`/`Weekly`), bar labels (`Session`, `all`,
+  and `reset` for a passed window) follow the locale like the reset pass already did. Names
+  and abbreviations (`Ctx`, `Fable`, `Codex`, `7d`, the `d`/`h`/`m` units) stay English.
+  Stacked columns are now sized from the active locale's labels, measured in terminal cells,
+  so Korean and Chinese labels (two cells per character) keep the rows aligned. English
+  output is byte-identical to 0.10.0.
+- `FESTATUSLINE_LOCALE` now overrides the settings file's `locale` for the statusline too, as
+  the README always claimed. Before, only the interactive TUI read it.
+
+### Fixed
+
+- `install` without a plugin cache pointed `statusLine` at a bundled chunk file instead of
+  `cli.js`, since it took the path of the module running the install. The launcher now falls
+  back to the CLI that was actually run.
+
+### Notes
+
+- Added `.npmrc` with `legacy-peer-deps=true`: `eslint-config-airbnb@19` still declares a
+  peer of `eslint-plugin-react-hooks@^4` against this project's `^7`, so `npm ci` on a fresh
+  clone failed with ERESOLVE.
+
 ## [0.10.0] - 2026-10-08
 
 ### Changed
