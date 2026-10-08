@@ -49,11 +49,8 @@
 /festatusline:update
 ```
 
-마켓플레이스 갱신, 플러그인 업데이트, `statusLine` 을 최신 캐시 버전으로 다시 가리키는 것까지
-한 번에 처리합니다 — `/plugin` 명령을 따로 실행할 필요가 없습니다.
-
-이후 Claude Code(또는 터미널 세션)를 재시작하세요 — statusLine 커맨드는 세션 시작 시
-한 번만 읽어옵니다.
+마켓플레이스 갱신과 플러그인 업데이트를 한 번에 처리합니다 — `/plugin` 명령을 따로 실행할
+필요가 없습니다. 새 버전은 상태바가 다음에 갱신될 때 바로 반영되고, 재시작은 필요 없습니다.
 
 셋업 후 `~/.claude/settings.json` 에 기록되는 내용:
 
@@ -61,11 +58,16 @@
 {
   "statusLine": {
     "type": "command",
-    "command": "node ~/.claude/plugins/cache/festatusline/festatusline/<version>/dist/cli.js",
+    "command": "node \"/Users/<you>/.config/festatusline/statusline.mjs\"",
     "refreshIntervalMs": 60000
   }
 }
 ```
+
+`statusline.mjs` 는 실행될 때마다 설치된 플러그인 버전을 찾아 실행하는 작은 런처라서,
+festatusline 이 업데이트돼도 `statusLine` 은 바뀌지 않습니다. 0.11.0 이전 셋업은 특정 버전의
+캐시 폴더를 직접 가리키는데, `/festatusline:update` 가 한 번 런처로 옮겨 줍니다. 그때 한 번만
+Claude Code 재시작이 필요합니다.
 
 ---
 
@@ -273,17 +275,16 @@ Claude Code 에서 `/festatusline:setup` 으로 적용할 수 있습니다. setu
 
 지원 로케일: `ko`(한국어), `en`(영어), `zh`(중국어)
 
-**감지 우선순위:**
+**상태바:** `FESTATUSLINE_LOCALE` (`ko` | `en` | `zh`) 가 있으면 그것을, 없으면 설정 파일의
+`locale` (`/festatusline:setup` 이 기록, 없으면 `en`) 을 씁니다. 여기서는 `$LANG` 을 읽지 않습니다.
 
-1. `FESTATUSLINE_LOCALE` 환경변수 (`ko` | `en` | `zh`)
-2. `$LANG` 접두 — `ko*` → 한국어, `zh*` → 중국어
-3. 설정 파일의 `locale` 필드
-4. 최종 폴백: `en`
+상태바의 단어는 번역됩니다 — 행 라벨(`Daily` / `일간` / `每日`), 바 라벨(`Session`, `all`,
+`reset`), 리셋권(`Reset` / `리셋권` / `重置券`). 이름과 약어는 모든 언어에서 영어 그대로입니다:
+`Ctx`, `Fable`, `Codex`, `7d`, 모델명, 시간 단위 `d`/`h`/`m`. 열은 터미널 칸 폭 기준으로 맞추므로
+한글·한자(글자당 두 칸) 라벨에서도 위아래 행이 정렬됩니다. 영어 출력은 이전과 같습니다.
 
-`FESTATUSLINE_LOCALE` 는 설정 파일보다 항상 우선합니다.
-
-로케일은 인터랙티브 TUI — 셋업 마법사 라벨, 메뉴, 프리셋 이름 — 에 적용됩니다. 상태바 출력에는
-번역 문자열이 없으므로 위젯 출력은 어떤 로케일에서도 동일합니다.
+**인터랙티브 TUI** (셋업 마법사 라벨, 메뉴, 프리셋 이름): `FESTATUSLINE_LOCALE` → `$LANG` 접두
+(`ko*` → 한국어, `zh*` → 중국어) → `en` 순입니다.
 
 ---
 

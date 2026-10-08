@@ -1,9 +1,9 @@
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
 import { z } from 'zod';
 import { t } from '../i18n/index.js';
 import { getClaudeDir } from './load.js';
+import { writeLauncher } from './launcher.js';
 
 const ClaudeSettingsSchema = z
   .object({ statusLine: z.record(z.unknown()).optional() })
@@ -13,29 +13,6 @@ type ClaudeSettingsFile = z.infer<typeof ClaudeSettingsSchema>;
 
 function getClaudeSettingsPath(): string {
   return path.join(getClaudeDir(), 'settings.json');
-}
-
-async function resolveCliPath(): Promise<string> {
-  const pluginCacheBase = path.join(
-    getClaudeDir(),
-    'plugins',
-    'cache',
-    'festatusline',
-    'festatusline',
-  );
-  try {
-    const versions = await fs.promises.readdir(pluginCacheBase);
-    const sorted = versions
-      .filter((v) => /^\d+\.\d+\.\d+$/.test(v))
-      .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
-    const latest = sorted.at(-1);
-    if (latest) {
-      return path.join(pluginCacheBase, latest, 'dist', 'cli.js');
-    }
-  } catch {
-    // not installed as plugin — fall through to local path
-  }
-  return fileURLToPath(import.meta.url);
 }
 
 export async function installToClaude(force = false): Promise<void> {
@@ -62,10 +39,11 @@ export async function installToClaude(force = false): Promise<void> {
     await fs.promises.writeFile(backup, `${JSON.stringify(current, null, 2)}\n`, 'utf8');
   }
 
-  const cliPath = await resolveCliPath();
+  // The CLI running this install: what the launcher falls back to when no plugin is found.
+  const command = await writeLauncher(path.resolve(process.argv[1] ?? ''));
   current.statusLine = {
     type: 'command',
-    command: `node ${cliPath}`,
+    command,
     refreshIntervalMs: 60000,
   };
 

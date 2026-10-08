@@ -49,11 +49,8 @@ Inspired by [ccstatusline](https://github.com/sirmalloc/ccstatusline).
 /festatusline:update
 ```
 
-It refreshes the marketplace, updates the plugin, and repoints `statusLine` at the newest
-cached version in one step — no `/plugin` commands needed first.
-
-Restart Claude Code (or your terminal session) afterward — the statusline command is
-resolved once at session start.
+It refreshes the marketplace and updates the plugin in one step — no `/plugin` commands
+needed first. The new version shows up on the statusline's next refresh; no restart needed.
 
 The setup command writes the following into `~/.claude/settings.json`:
 
@@ -61,11 +58,16 @@ The setup command writes the following into `~/.claude/settings.json`:
 {
   "statusLine": {
     "type": "command",
-    "command": "node ~/.claude/plugins/cache/festatusline/festatusline/<version>/dist/cli.js",
+    "command": "node \"/Users/<you>/.config/festatusline/statusline.mjs\"",
     "refreshIntervalMs": 60000
   }
 }
 ```
+
+`statusline.mjs` is a small launcher that looks up the installed plugin version on every
+run, so `statusLine` never has to change when festatusline updates. Setups from before 0.11.0
+pointed at one version's cache folder directly; `/festatusline:update` moves them to the
+launcher once, and that one time needs a Claude Code restart.
 
 ---
 
@@ -278,17 +280,17 @@ row is the same one as above, so the `Fable` bar shows there too.
 
 Three locale bundles are included: `ko` (Korean), `en` (English), `zh` (Chinese).
 
-**Detection priority:**
+**Statusline:** `FESTATUSLINE_LOCALE` (`ko` | `en` | `zh`) if set, otherwise the settings
+file's `locale` (what `/festatusline:setup` writes; `en` when absent). `$LANG` is not read here.
 
-1. `FESTATUSLINE_LOCALE` environment variable (`ko` | `en` | `zh`)
-2. `$LANG` prefix — `ko*` → Korean, `zh*` → Chinese
-3. Settings file `locale` field
-4. Fallback: `en`
+The statusline translates its words — row labels (`Daily` / `일간` / `每日`), bar labels
+(`Session`, `all`, `reset`), and the reset pass (`Reset` / `리셋권` / `重置券`). Names and
+abbreviations stay English in every locale: `Ctx`, `Fable`, `Codex`, `7d`, model names, and the
+`d`/`h`/`m` time units. Columns are padded by terminal cell width, so Korean and Chinese labels
+(two cells per character) keep the stacked rows aligned. English output is unchanged.
 
-`FESTATUSLINE_LOCALE` takes precedence over the settings file value.
-
-Locale applies to the interactive TUI — setup wizard labels, menus, preset names. The rendered
-statusline carries no translated strings, so widget output is identical in every locale.
+**Interactive TUI** (setup wizard labels, menus, preset names): `FESTATUSLINE_LOCALE`, then the
+`$LANG` prefix (`ko*` → Korean, `zh*` → Chinese), then `en`.
 
 ---
 

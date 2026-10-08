@@ -1,18 +1,18 @@
 ---
-description: Refresh, update, and point statusLine at the latest festatusline release
-allowed-tools: Read, Bash(claude plugin marketplace update:*), Bash(claude plugin update:*), Bash(jq:*), Bash(ls:*), Bash(sort:*), Bash(tail:*), Bash(mv:*), Bash(basename:*)
+description: Refresh and update festatusline, keeping statusLine on its version-independent launcher
+allowed-tools: Read, Bash(claude plugin marketplace update:*), Bash(claude plugin update:*), Bash(jq:*), Bash(node:*)
 ---
 
 # festatusline Update
 
-Refresh the marketplace, update the plugin, and point `statusLine` at the newest cached
-version — this command does the whole thing, no `/plugin` commands needed first.
+Refresh the marketplace, update the plugin, and make sure `statusLine` runs the
+festatusline launcher — this command does the whole thing, no `/plugin` commands needed first.
 
 ## Task
 
-1. Capture the currently configured `statusLine` command, to compare against later:
+1. Capture the installed version, to compare against later:
 ```bash
-jq -r '.statusLine.command // ""' ~/.claude/settings.json
+jq -r '.plugins["festatusline@festatusline"][0].version // "none"' ~/.claude/plugins/installed_plugins.json
 ```
 
 2. Refresh the marketplace. This must run first — otherwise the update check in the next
@@ -27,20 +27,19 @@ claude plugin marketplace update festatusline
 claude plugin update festatusline@festatusline -y
 ```
 
-4. Point `statusLine` at whatever is now the latest version in the plugin cache:
+4. Re-register through the installed version. This points `statusLine` at the launcher
+   (`~/.config/festatusline/statusline.mjs`) and rewrites the launcher itself. Setups from
+   before 0.11.0 pointed `statusLine` straight at one version's cache folder; this moves them
+   over once:
 ```bash
-LATEST_VERSION=$(ls -d ~/.claude/plugins/cache/festatusline/festatusline/*/ 2>/dev/null | grep -E '/[0-9]+\.[0-9]+\.[0-9]+/$' | sort -V | tail -1 | xargs basename)
-if [ -z "$LATEST_VERSION" ]; then
-  echo "No cached festatusline version found — is the plugin installed?" >&2
-else
-  jq --arg path "node ~/.claude/plugins/cache/festatusline/festatusline/${LATEST_VERSION}/dist/cli.js" '.statusLine.command = $path' ~/.claude/settings.json > ~/.claude/settings.json.tmp && mv ~/.claude/settings.json.tmp ~/.claude/settings.json
-fi
+node "$(jq -r '.plugins["festatusline@festatusline"][0].installPath' ~/.claude/plugins/installed_plugins.json)/dist/cli.js" install --force
 ```
 
 5. Report to the user:
-   - The version now configured, and whether it changed from what step 1 captured
+   - The version now installed (step 1's command again), and whether it changed from step 1
    - If it did not change, say plainly that festatusline was already up to date — don't imply
-     an update happened when the path is identical
-   - If it did change, remind them to restart Claude Code (or the terminal session) —
-     `statusLine` is resolved once at session start, so it won't pick up the new path
-     mid-session
+     an update happened when the version is identical
+   - The launcher picks the new version up on the statusline's next refresh, no restart
+     needed. The one exception is a setup this step just moved onto the launcher (its
+     `statusLine` command changed): Claude Code reads that command once at session start, so
+     that one time it needs a restart

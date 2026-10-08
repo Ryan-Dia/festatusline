@@ -1,6 +1,8 @@
 import type { Widget, RenderContext, WidgetConfig } from './types.js';
 import { ALERT_PERCENT, barWithPct, buildBar, fmtPct } from '../utils/bar.js';
 import { formatTokens } from '../utils/tokens.js';
+import { padDisplay } from '../utils/width.js';
+import { firstBarPrefixWidth } from './columns.js';
 
 export const ContextWidget: Widget = {
   id: 'context',
@@ -32,11 +34,12 @@ export const ContextWidget: Widget = {
       pct = 0;
     }
 
+    const prefix = padDisplay('Ctx', firstBarPrefixWidth(ctx.t));
     if (!cw && !ctx.stdin.model && used === 0) {
-      return `Ctx ${buildBar(0, '#22d3ee')} ${fmtPct(0)} ${'(-/-)'.padEnd(11)}`;
+      return `${prefix} ${buildBar(0, '#22d3ee')} ${fmtPct(0)} ${'(-/-)'.padEnd(11)}`;
     }
 
     const tokenExpr = `(${formatTokens(used)}/${formatTokens(max)})`.padEnd(11);
-    return `Ctx ${barWithPct(pct, '#22d3ee', ALERT_PERCENT)} ${tokenExpr}`;
+    return `${prefix} ${barWithPct(pct, '#22d3ee', ALERT_PERCENT)} ${tokenExpr}`;
   },
 };

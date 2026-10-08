@@ -47,7 +47,7 @@ src/
 │   ├── claude-settings.ts # ~/.claude/settings.json 파싱 (ultracode 플래그만)
 │   ├── modelTier.ts       # 모델 계열 분류 + /usage 동일 가중치
 │   └── time.ts            # 시간 유틸 (날짜 경계 계산)
-├── widgets/               # 위젯 25종 + 레지스트리
+├── widgets/               # 위젯 27종 + 레지스트리
 ├── utils/                 # 공통 유틸 (bar, duration, tokens)
 ├── render/                # 위젯 배열 → stdout 한 줄 문자열
 ├── i18n/                  # ko/en/zh 번들 + t() 헬퍼
@@ -59,7 +59,8 @@ src/
 ## 설정 파일
 
 - 설정: `~/.config/festatusline/settings.json`
-- Claude 통합: `~/.claude/settings.json` 의 `statusLine` 필드
+- Claude 통합: `~/.claude/settings.json` 의 `statusLine` 필드 → 런처
+  `~/.config/festatusline/statusline.mjs` (0.11.0~, 아래 릴리스 절차 8번)
 
 ### 프리셋 추적 (0.6.0~)
 
@@ -113,8 +114,11 @@ npm 에 발행하지 않는다. 배포 경로는 GitHub 플러그인 마켓플�
    `## 🔧 Changes` 섹션, 항목 끝에 커밋 해시를 `` (`abc1234`) `` 로 붙이고, 마지막 줄에
    `**Full Changelog**: .../compare/v<이전>...v<이번>` 링크를 단다.
 8. 내 환경 반영: `claude plugin marketplace update festatusline` →
-   `claude plugin update festatusline@festatusline -y` → `~/.claude/settings.json` 의
-   `statusLine` 을 새 캐시 경로로 교체. 적용은 Claude Code 재시작 후.
+   `claude plugin update festatusline@festatusline -y`. `statusLine` 은 0.11.0 부터 고정 경로
+   런처(`~/.config/festatusline/statusline.mjs`, `src/config/launcher.ts`)를 가리키고, 런처가
+   매 실행마다 `~/.claude/plugins/installed_plugins.json` 의 `installPath` → 최신 캐시 버전 →
+   설치 시점 CLI 순으로 찾아 실행하므로 **경로 교체도 재시작도 필요 없다**. 런처는 `install`
+   이 쓴다 (`/festatusline:setup`·`/festatusline:update` 가 `install --force` 를 호출).
 
 플러그인 설치·업데이트는 Release 가 아니라 **`main` 브랜치의 `dist/` 와 마켓플레이스 JSON 버전**을
 보므로, Release 는 사람이 변경 내역을 읽는 용도다. 빠뜨려도 `/plugin update` 는 동작한다.

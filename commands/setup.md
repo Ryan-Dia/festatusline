@@ -1,7 +1,7 @@
 ---
 description: Configure festatusline status line settings
 argument-hint: "[preset] [locale] [codex]"
-allowed-tools: Read, Write, Bash(jq:*), Bash(cat:*), Bash(mkdir:*), Bash(ls:*), Bash(sort:*), Bash(tail:*), Bash(mv:*), AskUserQuestion
+allowed-tools: Read, Write, Bash(jq:*), Bash(cat:*), Bash(mkdir:*), Bash(ls:*), Bash(sort:*), Bash(tail:*), Bash(mv:*), Bash(node:*), AskUserQuestion
 ---
 
 # festatusline Setup
@@ -132,9 +132,12 @@ settings file has one, drop it, otherwise it overrides the preset.
 
 ### 4. Update statusLine in Claude settings
 
-Find the latest plugin path and register it:
+Let festatusline register itself. `install --force` writes a launcher to
+`~/.config/festatusline/statusline.mjs` and points `statusLine` at it. The launcher finds the
+installed plugin version on every run, so later plugin updates never need `statusLine`
+edited again:
 ```bash
-jq --arg path "$(ls -d ~/.claude/plugins/cache/festatusline/festatusline/*/dist/cli.js 2>/dev/null | sort -V | tail -1)" '.statusLine = {"type": "command", "command": ("node " + $path), "refreshIntervalMs": 60000}' ~/.claude/settings.json > ~/.claude/settings.json.tmp && mv ~/.claude/settings.json.tmp ~/.claude/settings.json
+node "$(ls -d ~/.claude/plugins/cache/festatusline/festatusline/*/dist/cli.js 2>/dev/null | sort -V | tail -1)" install --force
 ```
 
 ### 5. Confirm to user

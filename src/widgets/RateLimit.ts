@@ -2,22 +2,17 @@ import type { Widget } from './types.js';
 import { createRateLimitWidget } from './rateLimitRenderer.js';
 import { ALERT_PERCENT } from '../utils/bar.js';
 
-// Prefix widths keep the Daily and Weekly rows aligned when stacked:
-//   Daily  │ Ctx <bar> <pct> <expr> │ Session <bar> <pct> <expr>
-//   Weekly │ all <bar> <pct> <expr> │ Fable   <bar> <pct> <expr>
-// 'all' mirrors the Context widget's 3-char 'Ctx' prefix, and the padded time expression
-// makes this column as wide as Ctx's (which carries token counts), so whatever sits in the
-// third slot of each row lines up too.
-const WEEKLY_PREFIX_WIDTH = 3;
+// Prefixes sit in the stacked bar columns (columns.ts), which keep the Daily and Weekly rows
+// aligned in every locale. The padded time expression makes the weekly column as wide as
+// Ctx's (which carries token counts), so whatever sits in the third slot lines up too.
 const WEEKLY_TIME_EXPR_WIDTH = 11;
-const SESSION_PREFIX_WIDTH = 7;
 
 export const SessionRateLimitWidget: Widget = createRateLimitWidget({
   id: 'sessionRateLimit',
   labelKey: 'widget.sessionRateLimit',
-  prefix: 'Session',
+  prefix: { key: 'bar.session' },
   color: '#ffd93d',
-  prefixWidth: SESSION_PREFIX_WIDTH,
+  column: 'second',
   alertAt: ALERT_PERCENT,
   getSlot: (ctx) => {
     const s = ctx.stdin.rate_limits?.five_hour;
@@ -29,9 +24,9 @@ export const SessionRateLimitWidget: Widget = createRateLimitWidget({
 export const WeeklyRateLimitWidget: Widget = createRateLimitWidget({
   id: 'weeklyRateLimit',
   labelKey: 'widget.weeklyRateLimit',
-  prefix: 'all',
+  prefix: { key: 'bar.all' },
   color: '#6bcb77',
-  prefixWidth: WEEKLY_PREFIX_WIDTH,
+  column: 'first',
   timeExprWidth: WEEKLY_TIME_EXPR_WIDTH,
   getSlot: (ctx) => {
     const s = ctx.stdin.rate_limits?.seven_day;

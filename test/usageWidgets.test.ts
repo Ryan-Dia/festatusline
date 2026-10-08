@@ -5,6 +5,7 @@ import { SonnetWeeklyUsageWidget } from '../src/widgets/SonnetWeeklyUsage.js';
 import { FableWeeklyUsageWidget } from '../src/widgets/FableWeeklyUsage.js';
 import { emptyFamilyTotals } from '../src/data/modelTier.js';
 import { getTheme } from '../src/theme/index.js';
+import { createTranslator } from '../src/i18n/index.js';
 import type { RenderContext } from '../src/widgets/types.js';
 
 function makeCtx(usage: RenderContext['usage'] = null): RenderContext {
@@ -14,7 +15,7 @@ function makeCtx(usage: RenderContext['usage'] = null): RenderContext {
     codex: null,
     fableRateLimit: null,
     theme: getTheme('default'),
-    t: (k) => k,
+    t: createTranslator('en'),
     now: new Date('2026-08-25T12:00:00Z'),
     weeklyAnchorDay: null,
     cacheTtlCreatedAt: null,

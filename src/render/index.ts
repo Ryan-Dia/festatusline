@@ -14,7 +14,7 @@ import { getLastCacheCreation, getLastModelFromTranscript } from '../data/jsonl.
 import { loadSettings } from '../config/load.js';
 import { resolveLines } from '../config/presets.js';
 import { getTheme } from '../theme/index.js';
-import { createTranslator } from '../i18n/index.js';
+import { createTranslator, envLocale } from '../i18n/index.js';
 import { renderAllLines } from './line.js';
 import type { RenderContext } from '../widgets/types.js';
 
@@ -149,7 +149,7 @@ export async function renderFromStdin(): Promise<void> {
     tryOrNull(getLastCacheCreation),
   ]);
 
-  const t = createTranslator(settings.locale);
+  const t = createTranslator(envLocale() ?? settings.locale);
 
   if (hasUsableRateLimit(stdin.rate_limits)) {
     writeRateLimitsCache(stdin.rate_limits).catch(() => {});

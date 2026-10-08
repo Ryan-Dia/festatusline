@@ -6,9 +6,15 @@ export type Locale = 'ko' | 'en' | 'zh';
 
 const bundles: Record<Locale, Record<I18nKey, string>> = { ko, en, zh };
 
-function detectLocale(): Locale {
+/** `FESTATUSLINE_LOCALE` when it names a supported locale — it outranks the settings file. */
+export function envLocale(): Locale | null {
   const override = process.env.FESTATUSLINE_LOCALE;
-  if (override === 'ko' || override === 'en' || override === 'zh') return override;
+  return override === 'ko' || override === 'en' || override === 'zh' ? override : null;
+}
+
+function detectLocale(): Locale {
+  const override = envLocale();
+  if (override) return override;
 
   const lang = (process.env.LANG ?? '').toLowerCase();
   if (lang.startsWith('ko')) return 'ko';
