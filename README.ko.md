@@ -139,8 +139,8 @@ Codex 행을 추가한 `max` 프리셋 기준입니다. 실제 출력에는 트�
 | id | 출력 예시 | 설명 |
 |---|---|---|
 | `model` | `Sonnet 4.6` / `Opus 5 [xhigh, fast]` | 현재 모델명(축약). 세션 플래그를 덧붙임 — effort 레벨, 패스트 모드면 `fast`, thinking 을 명시적으로 끈 경우 `no-think`. |
-| `context` | `Ctx ■■□□□□□□□□  23% (47K/200K)` | 컨텍스트 창 바 + 비율 + 토큰 수 |
-| `sessionRateLimit` | `Session ■■■□□□□□□□  30% (3h 41m)` | 현재 세션(약 5시간 롤링) 사용량 바 + 리셋까지 남은 시간 |
+| `context` | `Ctx ■■□□□□□□□□  23% (47K/200K)` | 컨텍스트 창 바 + 비율 + 토큰 수. 80% 이상이면 바와 비율이 빨강(`#ff5555`) |
+| `sessionRateLimit` | `Session ■■■□□□□□□□  30% (3h 41m)` | 현재 세션(약 5시간 롤링) 사용량 바 + 리셋까지 남은 시간. 80% 이상이면 바와 비율이 빨강(`#ff5555`) |
 | `weeklyRateLimit` | `all ■■□□□□□□□□  25% (6d 10h)` | 7일 전체 모델 레이트 리밋 + 리셋까지 남은 시간 |
 | `dailyUsage` | `Daily  ` | 오늘 사용량용 레이블 (다른 위젯과 함께 배치) |
 | `dailyReset` | `↺ 04:32` | 자정 기준 일간 리셋까지 카운트다운 |
@@ -150,7 +150,7 @@ Codex 행을 추가한 `max` 프리셋 기준입니다. 실제 출력에는 트�
 | `sonnetWeeklyReset` | `S↺ 2d 3h` | Sonnet 주간 리셋까지 카운트다운 |
 | `fableWeeklyUsage` | `F:42K` / `F:1.3M` | 이번 주 Fable 모델 누적 토큰 수 |
 | `fableWeeklyReset` | `F↺ 2d 3h` | Fable 주간 리셋까지 카운트다운 |
-| `fableWeeklyRateLimit` | `Fable   ■■■■■■■■□□  89% (4d 2h)` | Fable 전용 주간 한도. Anthropic OAuth 사용량 API 조회. 데이터를 못 받으면 숨김 |
+| `fableWeeklyRateLimit` | `Fable   ■■■■■■■■□□  89% (4d 2h)` | Fable 전용 주간 한도(보라색 바). Anthropic OAuth 사용량 API 조회. 데이터를 못 받으면 숨김 |
 | `resetPass` | `🎟 리셋권 1 · D-15` | 보유한 한도 리셋권(claude.ai "무료로 초기화") 개수와 가장 빠른 만료까지 남은 기간 — 마지막 날은 `5시간 남음` / `42분 남음`, 3일 이내면 경고색. 없으면 `0`, 대상 계정이 아니거나 OAuth 데이터를 못 받으면 숨김 |
 | `sessionCost` | `$0.0042` / `$1.23` | 세션 비용 (USD) |
 | `cacheHit` | `⚡74%` | 캐시 히트율 (cache_read / 총 입력 토큰) |

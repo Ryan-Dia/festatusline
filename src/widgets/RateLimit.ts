@@ -1,5 +1,6 @@
 import type { Widget } from './types.js';
 import { createRateLimitWidget } from './rateLimitRenderer.js';
+import { ALERT_PERCENT } from '../utils/bar.js';
 
 // Prefix widths keep the Daily and Weekly rows aligned when stacked:
 //   Daily  │ Ctx <bar> <pct> <expr> │ Session <bar> <pct> <expr>
@@ -17,6 +18,7 @@ export const SessionRateLimitWidget: Widget = createRateLimitWidget({
   prefix: 'Session',
   color: '#ffd93d',
   prefixWidth: SESSION_PREFIX_WIDTH,
+  alertAt: ALERT_PERCENT,
   getSlot: (ctx) => {
     const s = ctx.stdin.rate_limits?.five_hour;
     if (!s || s.resets_at == null) return null;

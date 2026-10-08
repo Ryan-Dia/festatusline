@@ -2,6 +2,12 @@ import chalk from 'chalk';
 
 export const BAR_WIDTH = 10;
 
+// Bars that warn — context and the 5-hour session — switch bar and percent to this red at
+// ALERT_PERCENT. A fixed red rather than theme.danger: the default theme's danger is a pink
+// too close to the Fable bar to read as a warning beside it.
+export const ALERT_COLOR = '#ff5555';
+export const ALERT_PERCENT = 80;
+
 const DIM_FACTOR = 0.35;
 
 function dimColor(hex: string): string {
@@ -27,4 +33,10 @@ export function buildBar(pct: number, color: string, width: number = BAR_WIDTH):
 
 export function fmtPct(pct: number): string {
   return `${String(pct).padStart(3)}%`;
+}
+
+/** Bar plus percent, both in ALERT_COLOR once `alertAt` is set and reached. */
+export function barWithPct(pct: number, color: string, alertAt?: number): string {
+  if (alertAt == null || pct < alertAt) return `${buildBar(pct, color)} ${fmtPct(pct)}`;
+  return `${buildBar(pct, ALERT_COLOR)} ${chalk.hex(ALERT_COLOR)(fmtPct(pct))}`;
 }

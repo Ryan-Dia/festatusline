@@ -140,8 +140,8 @@ Edit manually or use `/festatusline:setup` in Claude Code to reconfigure.
 | id | Example output | Description |
 |---|---|---|
 | `model` | `Sonnet 4.6` / `Opus 5 [xhigh, fast]` | Current model name, shortened. Appends session flags: effort level, `fast` while fast mode is on, `no-think` when thinking is explicitly disabled. |
-| `context` | `Ctx ■■□□□□□□□□  23% (47K/200K)` | Context window bar + percentage + token counts |
-| `sessionRateLimit` | `Session ■■■□□□□□□□  30% (3h 41m)` | Current session (rolling ~5h) usage bar + reset time |
+| `context` | `Ctx ■■□□□□□□□□  23% (47K/200K)` | Context window bar + percentage + token counts. Bar and percent turn red (`#ff5555`) from 80% |
+| `sessionRateLimit` | `Session ■■■□□□□□□□  30% (3h 41m)` | Current session (rolling ~5h) usage bar + reset time. Bar and percent turn red (`#ff5555`) from 80% |
 | `weeklyRateLimit` | `all ■■□□□□□□□□  25% (6d 10h)` | 7-day all-model rate limit + reset time |
 | `dailyUsage` | `Daily  ` | Static label for today's usage (pairs with other widgets) |
 | `dailyReset` | `↺ 04:32` | Countdown to local-midnight daily reset |
@@ -151,7 +151,7 @@ Edit manually or use `/festatusline:setup` in Claude Code to reconfigure.
 | `sonnetWeeklyReset` | `S↺ 2d 3h` | Countdown to Sonnet weekly reset |
 | `fableWeeklyUsage` | `F:42K` / `F:1.3M` | Fable model tokens consumed this week |
 | `fableWeeklyReset` | `F↺ 2d 3h` | Countdown to Fable weekly reset |
-| `fableWeeklyRateLimit` | `Fable   ■■■■■■■■□□  89% (4d 2h)` | Fable's own weekly quota, from Anthropic's OAuth usage endpoint. Hidden when that data is unavailable |
+| `fableWeeklyRateLimit` | `Fable   ■■■■■■■■□□  89% (4d 2h)` | Fable's own weekly quota (violet bar), from Anthropic's OAuth usage endpoint. Hidden when that data is unavailable |
 | `resetPass` | `🎟 Reset 1 · D-15` | Limit resets you hold (claude.ai's "Reset for free") and time to the earliest deadline — `5h left` / `42m left` on the last day, warning color within 3 days. Shows `0` when you hold none; hidden when the account isn't eligible or OAuth data is unavailable |
 | `sessionCost` | `$0.0042` / `$1.23` | Session cost in USD |
 | `cacheHit` | `⚡74%` | Cache hit ratio (cache_read / total input tokens) |

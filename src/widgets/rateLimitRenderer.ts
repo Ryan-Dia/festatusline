@@ -1,6 +1,6 @@
 import type { Widget, RenderContext, WidgetConfig } from './types.js';
 import type { I18nKey } from '../i18n/index.js';
-import { buildBar, fmtPct } from '../utils/bar.js';
+import { barWithPct, buildBar } from '../utils/bar.js';
 import { formatRemainingHM, formatAbsDatetime } from '../utils/duration.js';
 
 export type RateLimitTimeFormat = 'remaining' | 'abs';
@@ -14,6 +14,8 @@ export interface RateLimitSlotParams {
   timeFormat?: RateLimitTimeFormat;
   prefixWidth?: number;
   timeExprWidth?: number;
+  // Turn bar and percent red from this percent on; unset bars never change colour.
+  alertAt?: number;
 }
 
 export function renderRateLimitSlot(params: RateLimitSlotParams): string {
@@ -26,6 +28,7 @@ export function renderRateLimitSlot(params: RateLimitSlotParams): string {
     timeFormat = 'remaining',
     prefixWidth,
     timeExprWidth,
+    alertAt,
   } = params;
 
   const paddedPrefix = prefixWidth != null ? prefix.padEnd(prefixWidth) : prefix;
@@ -47,7 +50,7 @@ export function renderRateLimitSlot(params: RateLimitSlotParams): string {
   }
 
   const timeExpr = timeExprWidth != null ? `(${timeStr})`.padEnd(timeExprWidth) : `(${timeStr})`;
-  return `${paddedPrefix} ${buildBar(pct, color)} ${fmtPct(pct)} ${timeExpr}`;
+  return `${paddedPrefix} ${barWithPct(pct, color, alertAt)} ${timeExpr}`;
 }
 
 interface RateLimitWidgetParams {
@@ -66,10 +69,12 @@ interface RateLimitWidgetParams {
    * (no OAuth credentials, macOS), and a bar that never resolves is just noise.
    */
   hideWhenMissing?: boolean;
+  alertAt?: number;
 }
 
 export function createRateLimitWidget(params: RateLimitWidgetParams): Widget {
-  const { id, labelKey, prefix, color, getSlot, timeFormat, prefixWidth, timeExprWidth } = params;
+  const { id, labelKey, prefix, color, getSlot, timeFormat, prefixWidth, timeExprWidth, alertAt } =
+    params;
   return {
     id,
     labelKey,
@@ -85,6 +90,7 @@ export function createRateLimitWidget(params: RateLimitWidgetParams): Widget {
         timeFormat,
         prefixWidth,
         timeExprWidth,
+        alertAt,
       });
     },
   };

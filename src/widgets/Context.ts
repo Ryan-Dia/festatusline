@@ -1,5 +1,5 @@
 import type { Widget, RenderContext, WidgetConfig } from './types.js';
-import { buildBar, fmtPct } from '../utils/bar.js';
+import { ALERT_PERCENT, barWithPct, buildBar, fmtPct } from '../utils/bar.js';
 import { formatTokens } from '../utils/tokens.js';
 
 export const ContextWidget: Widget = {
@@ -37,6 +37,6 @@ export const ContextWidget: Widget = {
     }
 
     const tokenExpr = `(${formatTokens(used)}/${formatTokens(max)})`.padEnd(11);
-    return `Ctx ${buildBar(pct, '#22d3ee')} ${fmtPct(pct)} ${tokenExpr}`;
+    return `Ctx ${barWithPct(pct, '#22d3ee', ALERT_PERCENT)} ${tokenExpr}`;
   },
 };

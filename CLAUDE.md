@@ -124,8 +124,8 @@ npm 에 발행하지 않는다. 배포 경로는 GitHub 플러그인 마켓플�
 | id | 설명 |
 |---|---|
 | `model` | 현재 Claude 모델명 + 세션 플래그(effort / `fast` / `no-think`) |
-| `context` | 컨텍스트 사용률 바 + % |
-| `sessionRateLimit` | 현재 세션(약 5시간 롤링) 한도 바 |
+| `context` | 컨텍스트 사용률 바 + % (80% 이상 빨강) |
+| `sessionRateLimit` | 현재 세션(약 5시간 롤링) 한도 바 (80% 이상 빨강) |
 | `weeklyRateLimit` | Claude 7일 전체 할당량 바 (`all`) |
 | `dailyUsage` | 오늘 총 토큰 수 |
 | `dailyReset` | 일간 리셋까지 남은 시간 |
@@ -135,7 +135,7 @@ npm 에 발행하지 않는다. 배포 경로는 GitHub 플러그인 마켓플�
 | `sonnetWeeklyReset` | Sonnet 주간 리셋까지 남은 시간 |
 | `fableWeeklyUsage` | 최근 7일 Fable 모델 토큰 수 |
 | `fableWeeklyReset` | Fable 주간 리셋까지 남은 시간 |
-| `fableWeeklyRateLimit` | Fable 전용 주간 한도 바 (OAuth 조회, `/usage` 와 동일 값). 데이터 없으면 숨김 |
+| `fableWeeklyRateLimit` | Fable 전용 주간 한도 바, 보라색 (OAuth 조회, `/usage` 와 동일 값). 데이터 없으면 숨김 |
 | `resetPass` | 보유 리셋권 개수 + 가장 빠른 만료 D-day (OAuth `cedar_ember`, 마지막 날은 시간/분). 대상 아니면 숨김, 0개면 `0` 표시 |
 | `modelMix` | 주간 사용량의 모델 계열별 비중 (`/usage` 동일 가중치) |
 | `gptUsage` | 오늘 Codex CLI 요청 수 |
