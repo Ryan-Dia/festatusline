@@ -63,6 +63,7 @@ function buildPreviewContext(settings: Settings): RenderContext {
       model: 'gpt-5',
     },
     fableRateLimit: { usedPercent: 89, resetsAt: unixAfter(4 * DAY_MS) },
+    resetPass: { count: 1, expiresAt: unixAfter(15 * DAY_MS) },
     theme: getTheme(settings.theme),
     t: createTranslator(settings.locale),
     now,

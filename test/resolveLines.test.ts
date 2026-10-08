@@ -63,9 +63,9 @@ describe('resolveLines', () => {
 describe('detectLegacyPreset', () => {
   it('recognises every basic/pro/max layout, with and without the Codex row', () => {
     for (const name of ['basic', 'pro', 'max']) {
-      // Rebuild the pre-0.6.0 weekly row: it had no Fable bar.
+      // Rebuild the pre-0.6.0 layout: it had neither the Fable bar nor the reset pass.
       const legacy = expandPreset(name).map((row) =>
-        row.filter((w) => w.id !== 'fableWeeklyRateLimit'),
+        row.filter((w) => w.id !== 'fableWeeklyRateLimit' && w.id !== 'resetPass'),
       );
       expect(detectLegacyPreset(legacy), name).toEqual({ name, codexRow: false });
       expect(detectLegacyPreset(withCodexRow(legacy)), `${name}+codex`).toEqual({
@@ -85,6 +85,20 @@ describe('preset definitions', () => {
     for (const name of ['minimal', 'basic', 'pro', 'max']) {
       const weeklyRow = PRESETS[name]?.lines?.[1]?.map((w) => w.id) ?? [];
       expect(weeklyRow, name).toContain('fableWeeklyRateLimit');
+    }
+  });
+
+  it('puts the reset pass at the far right of the bottom row on every tier that has one', () => {
+    for (const name of ['minimal', 'pro', 'max']) {
+      const lastRow = PRESETS[name]?.lines?.at(-1)?.map((w) => w.id) ?? [];
+      expect(lastRow.at(-1), name).toBe('resetPass');
+    }
+  });
+
+  it('keeps the reset pass next to the Fable bar on the single-line presets', () => {
+    for (const name of ['full', 'korean-dev']) {
+      const row = PRESETS[name]?.lines?.[0]?.map((w) => w.id) ?? [];
+      expect(row[row.indexOf('fableWeeklyRateLimit') + 1], name).toBe('resetPass');
     }
   });
 });

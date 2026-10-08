@@ -24,6 +24,7 @@ import { ModelMixWidget } from './ModelMix.js';
 import { PrStatusWidget } from './PrStatus.js';
 import { FastModeWidget } from './FastMode.js';
 import { LinesChangedWidget } from './LinesChanged.js';
+import { ResetPassWidget } from './ResetPass.js';
 
 export const ALL_WIDGETS: Widget[] = [
   ModelWidget,
@@ -52,6 +53,7 @@ export const ALL_WIDGETS: Widget[] = [
   PrStatusWidget,
   FastModeWidget,
   LinesChangedWidget,
+  ResetPassWidget,
 ];
 
 const registry = new Map<string, Widget>(ALL_WIDGETS.map((w) => [w.id, w]));

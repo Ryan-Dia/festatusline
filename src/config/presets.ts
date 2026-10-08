@@ -5,6 +5,9 @@ import { detectLegacyPreset } from './legacyPresets.js';
 // row's third slot sits under the daily row's `Session` bar; `fableWeeklyRateLimit` hides
 // itself when there is no Fable data, so this stays a two-column row for everyone else.
 // minimal reuses the weekly row too, so the default layout shows Fable as well.
+// Sits at the far right of the bottom info row, after the repo/branch where a tier has one.
+const RESET_PASS = { id: 'resetPass' };
+
 const DAILY_ROW = [{ id: 'dailyUsage' }, { id: 'context' }, { id: 'sessionRateLimit' }];
 const WEEKLY_ROW = [
   { id: 'weeklyUsage' },
@@ -23,7 +26,7 @@ export function withCodexRow(lines: WidgetCfg[][]): WidgetCfg[][] {
 
 export const PRESETS: Record<string, Partial<Settings>> = {
   minimal: {
-    lines: [[{ id: 'dailyUsage' }, { id: 'context' }], WEEKLY_ROW, [{ id: 'model' }]],
+    lines: [[{ id: 'dailyUsage' }, { id: 'context' }], WEEKLY_ROW, [{ id: 'model' }, RESET_PASS]],
   },
   full: {
     lines: [
@@ -37,6 +40,7 @@ export const PRESETS: Record<string, Partial<Settings>> = {
         { id: 'sonnetWeeklyUsage' },
         { id: 'sonnetWeeklyReset' },
         { id: 'fableWeeklyRateLimit' },
+        RESET_PASS,
         { id: 'gptUsage' },
       ],
     ],
@@ -54,6 +58,7 @@ export const PRESETS: Record<string, Partial<Settings>> = {
         { id: 'sonnetWeeklyUsage' },
         { id: 'sonnetWeeklyReset' },
         { id: 'fableWeeklyRateLimit' },
+        RESET_PASS,
         { id: 'gptUsage' },
       ],
     ],
@@ -65,7 +70,12 @@ export const PRESETS: Record<string, Partial<Settings>> = {
     lines: [DAILY_ROW, WEEKLY_ROW],
   },
   pro: {
-    lines: [DAILY_ROW, WEEKLY_ROW, [{ id: 'spacer' }], [{ id: 'model' }, { id: 'gitRepo' }]],
+    lines: [
+      DAILY_ROW,
+      WEEKLY_ROW,
+      [{ id: 'spacer' }],
+      [{ id: 'model' }, { id: 'gitRepo' }, RESET_PASS],
+    ],
   },
   max: {
     lines: [
@@ -73,7 +83,7 @@ export const PRESETS: Record<string, Partial<Settings>> = {
       WEEKLY_ROW,
       [{ id: 'spacer' }],
       [{ id: 'cacheHit' }, { id: 'cacheTtl' }, { id: 'sessionCost' }],
-      [{ id: 'model' }, { id: 'gitRepo' }],
+      [{ id: 'model' }, { id: 'gitRepo' }, RESET_PASS],
     ],
   },
 };

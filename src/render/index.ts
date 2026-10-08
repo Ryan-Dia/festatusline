@@ -127,6 +127,8 @@ export function mergeRateLimits(
 }
 
 export async function renderFromStdin(): Promise<void> {
+  // The OAuth fetch identifies itself with the running Claude Code version from stdin.
+  const stdinPromise = readStdin();
   const [
     stdin,
     settings,
@@ -137,12 +139,12 @@ export async function renderFromStdin(): Promise<void> {
     cachedRateLimits,
     lastCacheCreation,
   ] = await Promise.all([
-    readStdin(),
+    stdinPromise,
     loadSettings(),
     readClaudeSettings(),
     tryOrNull(getUsageSnapshot),
     tryOrNull(getCodexSnapshot),
-    tryOrNull(getOAuthUsageSlots),
+    tryOrNull(async () => getOAuthUsageSlots((await stdinPromise).version)),
     readRateLimitsCache(),
     tryOrNull(getLastCacheCreation),
   ]);
@@ -173,6 +175,7 @@ export async function renderFromStdin(): Promise<void> {
     usage,
     codex,
     fableRateLimit: oauthSlots?.fable ?? null,
+    resetPass: oauthSlots?.resetPass ?? null,
     sessionLastModel,
     theme,
     t,

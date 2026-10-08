@@ -6,7 +6,7 @@
 [![Node ≥18](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org)
 [![i18n](https://img.shields.io/badge/i18n-ko%20%7C%20en%20%7C%20zh-orange)](./README.ko.md)
 
-> Customizable [Claude Code](https://claude.ai/code) statusline with multilingual support (ko/en/zh), 5 themes, 7 presets, and 26 widgets including Codex CLI integration.
+> Customizable [Claude Code](https://claude.ai/code) statusline with multilingual support (ko/en/zh), 5 themes, 7 presets, and 27 widgets including Codex CLI integration.
 
 Inspired by [ccstatusline](https://github.com/sirmalloc/ccstatusline).
 
@@ -16,7 +16,7 @@ Inspired by [ccstatusline](https://github.com/sirmalloc/ccstatusline).
 
 - **Multilingual** — Korean, English, Chinese auto-detected from `FESTATUSLINE_LOCALE` or `$LANG`
 - **5 Built-in themes** — default, dracula, nord, gruvbox, tokyo-night
-- **26 widgets** — Claude usage, Codex CLI, Git info, session cost, cache stats
+- **27 widgets** — Claude usage, Codex CLI, Git info, session cost, cache stats
 - **Codex CLI integration** — reads `~/.codex` for GPT request counts, rate limits, and model
 - **7 Presets + interactive setup** — zero-config via `/festatusline:setup`
 - **Node ≥18 only** — no Bun dependency
@@ -135,7 +135,7 @@ Edit manually or use `/festatusline:setup` in Claude Code to reconfigure.
 
 ## 🧩 Widgets
 
-### Claude (19)
+### Claude (20)
 
 | id | Example output | Description |
 |---|---|---|
@@ -152,6 +152,7 @@ Edit manually or use `/festatusline:setup` in Claude Code to reconfigure.
 | `fableWeeklyUsage` | `F:42K` / `F:1.3M` | Fable model tokens consumed this week |
 | `fableWeeklyReset` | `F↺ 2d 3h` | Countdown to Fable weekly reset |
 | `fableWeeklyRateLimit` | `Fable   ■■■■■■■■□□  89% (4d 2h)` | Fable's own weekly quota, from Anthropic's OAuth usage endpoint. Hidden when that data is unavailable |
+| `resetPass` | `🎟 Reset 1 · D-15` | Limit resets you hold (claude.ai's "Reset for free") and time to the earliest deadline — `5h left` / `42m left` on the last day, warning color within 3 days. Shows `0` when you hold none; hidden when the account isn't eligible or OAuth data is unavailable |
 | `sessionCost` | `$0.0042` / `$1.23` | Session cost in USD |
 | `cacheHit` | `⚡74%` | Cache hit ratio (cache_read / total input tokens) |
 | `cacheTtl` | `⏱ 1h 0m` | Remaining cache TTL (1h for ephemeral, 5m otherwise) |

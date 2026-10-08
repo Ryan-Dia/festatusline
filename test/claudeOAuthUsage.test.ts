@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { promises as fs } from 'fs';
+import { promises as fs, readFileSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
 
@@ -7,12 +7,16 @@ import { tmpdir } from 'os';
 // developer's own token and send it to the stubbed fetch. Every test here means "no Keychain".
 vi.mock('../src/data/macKeychain.js', () => ({ readKeychainToken: () => Promise.resolve(null) }));
 
-function jsonResponse(body: unknown, ok = true): Response {
+function jsonResponse(body: unknown, ok = true, status = ok ? 200 : 500): Response {
   return {
     ok,
+    status,
     json: () => Promise.resolve(body),
   } as Response;
 }
+
+const EMPTY = { fable: null, session: null, weekly: null, resetPass: null };
+const USAGE_URL = 'https://api.anthropic.com/api/oauth/usage?cedar_ember=1&skip_spend=1';
 
 describe('getOAuthUsageSlots', () => {
   let claudeDir: string;
@@ -37,7 +41,7 @@ describe('getOAuthUsageSlots', () => {
 
   it('returns all-null slots when no credentials file exists', async () => {
     const { getOAuthUsageSlots } = await import('../src/data/claudeOAuthUsage.js');
-    expect(await getOAuthUsageSlots()).toEqual({ fable: null, session: null, weekly: null });
+    expect(await getOAuthUsageSlots()).toEqual(EMPTY);
   });
 
   it('fetches the scoped Fable weekly limit alongside session and weekly', async () => {
@@ -67,9 +71,10 @@ describe('getOAuthUsageSlots', () => {
       fable: { usedPercent: 89, resetsAt: 1_900_000_200 },
       session: { usedPercent: 30, resetsAt: 1_900_000_000 },
       weekly: { usedPercent: 53, resetsAt: 1_900_000_100 },
+      resetPass: null,
     });
     expect(fetchMock).toHaveBeenCalledWith(
-      'https://api.anthropic.com/api/oauth/usage',
+      USAGE_URL,
       expect.objectContaining({
         headers: expect.objectContaining({ authorization: 'Bearer test-token' }),
         // Never follow a redirect — the bearer token must not leave this URL.
@@ -96,7 +101,12 @@ describe('getOAuthUsageSlots', () => {
     expect(cached).not.toContain('super-secret-token');
     expect(JSON.parse(cached)).toEqual({
       fetchedAt: expect.any(Number),
-      slots: { fable: null, session: null, weekly: { usedPercent: 10, resetsAt: 1_900_000_000 } },
+      slots: {
+        fable: null,
+        session: null,
+        weekly: { usedPercent: 10, resetsAt: 1_900_000_000 },
+        resetPass: null,
+      },
     });
   });
 
@@ -166,7 +176,7 @@ describe('getOAuthUsageSlots', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     const { getOAuthUsageSlots } = await import('../src/data/claudeOAuthUsage.js');
-    expect(await getOAuthUsageSlots()).toEqual({ fable: null, session: null, weekly: null });
+    expect(await getOAuthUsageSlots()).toEqual(EMPTY);
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -178,7 +188,7 @@ describe('getOAuthUsageSlots', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse({ error: 'nope' }, false)));
 
     const { getOAuthUsageSlots } = await import('../src/data/claudeOAuthUsage.js');
-    expect(await getOAuthUsageSlots()).toEqual({ fable: null, session: null, weekly: null });
+    expect(await getOAuthUsageSlots()).toEqual(EMPTY);
   });
 
   it('falls back to the stale cache when the request is aborted (timeout)', async () => {
@@ -323,11 +333,7 @@ describe('getOAuthUsageSlots', () => {
     await fs.writeFile(cachePath, '{ not valid json');
 
     const { getOAuthUsageSlots } = await import('../src/data/claudeOAuthUsage.js');
-    await expect(getOAuthUsageSlots()).resolves.toEqual({
-      fable: null,
-      session: null,
-      weekly: null,
-    });
+    await expect(getOAuthUsageSlots()).resolves.toEqual(EMPTY);
   });
 
   it('clamps an out-of-range percent from a drifted response into 0-100', async () => {
@@ -349,5 +355,140 @@ describe('getOAuthUsageSlots', () => {
     const slots = await getOAuthUsageSlots();
     expect(slots.session?.usedPercent).toBe(100);
     expect(slots.weekly?.usedPercent).toBe(0);
+  });
+});
+
+describe('getOAuthUsageSlots reset pass', () => {
+  // Real `cedar_ember` block from 2026-10-08, account details (`event_props`) dropped.
+  const cedarEmber: unknown = JSON.parse(
+    readFileSync(new URL('./data/oauth-usage-cedar-ember.json', import.meta.url), 'utf8'),
+  );
+  // 2026-10-22T16:00Z — the grant's `ends_at`.
+  const ENDS_AT = 1_792_684_800;
+  let claudeDir: string;
+  let cacheDir: string;
+
+  beforeEach(async () => {
+    claudeDir = await fs.mkdtemp(join(tmpdir(), 'festatusline-claude-'));
+    cacheDir = await fs.mkdtemp(join(tmpdir(), 'festatusline-cache-'));
+    process.env.CLAUDE_CONFIG_DIR = claudeDir;
+    process.env.XDG_CACHE_HOME = cacheDir;
+    await fs.writeFile(
+      join(claudeDir, '.credentials.json'),
+      JSON.stringify({ claudeAiOauth: { accessToken: 'test-token' } }),
+    );
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-10-08T12:00:00Z'));
+    vi.resetModules();
+    vi.unstubAllGlobals();
+  });
+
+  afterEach(async () => {
+    vi.useRealTimers();
+    delete process.env.CLAUDE_CONFIG_DIR;
+    delete process.env.XDG_CACHE_HOME;
+    vi.unstubAllGlobals();
+    await fs.rm(claudeDir, { recursive: true, force: true });
+    await fs.rm(cacheDir, { recursive: true, force: true });
+  });
+
+  async function slotsFor(body: unknown, version?: string | null) {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(body));
+    vi.stubGlobal('fetch', fetchMock);
+    const { getOAuthUsageSlots } = await import('../src/data/claudeOAuthUsage.js');
+    return { slots: await getOAuthUsageSlots(version), fetchMock };
+  }
+
+  function grant(overrides: Record<string, unknown>): Record<string, unknown> {
+    const base = (cedarEmber as { grants: Record<string, unknown>[] }).grants[0];
+    return { ...base, ...overrides };
+  }
+
+  it('counts the real grant and takes its ends_at as the deadline', async () => {
+    const { slots } = await slotsFor({ cedar_ember: cedarEmber });
+    expect(slots.resetPass).toEqual({ count: 1, expiresAt: ENDS_AT });
+  });
+
+  it('hides the pass when the server says this surface is not eligible', async () => {
+    const { slots } = await slotsFor({
+      cedar_ember: { eligible: false, ineligible_reason: 'surface', grants: [] },
+      limits: [
+        {
+          kind: 'weekly_scoped',
+          percent: 7,
+          resets_at: 1_900_000_000,
+          scope: { model: { display_name: 'Fable' } },
+        },
+      ],
+    });
+    expect(slots.resetPass).toBeNull();
+    expect(slots.fable).toEqual({ usedPercent: 7, resetsAt: 1_900_000_000 });
+  });
+
+  it('reports zero when eligible but holding nothing usable', async () => {
+    const { slots } = await slotsFor({ cedar_ember: { eligible: true, grants: [] } });
+    expect(slots.resetPass).toEqual({ count: 0, expiresAt: null });
+  });
+
+  it('skips paused, not-yet-started, and expired grants, and sums the rest', async () => {
+    const body = {
+      cedar_ember: {
+        eligible: true,
+        grants: [
+          grant({ id: 'a', resets_left: 2, ends_at: '2026-11-01T00:00:00Z' }),
+          grant({ id: 'b' }),
+          grant({ id: 'paused', paused: true }),
+          grant({ id: 'later', starts_at: '2026-10-20T00:00:00Z' }),
+          grant({ id: 'gone', ends_at: '2026-10-01T00:00:00Z' }),
+          grant({ id: 'spent', resets_left: 0, ends_at: '2026-10-09T00:00:00Z' }),
+          { id: 'malformed', resets_left: 'many' },
+        ],
+      },
+    };
+    const { slots } = await slotsFor(body);
+    expect(slots.resetPass).toEqual({ count: 3, expiresAt: ENDS_AT });
+  });
+
+  it('ignores a malformed cedar_ember block without losing the rest', async () => {
+    const { slots } = await slotsFor({
+      cedar_ember: 'nope',
+      seven_day: { used_percentage: 4, resets_at: 1_900_000_000 },
+    });
+    expect(slots.resetPass).toBeNull();
+    expect(slots.weekly).toEqual({ usedPercent: 4, resetsAt: 1_900_000_000 });
+  });
+
+  it('identifies as the CLI, which is what makes the server return the grants', async () => {
+    const { fetchMock } = await slotsFor({ cedar_ember: cedarEmber }, '2.1.293');
+    expect(fetchMock).toHaveBeenCalledWith(
+      USAGE_URL,
+      expect.objectContaining({
+        headers: expect.objectContaining({ 'user-agent': 'claude-cli/2.1.293 (external, cli)' }),
+      }),
+    );
+  });
+
+  it('falls back to a fixed CLI version when stdin carries none or garbage', async () => {
+    const { fetchMock } = await slotsFor({ cedar_ember: cedarEmber }, '2.1.293\r\nx-evil: 1');
+    const [, init] = fetchMock.mock.calls[0] as [string, { headers: Record<string, string> }];
+    expect(init.headers['user-agent']).toMatch(/^claude-cli\/\d+\.\d+\.\d+ \(external, cli\)$/);
+  });
+
+  it('retries without the reset query when the server rejects it', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse({}, false, 400))
+      .mockResolvedValueOnce(
+        jsonResponse({ seven_day: { used_percentage: 9, resets_at: 1_900_000_000 } }),
+      );
+    vi.stubGlobal('fetch', fetchMock);
+    const { getOAuthUsageSlots } = await import('../src/data/claudeOAuthUsage.js');
+    const slots = await getOAuthUsageSlots();
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+      USAGE_URL,
+      'https://api.anthropic.com/api/oauth/usage',
+    ]);
+    expect(slots.weekly).toEqual({ usedPercent: 9, resetsAt: 1_900_000_000 });
+    expect(slots.resetPass).toBeNull();
   });
 });

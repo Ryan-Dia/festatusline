@@ -136,6 +136,7 @@ npm 에 발행하지 않는다. 배포 경로는 GitHub 플러그인 마켓플�
 | `fableWeeklyUsage` | 최근 7일 Fable 모델 토큰 수 |
 | `fableWeeklyReset` | Fable 주간 리셋까지 남은 시간 |
 | `fableWeeklyRateLimit` | Fable 전용 주간 한도 바 (OAuth 조회, `/usage` 와 동일 값). 데이터 없으면 숨김 |
+| `resetPass` | 보유 리셋권 개수 + 가장 빠른 만료 D-day (OAuth `cedar_ember`, 마지막 날은 시간/분). 대상 아니면 숨김, 0개면 `0` 표시 |
 | `modelMix` | 주간 사용량의 모델 계열별 비중 (`/usage` 동일 가중치) |
 | `gptUsage` | 오늘 Codex CLI 요청 수 |
 | `codexWeeklyRateLimit` | Codex 7일 한도 바 |
@@ -261,7 +262,18 @@ refactor: Extract token formatter into shared util
   `claudeAiOauth.accessToken` 을 읽어 `https://api.anthropic.com/api/oauth/usage` 를
   `claude-code/2.1.0` User-Agent + `oauth-2025-04-20` 베타 헤더로 직접 호출하고, `limits[]`
   배열의 `kind === 'weekly_scoped'` + `scope.model.display_name === 'fable'` 항목에서 퍼센트를
-  뽑는다. festatusline 도 동일한 방식을 그대로 따른다.
+  뽑는다. festatusline 도 동일한 방식을 따르되, **User-Agent 만 0.9.0 부터
+  `claude-cli/<stdin.version> (external, cli)` 로 바꿨다** (아래 리셋권 항목 참고).
+- **리셋권(`resetPass`, 0.9.0~)** 은 같은 호출에 `?cedar_ember=1&skip_spend=1` 을 붙여 받는
+  `cedar_ember` 블록이다 (claude.ai Settings → Usage 의 "무료로 초기화"). 서버는 **User-Agent
+  접두어로 클라이언트 surface 를 판정**해서, `claude-code/2.1.0` 으로 부르면 리셋권을 가진 계정도
+  `eligible: false, ineligible_reason: "surface", grants: []` 를 준다. `claude-cli/...` 일 때만
+  `event_props.surface: "claude_code_cli"` 로 인정돼 `grants[]` 가 채워진다 (2026-10-08 실측,
+  CodexBar `docs/claude.md` 와 동일). `anthropic-client-platform` 등 다른 헤더는 판정에 무관했다.
+  개수는 `eligible` 일 때 일시정지·미시작·만료가 아닌 grant 의 `resets_left` 합, 기한은 그중 가장
+  빠른 `ends_at`. 서버가 쿼리를 400/403 으로 거부하면 쿼리 없이 한 번 재시도해서 Fable/세션/주간
+  바는 지킨다. **`POST /api/organizations/{org}/reset_rate_limits` 는 리셋권을 소모하는 호출이니
+  절대 부르지 않는다.**
 - 같은 응답에 `five_hour`/`seven_day` (계정 전체 세션/주간 한도) 도 같이 들어있다. 이건 stdin
   으로도 오지만, stdin 값은 **"이 세션이 마지막으로 API 를 호출한 시점"의 스냅샷**이다 — 같은
   계정을 여러 기기/터미널에서 동시에 쓰면, 한쪽이 가만히 있는 동안 다른 쪽이 소모한 만큼은
@@ -284,7 +296,7 @@ refactor: Extract token formatter into shared util
   `failedAt` 을 남겨 60초 백오프한다 — 이게 없으면 오프라인/프록시 환경에서 캐시가 만료된 뒤
   **매 렌더가 3초 타임아웃에 걸려 멈춘다**. Node `fetch` 는 `HTTPS_PROXY` 를 읽지 않는다.
 - 네트워크·파싱 실패 시 절대 위젯을 비우지 않고 마지막으로 성공한 캐시 값을 그대로 돌려준다.
-  자격증명 파일이 없거나 토큰이 없으면 세 슬롯 모두 `null` — `fableWeeklyRateLimit` 은 조용히
+  자격증명 파일이 없거나 토큰이 없으면 모든 슬롯이 `null` — `fableWeeklyRateLimit` 은 조용히
   사라지고, `sessionRateLimit`/`weeklyRateLimit` 은 stdin/로컬 캐시 폴백으로 그대로 동작한다.
 - **macOS 는 Keychain 에서 읽는다** (`src/data/macKeychain.ts`, 0.7.0~). macOS 에는
   `.credentials.json` 이 아예 없고 Claude Code 가 로그인 Keychain 에 같은 JSON 을 넣는다.
@@ -296,7 +308,7 @@ refactor: Extract token formatter into shared util
   실제 Keychain 접근은 macOS 에서만 확인된다. 최초 1회 접근 권한 프롬프트가 뜰 수 있고, 거부/타임아웃
   /항목 없음이 전부 `null` 로 수렴해 stdin 폴백으로 이어진다. `security` 는 3초 타임아웃.
 - 토큰은 `readAccessToken()` → `fetch` Authorization 헤더 두 지점에만 닿는다. 캐시 파일엔
-  퍼센트/리셋 시각만 기록한다(테스트로 고정). `refreshToken` 은 스키마에서 읽지도 않는다.
+  퍼센트/리셋 시각과 리셋권 개수·기한만 기록한다(테스트로 고정). `refreshToken` 은 스키마에서 읽지도 않는다.
   `redirect: 'error'` 로 리다이렉트 시 토큰이 다른 호스트로 따라가는 것을 막는다.
 
 ### effort / ultracode

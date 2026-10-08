@@ -6,7 +6,7 @@
 [![Node ≥18](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org)
 [![i18n](https://img.shields.io/badge/i18n-ko%20%7C%20en%20%7C%20zh-orange)](./README.md)
 
-> Claude Code 상태바(statusline) 도구. 다국어(ko/en/zh), 5종 테마, 7종 프리셋, 26개 위젯, Codex CLI 통합을 지원합니다.
+> Claude Code 상태바(statusline) 도구. 다국어(ko/en/zh), 5종 테마, 7종 프리셋, 27개 위젯, Codex CLI 통합을 지원합니다.
 
 [ccstatusline](https://github.com/sirmalloc/ccstatusline) 을 참고한 파생 버전입니다.
 
@@ -16,7 +16,7 @@
 
 - **다국어 지원** — 한국어·영어·중국어를 `FESTATUSLINE_LOCALE` 또는 `$LANG` 으로 자동 감지
 - **5종 테마 내장** — default, dracula, nord, gruvbox, tokyo-night
-- **26개 위젯** — Claude 사용량, Codex CLI, Git 정보, 세션 비용, 캐시 통계
+- **27개 위젯** — Claude 사용량, Codex CLI, Git 정보, 세션 비용, 캐시 통계
 - **Codex CLI 통합** — `~/.codex` 파싱으로 GPT 요청 수·레이트 리밋·모델 표시
 - **7종 프리셋 + 인터랙티브 셋업** — `/festatusline:setup` 으로 제로 설정 완료
 - **Node ≥18 전용** — Bun API 미사용
@@ -134,7 +134,7 @@ Codex 행을 추가한 `max` 프리셋 기준입니다. 실제 출력에는 트�
 
 ## 🧩 위젯
 
-### Claude (19개)
+### Claude (20개)
 
 | id | 출력 예시 | 설명 |
 |---|---|---|
@@ -151,6 +151,7 @@ Codex 행을 추가한 `max` 프리셋 기준입니다. 실제 출력에는 트�
 | `fableWeeklyUsage` | `F:42K` / `F:1.3M` | 이번 주 Fable 모델 누적 토큰 수 |
 | `fableWeeklyReset` | `F↺ 2d 3h` | Fable 주간 리셋까지 카운트다운 |
 | `fableWeeklyRateLimit` | `Fable   ■■■■■■■■□□  89% (4d 2h)` | Fable 전용 주간 한도. Anthropic OAuth 사용량 API 조회. 데이터를 못 받으면 숨김 |
+| `resetPass` | `🎟 리셋권 1 · D-15` | 보유한 한도 리셋권(claude.ai "무료로 초기화") 개수와 가장 빠른 만료까지 남은 기간 — 마지막 날은 `5시간 남음` / `42분 남음`, 3일 이내면 경고색. 없으면 `0`, 대상 계정이 아니거나 OAuth 데이터를 못 받으면 숨김 |
 | `sessionCost` | `$0.0042` / `$1.23` | 세션 비용 (USD) |
 | `cacheHit` | `⚡74%` | 캐시 히트율 (cache_read / 총 입력 토큰) |
 | `cacheTtl` | `⏱ 1h 0m` | 캐시 TTL 잔여 시간 (ephemeral → 1h, 나머지 → 5m) |

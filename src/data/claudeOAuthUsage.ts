@@ -14,8 +14,22 @@ import { readKeychainToken } from './macKeychain.js';
 // while another device burns the shared quota keeps showing its last-seen stdin snapshot
 // until it sends another message; polling this endpoint independently catches that drift.
 const OAUTH_USAGE_URL = 'https://api.anthropic.com/api/oauth/usage';
+// `cedar_ember=1` adds the limit-reset inventory (claude.ai Settings → Usage → "Reset for
+// free") — the same query Claude Code sends. `skip_spend=1` drops billing data we never read.
+const OAUTH_USAGE_WITH_RESETS_URL = `${OAUTH_USAGE_URL}?cedar_ember=1&skip_spend=1`;
 const OAUTH_BETA_HEADER = 'oauth-2025-04-20';
-const USER_AGENT = 'claude-code/2.1.0';
+// The server decides which client surface a request comes from by the User-Agent, and only
+// the `claude-cli/` shape counts as Claude Code: with the `claude-code/2.1.0` this module
+// used to send (copied from Orca), `cedar_ember` answers `eligible: false,
+// ineligible_reason: "surface"` with no grants even when the account holds one. Observed
+// 2026-10-08; CodexBar sends the same shape. Usage numbers come back identical either way.
+const FALLBACK_CLI_VERSION = '2.1.293';
+const CLI_VERSION_RE = /^\d+\.\d+\.\d+$/;
+
+function userAgent(cliVersion: string | null | undefined): string {
+  const version = cliVersion && CLI_VERSION_RE.test(cliVersion) ? cliVersion : FALLBACK_CLI_VERSION;
+  return `claude-cli/${version} (external, cli)`;
+}
 // This runs inside the statusline render itself, so a hung connection (firewall DROP,
 // captive portal) stalls the whole bar for this long. The endpoint normally answers well
 // under a second.
@@ -47,13 +61,23 @@ export interface RateLimitSlot {
   resetsAt: number;
 }
 
+// Limit resets the account holds and can spend now (claude.ai's "Reset for free").
+export interface ResetPass {
+  count: number;
+  // Unix seconds of the earliest deadline among the counted resets; null when none counts.
+  expiresAt: number | null;
+}
+
 export interface OAuthUsageSlots {
   fable: RateLimitSlot | null;
   session: RateLimitSlot | null;
   weekly: RateLimitSlot | null;
+  // Null when the server says the account isn't eligible. Absent from caches written before
+  // 0.9.0.
+  resetPass?: ResetPass | null;
 }
 
-const EMPTY_SLOTS: OAuthUsageSlots = { fable: null, session: null, weekly: null };
+const EMPTY_SLOTS: OAuthUsageSlots = { fable: null, session: null, weekly: null, resetPass: null };
 
 interface CacheEntry {
   // When `slots` was last successfully fetched — governs data freshness (TTL_MS).
@@ -102,6 +126,20 @@ const OAuthUsageResponseSchema = z.object({
   fable_seven_day: UsageWindowSchema.nullish(),
   seven_day_fable: UsageWindowSchema.nullish(),
   limits: z.array(ScopedLimitSchema).nullish(),
+  // Parsed on its own (ResetInventorySchema) so a drifted reset block can't cost the bars.
+  cedar_ember: z.unknown().nullish(),
+});
+
+const ResetInventorySchema = z.object({
+  eligible: z.boolean(),
+  grants: z.array(z.unknown()).nullish(),
+});
+
+const ResetGrantSchema = z.object({
+  resets_left: z.number().int().nonnegative(),
+  paused: z.boolean().nullish(),
+  starts_at: ResetsAtSchema,
+  ends_at: ResetsAtSchema,
 });
 
 type OAuthUsageResponse = z.infer<typeof OAuthUsageResponseSchema>;
@@ -162,11 +200,39 @@ function extractFableSlot(data: OAuthUsageResponse): RateLimitSlot | null {
   return null;
 }
 
-function extractSlots(data: OAuthUsageResponse): OAuthUsageSlots {
+/**
+ * Counts the resets usable right now the way claude.ai does: grants that aren't paused, have
+ * started, and haven't expired. A grant this can't read is skipped rather than guessed at.
+ */
+function extractResetPass(raw: unknown, nowMs: number): ResetPass | null {
+  const inventory = ResetInventorySchema.safeParse(raw);
+  if (!inventory.success || !inventory.data.eligible) return null;
+
+  const usable = (inventory.data.grants ?? []).flatMap((item) => {
+    const result = ResetGrantSchema.safeParse(item);
+    if (!result.success) return [];
+    const { resets_left: left, paused, starts_at: startsAt, ends_at: endsAt } = result.data;
+    const startsMs = parseResetTimestampMs(startsAt);
+    const endsMs = parseResetTimestampMs(endsAt);
+    if (paused || left === 0) return [];
+    if (startsMs != null && startsMs > nowMs) return [];
+    if (endsMs != null && endsMs <= nowMs) return [];
+    return [{ left, endsMs }];
+  });
+
+  const deadlines = usable.flatMap(({ endsMs }) => (endsMs == null ? [] : [endsMs]));
+  return {
+    count: usable.reduce((sum, { left }) => sum + left, 0),
+    expiresAt: deadlines.length > 0 ? Math.floor(Math.min(...deadlines) / 1000) : null,
+  };
+}
+
+function extractSlots(data: OAuthUsageResponse, nowMs: number): OAuthUsageSlots {
   return {
     fable: extractFableSlot(data),
     session: extractWindowSlot(data.five_hour),
     weekly: extractWindowSlot(data.seven_day),
+    resetPass: extractResetPass(data.cedar_ember, nowMs),
   };
 }
 
@@ -201,15 +267,19 @@ async function writeCache(entry: CacheEntry): Promise<void> {
   }
 }
 
-async function fetchOAuthSlots(token: string): Promise<OAuthUsageSlots | null> {
+async function requestUsage(
+  url: string,
+  token: string,
+  cliVersion: string | null | undefined,
+): Promise<OAuthUsageSlots | 'rejected' | null> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
   try {
-    const res = await fetch(OAUTH_USAGE_URL, {
+    const res = await fetch(url, {
       headers: {
         authorization: `Bearer ${token}`,
         'anthropic-beta': OAUTH_BETA_HEADER,
-        'user-agent': USER_AGENT,
+        'user-agent': userAgent(cliVersion),
       },
       // The bearer token must never be forwarded anywhere but the URL above. This endpoint
       // has no reason to redirect, so treat any redirect as a failure rather than following
@@ -218,10 +288,11 @@ async function fetchOAuthSlots(token: string): Promise<OAuthUsageSlots | null> {
       redirect: 'error',
       signal: controller.signal,
     });
+    if (res.status === 400 || res.status === 403) return 'rejected';
     if (!res.ok) return null;
     const json: unknown = await res.json();
     const result = OAuthUsageResponseSchema.safeParse(json);
-    return result.success ? extractSlots(result.data) : null;
+    return result.success ? extractSlots(result.data, Date.now()) : null;
   } catch {
     return null;
   } finally {
@@ -229,11 +300,25 @@ async function fetchOAuthSlots(token: string): Promise<OAuthUsageSlots | null> {
   }
 }
 
-function hasExpiredSlot(slots: OAuthUsageSlots, nowMs: number): boolean {
-  return Object.values(slots).some((slot) => slot != null && slot.resetsAt * 1000 <= nowMs);
+async function fetchOAuthSlots(
+  token: string,
+  cliVersion: string | null | undefined,
+): Promise<OAuthUsageSlots | null> {
+  const res = await requestUsage(OAUTH_USAGE_WITH_RESETS_URL, token, cliVersion);
+  if (res !== 'rejected') return res;
+  // The reset query is an undocumented opt-in; if the server ever refuses it, losing the
+  // reset widget must not cost the Fable/session/weekly bars too.
+  const plain = await requestUsage(OAUTH_USAGE_URL, token, cliVersion);
+  return plain === 'rejected' ? null : plain;
 }
 
-export async function getOAuthUsageSlots(): Promise<OAuthUsageSlots> {
+function hasExpiredSlot(slots: OAuthUsageSlots, nowMs: number): boolean {
+  const { fable, session, weekly } = slots;
+  return [fable, session, weekly].some((slot) => slot != null && slot.resetsAt * 1000 <= nowMs);
+}
+
+/** `cliVersion` is the running Claude Code's version from stdin, for the User-Agent. */
+export async function getOAuthUsageSlots(cliVersion?: string | null): Promise<OAuthUsageSlots> {
   const cache = await readCache();
   const now = Date.now();
   if (cache) {
@@ -249,7 +334,7 @@ export async function getOAuthUsageSlots(): Promise<OAuthUsageSlots> {
     return cache?.slots ?? EMPTY_SLOTS;
   }
 
-  const slots = await fetchOAuthSlots(token);
+  const slots = await fetchOAuthSlots(token, cliVersion);
   if (slots) {
     await writeCache({ fetchedAt: now, slots });
     return slots;
