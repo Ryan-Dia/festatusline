@@ -524,4 +524,64 @@ describe('getOAuthUsageSlots reset pass', () => {
     expect(slots.weekly).toEqual({ usedPercent: 9, resetsAt: 1_900_000_000 });
     expect(slots.resetPass).toBeNull();
   });
+
+  it('does not retry a 403, which is what a token without the scope gets', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({}, false, 403));
+    vi.stubGlobal('fetch', fetchMock);
+    const { getOAuthUsageSlots } = await import('../src/data/claudeOAuthUsage.js');
+    await getOAuthUsageSlots();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('refetches as soon as the earliest reset deadline passes', async () => {
+    // Otherwise a second, later grant would read as 0 until the cache aged out.
+    await fs.mkdir(join(cacheDir, 'festatusline'), { recursive: true });
+    await fs.writeFile(
+      join(cacheDir, 'festatusline', 'oauth_usage.json'),
+      JSON.stringify({
+        fetchedAt: Date.now() - 90_000,
+        slots: {
+          fable: null,
+          session: null,
+          weekly: null,
+          resetPass: { count: 2, expiresAt: Math.floor(Date.now() / 1000) - 30 },
+        },
+      }),
+    );
+    const { slots, fetchMock } = await slotsFor({ cedar_ember: cedarEmber });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(slots.resetPass).toEqual({ count: 1, expiresAt: ENDS_AT });
+  });
+
+  it('treats a cache file of the wrong shape as no cache', async () => {
+    await fs.mkdir(join(cacheDir, 'festatusline'), { recursive: true });
+    await fs.writeFile(join(cacheDir, 'festatusline', 'oauth_usage.json'), '{"fetchedAt":0}');
+    const { slots } = await slotsFor({ cedar_ember: cedarEmber });
+    expect(slots.resetPass).toEqual({ count: 1, expiresAt: ENDS_AT });
+  });
+
+  it('serves a fresh cache without waiting for the CLI version', async () => {
+    await fs.mkdir(join(cacheDir, 'festatusline'), { recursive: true });
+    await fs.writeFile(
+      join(cacheDir, 'festatusline', 'oauth_usage.json'),
+      JSON.stringify({
+        fetchedAt: Date.now(),
+        slots: { fable: null, session: null, weekly: null, resetPass: null },
+      }),
+    );
+    const { getOAuthUsageSlots } = await import('../src/data/claudeOAuthUsage.js');
+    // The version only matters for a fetch; a cache hit must not block on stdin.
+    const never = new Promise<string>(() => {});
+    await expect(getOAuthUsageSlots(never)).resolves.toEqual(EMPTY);
+  });
+
+  it('takes the CLI version as a promise and uses it for the fetch', async () => {
+    const { fetchMock } = await slotsFor({ cedar_ember: cedarEmber }, undefined);
+    fetchMock.mockClear();
+    await fs.rm(join(cacheDir, 'festatusline'), { recursive: true, force: true });
+    const { getOAuthUsageSlots } = await import('../src/data/claudeOAuthUsage.js');
+    await getOAuthUsageSlots(Promise.resolve('2.1.300'));
+    const [, init] = fetchMock.mock.calls[0] as [string, { headers: Record<string, string> }];
+    expect(init.headers['user-agent']).toBe('claude-cli/2.1.300 (external, cli)');
+  });
 });

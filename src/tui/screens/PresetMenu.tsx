@@ -33,7 +33,7 @@ export default function PresetMenu({
       label: t((PRESET_LABEL_KEYS[name] ?? name) as Parameters<typeof t>[0]),
       value: name,
     })),
-    { label: '← 뒤로', value: '__back__' },
+    { label: t('tui.back'), value: '__back__' },
   ];
 
   return (

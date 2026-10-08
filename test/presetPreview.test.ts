@@ -73,6 +73,16 @@ describe('basic / pro / max ladder', () => {
     }
   });
 
+  it('previews in the FESTATUSLINE_LOCALE the statusline itself would use', () => {
+    process.env.FESTATUSLINE_LOCALE = 'en';
+    try {
+      const [daily] = plain('basic', SettingsSchema.parse({ locale: 'ko' }));
+      expect(daily).toMatch(/^Daily /);
+    } finally {
+      delete process.env.FESTATUSLINE_LOCALE;
+    }
+  });
+
   it('translates the row and bar labels but keeps names English', () => {
     const [daily, weekly] = plain('basic', SettingsSchema.parse({ locale: 'ko' }));
     expect(daily).toMatch(/^일간 .*Ctx .*세션 /);

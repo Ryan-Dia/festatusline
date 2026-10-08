@@ -26,7 +26,7 @@ function WidgetAddMode({ firstLine, onCommit, onBack }: ModeProps): React.ReactE
       label: t(w.labelKey),
       value: w.id,
     })),
-    { label: '← 뒤로', value: '__back__' },
+    { label: t('tui.back'), value: '__back__' },
   ];
   return (
     <Box flexDirection="column" padding={1}>
@@ -51,7 +51,7 @@ function WidgetRemoveMode({ firstLine, onCommit, onBack }: ModeProps): React.Rea
       const labelKey = ALL_WIDGETS.find((a) => a.id === w.id)?.labelKey ?? 'widget.model';
       return { label: t(labelKey), value: w.id };
     }),
-    { label: '← 뒤로', value: '__back__' },
+    { label: t('tui.back'), value: '__back__' },
   ];
   return (
     <Box flexDirection="column" padding={1}>
@@ -105,7 +105,7 @@ export default function WidgetEditor({ lines, onSave, onBack }: Props): React.Re
     { label: '+ 위젯 추가', value: 'add' },
     { label: '- 위젯 제거', value: 'remove' },
     { label: '✓ 저장 후 돌아가기', value: 'save' },
-    { label: '← 취소', value: 'back' },
+    { label: t('tui.cancel'), value: 'back' },
   ];
 
   return (

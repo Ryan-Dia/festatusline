@@ -51,7 +51,7 @@ export default function SetupWizard({ initialSettings, onSave }: Props): React.R
         label: t((SETUP_PRESET_LABEL_KEYS[name] ?? name) as Parameters<typeof t>[0]),
         value: name as string,
       })),
-      { label: '← 뒤로', value: '__back__' },
+      { label: t('tui.back'), value: '__back__' },
     ];
 
     return (
@@ -78,7 +78,7 @@ export default function SetupWizard({ initialSettings, onSave }: Props): React.R
   const codexItems = [
     { label: t('tui.setup.codexNo'), value: 'no' as const },
     { label: t('tui.setup.codexYes'), value: 'yes' as const },
-    { label: '← 뒤로', value: '__back__' },
+    { label: t('tui.back'), value: '__back__' },
   ];
 
   return (

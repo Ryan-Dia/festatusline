@@ -127,7 +127,8 @@ export function mergeRateLimits(
 }
 
 export async function renderFromStdin(): Promise<void> {
-  // The OAuth fetch identifies itself with the running Claude Code version from stdin.
+  // The OAuth fetch identifies itself with the running Claude Code version from stdin; it
+  // awaits that only if it actually fetches, so the cache read still overlaps stdin.
   const stdinPromise = readStdin();
   const [
     stdin,
@@ -144,7 +145,7 @@ export async function renderFromStdin(): Promise<void> {
     readClaudeSettings(),
     tryOrNull(getUsageSnapshot),
     tryOrNull(getCodexSnapshot),
-    tryOrNull(async () => getOAuthUsageSlots((await stdinPromise).version)),
+    tryOrNull(() => getOAuthUsageSlots(stdinPromise.then((payload) => payload.version))),
     readRateLimitsCache(),
     tryOrNull(getLastCacheCreation),
   ]);

@@ -62,6 +62,8 @@ export const en: Record<I18nKey, string> = {
   'tui.lang.ko': '한국어',
   'tui.lang.en': 'English',
   'tui.lang.zh': '中文',
+  'tui.back': '← Back',
+  'tui.cancel': '← Cancel',
   'install.success': 'Registered festatusline in Claude Code settings.',
   'install.alreadySet': 'Already registered.',
   'install.currentConfig': '  Current config:',

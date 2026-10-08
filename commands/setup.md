@@ -77,7 +77,8 @@ Ask all questions in a single AskUserQuestion call:
      Opus 5 [high] │ 📁 my-repo(main)
      ```
 2. Theme — `default` (recommended), `dracula`, `nord`, `gruvbox`, `tokyo-night`
-3. Locale — `ko` (recommended), `en`, `zh`
+3. Locale — `en` (recommended, default), `ko`, `zh`. List `en` first so it is the
+   preselected answer.
 4. Codex — add the Codex CLI usage row? This is independent of preset: `basic`, `pro`,
    and `max` can each carry it or not.
    - `No` (default)

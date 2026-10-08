@@ -2,7 +2,7 @@ import { PRESETS, resolveLines } from '../config/presets.js';
 import { SettingsSchema, type Settings, type WidgetCfg } from '../config/schema.js';
 import { renderAllLines } from '../render/line.js';
 import { getTheme } from '../theme/index.js';
-import { createTranslator } from '../i18n/index.js';
+import { createTranslator, envLocale } from '../i18n/index.js';
 import { emptyFamilyTotals } from '../data/modelTier.js';
 import type { RenderContext } from '../widgets/types.js';
 
@@ -65,7 +65,7 @@ function buildPreviewContext(settings: Settings): RenderContext {
     fableRateLimit: { usedPercent: 89, resetsAt: unixAfter(4 * DAY_MS) },
     resetPass: { count: 1, expiresAt: unixAfter(15 * DAY_MS) },
     theme: getTheme(settings.theme),
-    t: createTranslator(settings.locale),
+    t: createTranslator(envLocale() ?? settings.locale),
     now,
     weeklyAnchorDay: settings.weeklyAnchorDay,
     cacheTtlCreatedAt: now.getTime() - 30 * 60 * 1000,

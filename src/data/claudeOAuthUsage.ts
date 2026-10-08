@@ -62,11 +62,11 @@ export interface RateLimitSlot {
 }
 
 // Limit resets the account holds and can spend now (claude.ai's "Reset for free").
-export interface ResetPass {
+export type ResetPass = {
   count: number;
   // Unix seconds of the earliest deadline among the counted resets; null when none counts.
   expiresAt: number | null;
-}
+};
 
 export interface OAuthUsageSlots {
   fable: RateLimitSlot | null;
@@ -249,10 +249,27 @@ async function readAccessToken(): Promise<string | null> {
   return readKeychainToken(configDir);
 }
 
+// A cache file of the wrong shape (hand-edited, another version) reads as no cache; trusting
+// it would throw on every render before a fetch could ever rewrite it.
+const SlotSchema = z.object({ usedPercent: z.number(), resetsAt: z.number() }).nullable();
+
+const CacheEntrySchema = z.object({
+  fetchedAt: z.number(),
+  slots: z.object({
+    fable: SlotSchema,
+    session: SlotSchema,
+    weekly: SlotSchema,
+    // Left out, not null, by caches from before 0.9.0 — getOAuthUsageSlots tells them apart.
+    resetPass: z.object({ count: z.number(), expiresAt: z.number().nullable() }).nullish(),
+  }),
+  failedAt: z.number().optional(),
+});
+
 async function readCache(): Promise<CacheEntry | null> {
   try {
     const raw = await fs.readFile(CACHE_PATH, 'utf8');
-    return JSON.parse(raw) as CacheEntry;
+    const result = CacheEntrySchema.safeParse(JSON.parse(raw));
+    return result.success ? result.data : null;
   } catch {
     return null;
   }
@@ -288,7 +305,9 @@ async function requestUsage(
       redirect: 'error',
       signal: controller.signal,
     });
-    if (res.status === 400 || res.status === 403) return 'rejected';
+    // Only a 400 means the query itself was refused. A 403 is what a token lacking the scope
+    // gets, and repeating the request without the query would just fail again.
+    if (res.status === 400) return 'rejected';
     if (!res.ok) return null;
     const json: unknown = await res.json();
     const result = OAuthUsageResponseSchema.safeParse(json);
@@ -306,19 +325,33 @@ async function fetchOAuthSlots(
 ): Promise<OAuthUsageSlots | null> {
   const res = await requestUsage(OAUTH_USAGE_WITH_RESETS_URL, token, cliVersion);
   if (res !== 'rejected') return res;
-  // The reset query is an undocumented opt-in; if the server ever refuses it, losing the
+  // The reset query is an undocumented opt-in; if the server ever refuses it (400), losing the
   // reset widget must not cost the Fable/session/weekly bars too.
   const plain = await requestUsage(OAUTH_USAGE_URL, token, cliVersion);
   return plain === 'rejected' ? null : plain;
 }
 
 function hasExpiredSlot(slots: OAuthUsageSlots, nowMs: number): boolean {
-  const { fable, session, weekly } = slots;
-  return [fable, session, weekly].some((slot) => slot != null && slot.resetsAt * 1000 <= nowMs);
+  const { fable, session, weekly, resetPass } = slots;
+  const windowEnded = [fable, session, weekly].some(
+    (slot) => slot != null && slot.resetsAt * 1000 <= nowMs,
+  );
+  // The pass carries only its earliest deadline; once that passes, a later grant may still
+  // count, so ask again instead of showing 0 for the rest of the TTL.
+  const passLapsed = resetPass?.expiresAt != null && resetPass.expiresAt * 1000 <= nowMs;
+  return windowEnded || passLapsed;
 }
 
-/** `cliVersion` is the running Claude Code's version from stdin, for the User-Agent. */
-export async function getOAuthUsageSlots(cliVersion?: string | null): Promise<OAuthUsageSlots> {
+type CliVersion = string | null | undefined;
+
+/**
+ * `cliVersion` is the running Claude Code's version from stdin, for the User-Agent. It may be
+ * a promise: it is awaited only when a fetch is actually needed, so a cache hit never waits
+ * on stdin.
+ */
+export async function getOAuthUsageSlots(
+  cliVersion?: CliVersion | Promise<CliVersion>,
+): Promise<OAuthUsageSlots> {
   const cache = await readCache();
   const now = Date.now();
   // A cache written before 0.9.0 has no `resetPass` key at all (0.9.0+ always writes one,
@@ -337,7 +370,7 @@ export async function getOAuthUsageSlots(cliVersion?: string | null): Promise<OA
     return cache?.slots ?? EMPTY_SLOTS;
   }
 
-  const slots = await fetchOAuthSlots(token, cliVersion);
+  const slots = await fetchOAuthSlots(token, await cliVersion);
   if (slots) {
     await writeCache({ fetchedAt: now, slots });
     return slots;

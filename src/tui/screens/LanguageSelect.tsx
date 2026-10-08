@@ -11,7 +11,8 @@ interface Props {
   hideBack?: boolean;
 }
 
-const LOCALES: Locale[] = ['ko', 'en', 'zh'];
+// English first: it is the default locale, so the cursor starts on it.
+const LOCALES: Locale[] = ['en', 'ko', 'zh'];
 
 export default function LanguageSelect({
   current,
@@ -25,7 +26,7 @@ export default function LanguageSelect({
   }));
   const items = hideBack
     ? localeItems
-    : [...localeItems, { label: '← 뒤로', value: '__back__' as Locale | '__back__' }];
+    : [...localeItems, { label: t('tui.back'), value: '__back__' as Locale | '__back__' }];
 
   return (
     <Box flexDirection="column" padding={1}>

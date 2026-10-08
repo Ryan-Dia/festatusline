@@ -17,7 +17,8 @@ export function formatResetPassDeadline(ms: number, t: (key: I18nKey) => string)
   if (ms >= HOUR_MS) {
     return t('resetPass.hoursLeft').replace('{n}', String(Math.floor(ms / HOUR_MS)));
   }
-  const minutes = Math.max(1, Math.ceil(ms / MINUTE_MS));
+  // Rounded down like the hours, so 59m30s reads 59m rather than a 60m between 1h and 59m.
+  const minutes = Math.max(1, Math.floor(ms / MINUTE_MS));
   return t('resetPass.minutesLeft').replace('{n}', String(minutes));
 }
 

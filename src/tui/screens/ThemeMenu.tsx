@@ -16,7 +16,7 @@ export default function ThemeMenu({ current, onSelect, onBack }: Props): React.R
       label: `${name === current ? '✓ ' : '  '}${name}`,
       value: name,
     })),
-    { label: '← 뒤로', value: '__back__' },
+    { label: t('tui.back'), value: '__back__' },
   ];
 
   const theme = themes[current];

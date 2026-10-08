@@ -74,6 +74,10 @@ if (cli) {
 export async function writeLauncher(fallbackCli: string): Promise<string> {
   const target = launcherPath();
   await fs.promises.mkdir(path.dirname(target), { recursive: true });
-  await fs.promises.writeFile(target, launcherSource(fallbackCli), 'utf8');
+  // Claude Code may run the launcher mid-write (every message, every refresh); writing beside
+  // it and renaming swaps it in one step, so a render never loads a truncated file.
+  const temp = `${target}.${process.pid}.tmp`;
+  await fs.promises.writeFile(temp, launcherSource(fallbackCli), 'utf8');
+  await fs.promises.rename(temp, target);
   return `node ${JSON.stringify(target)}`;
 }

@@ -43,6 +43,8 @@ describe('formatResetPassDeadline', () => {
     expect(formatResetPassDeadline(5.5 * HOUR * 1000, en)).toBe('5h left');
     expect(formatResetPassDeadline(42 * 60 * 1000, en)).toBe('42m left');
     expect(formatResetPassDeadline(10 * 1000, en)).toBe('1m left');
+    // Just under an hour reads 59m, not a 60m that would sit between 1h and 59m.
+    expect(formatResetPassDeadline(59.5 * 60 * 1000, en)).toBe('59m left');
   });
 
   it('localises the sub-day forms', () => {

@@ -60,6 +60,8 @@ export const ko = {
   'tui.lang.ko': '한국어',
   'tui.lang.en': 'English',
   'tui.lang.zh': '中文',
+  'tui.back': '← 뒤로',
+  'tui.cancel': '← 취소',
   'install.success': 'Claude Code 설정에 festatusline 을 등록했습니다.',
   'install.alreadySet': '이미 등록되어 있습니다.',
   'install.currentConfig': '  현재 설정:',
