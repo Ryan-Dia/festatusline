@@ -4646,6 +4646,8 @@ var ko = {
   "tui.lang.ko": "\uD55C\uAD6D\uC5B4",
   "tui.lang.en": "English",
   "tui.lang.zh": "\u4E2D\u6587",
+  "tui.back": "\u2190 \uB4A4\uB85C",
+  "tui.cancel": "\u2190 \uCDE8\uC18C",
   "install.success": "Claude Code \uC124\uC815\uC5D0 festatusline \uC744 \uB4F1\uB85D\uD588\uC2B5\uB2C8\uB2E4.",
   "install.alreadySet": "\uC774\uBBF8 \uB4F1\uB85D\uB418\uC5B4 \uC788\uC2B5\uB2C8\uB2E4.",
   "install.currentConfig": "  \uD604\uC7AC \uC124\uC815:",
@@ -4719,6 +4721,8 @@ var en = {
   "tui.lang.ko": "\uD55C\uAD6D\uC5B4",
   "tui.lang.en": "English",
   "tui.lang.zh": "\u4E2D\u6587",
+  "tui.back": "\u2190 Back",
+  "tui.cancel": "\u2190 Cancel",
   "install.success": "Registered festatusline in Claude Code settings.",
   "install.alreadySet": "Already registered.",
   "install.currentConfig": "  Current config:",
@@ -4792,6 +4796,8 @@ var zh = {
   "tui.lang.ko": "\uD55C\uAD6D\uC5B4",
   "tui.lang.en": "English",
   "tui.lang.zh": "\u4E2D\u6587",
+  "tui.back": "\u2190 \u8FD4\u56DE",
+  "tui.cancel": "\u2190 \u53D6\u6D88",
   "install.success": "\u5DF2\u5C06 festatusline \u6CE8\u518C\u5230 Claude Code \u8BBE\u7F6E\u3002",
   "install.alreadySet": "\u5DF2\u6CE8\u518C\u3002",
   "install.currentConfig": "  \u5F53\u524D\u914D\u7F6E\uFF1A",
@@ -5924,7 +5930,7 @@ function formatResetPassDeadline(ms, t2) {
   if (ms >= HOUR_MS) {
     return t2("resetPass.hoursLeft").replace("{n}", String(Math.floor(ms / HOUR_MS)));
   }
-  const minutes = Math.max(1, Math.ceil(ms / MINUTE_MS));
+  const minutes = Math.max(1, Math.floor(ms / MINUTE_MS));
   return t2("resetPass.minutesLeft").replace("{n}", String(minutes));
 }
 var ResetPassWidget = {
@@ -6027,4 +6033,4 @@ export {
   ALL_WIDGETS,
   renderAllLines
 };
-//# sourceMappingURL=chunk-LRXODJC7.js.map
+//# sourceMappingURL=chunk-ZKS4X4GD.js.map

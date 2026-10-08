@@ -12,6 +12,37 @@ summarised under [Earlier](#earlier).
 
 ## [Unreleased]
 
+## [0.11.1] - 2026-10-08
+
+### Changed
+
+- `en` is now the recommended, preselected language in `/festatusline:setup` and first in the
+  TUI language menu. It was already the default when no locale was given, but the question
+  recommended `ko`.
+- The TUI's back and cancel entries are translated. They were hard-coded `← 뒤로` / `← 취소`
+  in every locale.
+
+### Fixed
+
+- `/festatusline:update` no longer resets a tuned `statusLine`. 0.11.0 had it run
+  `install --force`, which replaced the whole object, so `refreshIntervalMs`, `padding` and
+  other fields reverted on every update. `install` now merges: it sets `type` and `command`,
+  and fills `refreshIntervalMs` only when absent.
+- `install` run through the launcher no longer makes the launcher fall back to itself, which
+  left the statusline blank. The fallback is the `cli.js` beside the bundle.
+- The launcher is replaced atomically (write a temp file, then rename), so a statusline refresh
+  during `/festatusline:update` can't load a half-written file.
+- With several reset grants, the pass no longer reads 0 for up to five minutes after the
+  earliest one expires. Reaching that deadline now triggers a refetch, like an ended window.
+- A usage cache file of the wrong shape is treated as no cache. Before, it threw on every
+  render and the Fable bar and reset pass stayed gone until the file was deleted.
+- The last hour before a reset deadline counts down `59m`, never `60m`.
+- The OAuth cache read no longer waits for stdin; the Claude Code version is awaited only when
+  a fetch actually happens.
+- A 403 from the usage endpoint is not retried without the reset query. A token missing the
+  scope gets 403 either way, so the retry only doubled the failing requests. 400 still retries.
+- The TUI preview follows `FESTATUSLINE_LOCALE` like the statusline does.
+
 ## [0.11.0] - 2026-10-08
 
 ### Added

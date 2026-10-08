@@ -3,7 +3,7 @@ import {
   LanguageSelect,
   PresetPreview,
   saveSettings
-} from "./chunk-EUGBAH76.js";
+} from "./chunk-MNS6XVIW.js";
 import {
   ALL_WIDGETS,
   PRESETS,
@@ -15,7 +15,7 @@ import {
   setLocale,
   t,
   themes
-} from "./chunk-LRXODJC7.js";
+} from "./chunk-ZKS4X4GD.js";
 
 // src/tui/index.ts
 import React6 from "react";
@@ -64,7 +64,7 @@ function PresetMenu({
       label: t(PRESET_LABEL_KEYS[name] ?? name),
       value: name
     })),
-    { label: "\u2190 \uB4A4\uB85C", value: "__back__" }
+    { label: t("tui.back"), value: "__back__" }
   ];
   return /* @__PURE__ */ React2.createElement(Box2, { flexDirection: "column", padding: 1 }, /* @__PURE__ */ React2.createElement(Text, { bold: true }, t("tui.mainMenu.selectPreset")), /* @__PURE__ */ React2.createElement(
     SelectInput2,
@@ -99,7 +99,7 @@ function ThemeMenu({ current, onSelect, onBack }) {
       label: `${name === current ? "\u2713 " : "  "}${name}`,
       value: name
     })),
-    { label: "\u2190 \uB4A4\uB85C", value: "__back__" }
+    { label: t("tui.back"), value: "__back__" }
   ];
   const theme = themes[current];
   return /* @__PURE__ */ React3.createElement(Box3, { flexDirection: "column", padding: 1 }, /* @__PURE__ */ React3.createElement(Text2, { bold: true }, t("tui.mainMenu.selectTheme")), theme && /* @__PURE__ */ React3.createElement(Text2, { color: theme.accent }, `accent: ${theme.accent}  warn: ${theme.warn}  danger: ${theme.danger}`), /* @__PURE__ */ React3.createElement(
@@ -128,7 +128,7 @@ function WidgetAddMode({ firstLine, onCommit, onBack }) {
       label: t(w.labelKey),
       value: w.id
     })),
-    { label: "\u2190 \uB4A4\uB85C", value: "__back__" }
+    { label: t("tui.back"), value: "__back__" }
   ];
   return /* @__PURE__ */ React4.createElement(Box4, { flexDirection: "column", padding: 1 }, /* @__PURE__ */ React4.createElement(Text3, { bold: true }, "\uC704\uC82F \uCD94\uAC00"), /* @__PURE__ */ React4.createElement(
     SelectInput4,
@@ -150,7 +150,7 @@ function WidgetRemoveMode({ firstLine, onCommit, onBack }) {
       const labelKey = ALL_WIDGETS.find((a) => a.id === w.id)?.labelKey ?? "widget.model";
       return { label: t(labelKey), value: w.id };
     }),
-    { label: "\u2190 \uB4A4\uB85C", value: "__back__" }
+    { label: t("tui.back"), value: "__back__" }
   ];
   return /* @__PURE__ */ React4.createElement(Box4, { flexDirection: "column", padding: 1 }, /* @__PURE__ */ React4.createElement(Text3, { bold: true }, "\uC704\uC82F \uC81C\uAC70"), /* @__PURE__ */ React4.createElement(
     SelectInput4,
@@ -198,7 +198,7 @@ function WidgetEditor({ lines, onSave, onBack }) {
     { label: "+ \uC704\uC82F \uCD94\uAC00", value: "add" },
     { label: "- \uC704\uC82F \uC81C\uAC70", value: "remove" },
     { label: "\u2713 \uC800\uC7A5 \uD6C4 \uB3CC\uC544\uAC00\uAE30", value: "save" },
-    { label: "\u2190 \uCDE8\uC18C", value: "back" }
+    { label: t("tui.cancel"), value: "back" }
   ];
   return /* @__PURE__ */ React4.createElement(Box4, { flexDirection: "column", padding: 1 }, /* @__PURE__ */ React4.createElement(Text3, { bold: true }, "\uC704\uC82F \uD3B8\uC9D1"), /* @__PURE__ */ React4.createElement(Text3, { dimColor: true }, firstLine.map((w) => w.id).join(" \u2502 ")), /* @__PURE__ */ React4.createElement(
     SelectInput4,
@@ -313,4 +313,4 @@ async function runTui() {
 export {
   runTui
 };
-//# sourceMappingURL=tui-OXARIPXI.js.map
+//# sourceMappingURL=tui-LLPAVSL2.js.map

@@ -21,7 +21,7 @@ import {
   source_default,
   t,
   weightedCost
-} from "./chunk-LRXODJC7.js";
+} from "./chunk-ZKS4X4GD.js";
 
 // src/render/index.ts
 import { promises as fs4 } from "fs";
@@ -504,10 +504,23 @@ async function readAccessToken() {
   }
   return readKeychainToken(configDir);
 }
+var SlotSchema = external_exports.object({ usedPercent: external_exports.number(), resetsAt: external_exports.number() }).nullable();
+var CacheEntrySchema = external_exports.object({
+  fetchedAt: external_exports.number(),
+  slots: external_exports.object({
+    fable: SlotSchema,
+    session: SlotSchema,
+    weekly: SlotSchema,
+    // Left out, not null, by caches from before 0.9.0 — getOAuthUsageSlots tells them apart.
+    resetPass: external_exports.object({ count: external_exports.number(), expiresAt: external_exports.number().nullable() }).nullish()
+  }),
+  failedAt: external_exports.number().optional()
+});
 async function readCache() {
   try {
     const raw = await fs2.readFile(CACHE_PATH, "utf8");
-    return JSON.parse(raw);
+    const result = CacheEntrySchema.safeParse(JSON.parse(raw));
+    return result.success ? result.data : null;
   } catch {
     return null;
   }
@@ -536,7 +549,7 @@ async function requestUsage(url, token, cliVersion) {
       redirect: "error",
       signal: controller.signal
     });
-    if (res.status === 400 || res.status === 403) return "rejected";
+    if (res.status === 400) return "rejected";
     if (!res.ok) return null;
     const json = await res.json();
     const result = OAuthUsageResponseSchema.safeParse(json);
@@ -554,8 +567,12 @@ async function fetchOAuthSlots(token, cliVersion) {
   return plain === "rejected" ? null : plain;
 }
 function hasExpiredSlot(slots, nowMs) {
-  const { fable, session, weekly } = slots;
-  return [fable, session, weekly].some((slot) => slot != null && slot.resetsAt * 1e3 <= nowMs);
+  const { fable, session, weekly, resetPass } = slots;
+  const windowEnded = [fable, session, weekly].some(
+    (slot) => slot != null && slot.resetsAt * 1e3 <= nowMs
+  );
+  const passLapsed = resetPass?.expiresAt != null && resetPass.expiresAt * 1e3 <= nowMs;
+  return windowEnded || passLapsed;
 }
 async function getOAuthUsageSlots(cliVersion) {
   const cache2 = await readCache();
@@ -571,7 +588,7 @@ async function getOAuthUsageSlots(cliVersion) {
   if (!token) {
     return cache2?.slots ?? EMPTY_SLOTS;
   }
-  const slots = await fetchOAuthSlots(token, cliVersion);
+  const slots = await fetchOAuthSlots(token, await cliVersion);
   if (slots) {
     await writeCache({ fetchedAt: now, slots });
     return slots;
@@ -676,7 +693,7 @@ async function renderFromStdin() {
     readClaudeSettings(),
     tryOrNull(getUsageSnapshot),
     tryOrNull(getCodexSnapshot),
-    tryOrNull(async () => getOAuthUsageSlots((await stdinPromise).version)),
+    tryOrNull(() => getOAuthUsageSlots(stdinPromise.then((payload) => payload.version))),
     readRateLimitsCache(),
     tryOrNull(getLastCacheCreation)
   ]);
@@ -721,6 +738,7 @@ async function renderFromStdin() {
 // src/config/install.ts
 import fs6 from "fs";
 import path4 from "path";
+import { fileURLToPath } from "url";
 
 // src/config/launcher.ts
 import fs5 from "fs";
@@ -787,7 +805,9 @@ if (cli) {
 async function writeLauncher(fallbackCli) {
   const target = launcherPath();
   await fs5.promises.mkdir(path3.dirname(target), { recursive: true });
-  await fs5.promises.writeFile(target, launcherSource(fallbackCli), "utf8");
+  const temp = `${target}.${process.pid}.tmp`;
+  await fs5.promises.writeFile(temp, launcherSource(fallbackCli), "utf8");
+  await fs5.promises.rename(temp, target);
   return `node ${JSON.stringify(target)}`;
 }
 
@@ -795,6 +815,12 @@ async function writeLauncher(fallbackCli) {
 var ClaudeSettingsSchema2 = external_exports.object({ statusLine: external_exports.record(external_exports.unknown()).optional() }).catchall(external_exports.unknown());
 function getClaudeSettingsPath() {
   return path4.join(getClaudeDir(), "settings.json");
+}
+function fallbackCliPath() {
+  const besideBundle = path4.join(path4.dirname(fileURLToPath(import.meta.url)), "cli.js");
+  if (fs6.existsSync(besideBundle)) return besideBundle;
+  const invoked = process.argv[1] ? path4.resolve(process.argv[1]) : "";
+  return invoked === launcherPath() ? "" : invoked;
 }
 async function installToClaude(force = false) {
   const settingsPath = getClaudeSettingsPath();
@@ -819,11 +845,12 @@ async function installToClaude(force = false) {
     await fs6.promises.writeFile(backup, `${JSON.stringify(current, null, 2)}
 `, "utf8");
   }
-  const command = await writeLauncher(path4.resolve(process.argv[1] ?? ""));
+  const command = await writeLauncher(fallbackCliPath());
   current.statusLine = {
+    refreshIntervalMs: 6e4,
+    ...current.statusLine,
     type: "command",
-    command,
-    refreshIntervalMs: 6e4
+    command
   };
   await fs6.promises.mkdir(path4.dirname(settingsPath), { recursive: true });
   await fs6.promises.writeFile(settingsPath, `${JSON.stringify(current, null, 2)}
@@ -866,7 +893,7 @@ function isLocale(v) {
 }
 var commands = {
   setup: async () => {
-    const { runSetupWizard } = await import("./setup-LSHRFS6A.js");
+    const { runSetupWizard } = await import("./setup-WGYF5C6O.js");
     return runSetupWizard();
   },
   install: (args) => installToClaude(args.includes("--force")),
@@ -883,7 +910,7 @@ async function dispatch(argv) {
     await renderFromStdin();
     return;
   }
-  const { runTui } = await import("./tui-OXARIPXI.js");
+  const { runTui } = await import("./tui-LLPAVSL2.js");
   await runTui();
 }
 async function main() {

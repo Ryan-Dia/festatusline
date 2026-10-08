@@ -4,12 +4,13 @@ import {
   SettingsSchema,
   createTranslator,
   emptyFamilyTotals,
+  envLocale,
   getConfigPath,
   getTheme,
   renderAllLines,
   resolveLines,
   t
-} from "./chunk-LRXODJC7.js";
+} from "./chunk-ZKS4X4GD.js";
 
 // src/config/save.ts
 import fs from "fs";
@@ -25,7 +26,7 @@ async function saveSettings(settings) {
 import React from "react";
 import { Box, Text } from "ink";
 import SelectInput from "ink-select-input";
-var LOCALES = ["ko", "en", "zh"];
+var LOCALES = ["en", "ko", "zh"];
 function LanguageSelect({
   current,
   onSelect,
@@ -36,7 +37,7 @@ function LanguageSelect({
     label: `${l === current ? "\u2713 " : "  "}${t(`tui.lang.${l}`)}`,
     value: l
   }));
-  const items = hideBack ? localeItems : [...localeItems, { label: "\u2190 \uB4A4\uB85C", value: "__back__" }];
+  const items = hideBack ? localeItems : [...localeItems, { label: t("tui.back"), value: "__back__" }];
   return /* @__PURE__ */ React.createElement(Box, { flexDirection: "column", padding: 1 }, /* @__PURE__ */ React.createElement(Text, { bold: true }, t("tui.mainMenu.selectLanguage")), /* @__PURE__ */ React.createElement(
     SelectInput,
     {
@@ -112,7 +113,7 @@ function buildPreviewContext(settings) {
     fableRateLimit: { usedPercent: 89, resetsAt: unixAfter(4 * DAY_MS) },
     resetPass: { count: 1, expiresAt: unixAfter(15 * DAY_MS) },
     theme: getTheme(settings.theme),
-    t: createTranslator(settings.locale),
+    t: createTranslator(envLocale() ?? settings.locale),
     now,
     weeklyAnchorDay: settings.weeklyAnchorDay,
     cacheTtlCreatedAt: now.getTime() - 30 * 60 * 1e3,
@@ -155,4 +156,4 @@ export {
   LanguageSelect,
   PresetPreview
 };
-//# sourceMappingURL=chunk-EUGBAH76.js.map
+//# sourceMappingURL=chunk-MNS6XVIW.js.map

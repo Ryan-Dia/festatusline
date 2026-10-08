@@ -3,7 +3,7 @@ import {
   LanguageSelect,
   PresetPreview,
   saveSettings
-} from "./chunk-EUGBAH76.js";
+} from "./chunk-MNS6XVIW.js";
 import {
   PRESETS,
   SettingsSchema,
@@ -12,7 +12,7 @@ import {
   setLocale,
   t,
   withCodexRow
-} from "./chunk-LRXODJC7.js";
+} from "./chunk-ZKS4X4GD.js";
 
 // src/tui/setup.ts
 import React2 from "react";
@@ -57,7 +57,7 @@ function SetupWizard({ initialSettings, onSave }) {
         label: t(SETUP_PRESET_LABEL_KEYS[name] ?? name),
         value: name
       })),
-      { label: "\u2190 \uB4A4\uB85C", value: "__back__" }
+      { label: t("tui.back"), value: "__back__" }
     ];
     return /* @__PURE__ */ React.createElement(Box, { flexDirection: "column", padding: 1 }, /* @__PURE__ */ React.createElement(Text, { bold: true }, t("tui.mainMenu.selectPreset")), /* @__PURE__ */ React.createElement(
       SelectInput,
@@ -79,7 +79,7 @@ function SetupWizard({ initialSettings, onSave }) {
   const codexItems = [
     { label: t("tui.setup.codexNo"), value: "no" },
     { label: t("tui.setup.codexYes"), value: "yes" },
-    { label: "\u2190 \uB4A4\uB85C", value: "__back__" }
+    { label: t("tui.back"), value: "__back__" }
   ];
   return /* @__PURE__ */ React.createElement(Box, { flexDirection: "column", padding: 1 }, /* @__PURE__ */ React.createElement(Text, { bold: true }, t("tui.setup.codexQuestion")), /* @__PURE__ */ React.createElement(
     SelectInput,
@@ -124,4 +124,4 @@ async function runSetupWizard() {
 export {
   runSetupWizard
 };
-//# sourceMappingURL=setup-LSHRFS6A.js.map
+//# sourceMappingURL=setup-WGYF5C6O.js.map
