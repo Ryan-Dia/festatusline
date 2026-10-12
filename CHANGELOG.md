@@ -12,6 +12,22 @@ summarised under [Earlier](#earlier).
 
 ## [Unreleased]
 
+## [0.12.1] - 2026-10-12
+
+### Fixed
+
+- Setups from before 0.11.0 now move onto the launcher by themselves, so a plain
+  `/plugin update` is enough. Their `statusLine` points straight at one version's cache
+  folder, which `/plugin update` never changed: the old version kept running, and the
+  statusline went blank once Claude Code cleaned up that orphaned folder. The old code can't
+  be fixed, so the new version carries a SessionStart hook that repoints `statusLine` at the
+  launcher. It writes a few seconds after startup, from a detached process, because Claude
+  Code reads `statusLine` at startup and only then starts watching settings.json — a change
+  made during the hook went unseen for the whole session (observed on 2.1.296), while a later
+  one is picked up live. It prints nothing (a SessionStart hook's output reaches Claude's
+  context), touches only a statusLine pinned to a festatusline version, and never rewrites a
+  settings.json it can't parse.
+
 ## [0.12.0] - 2026-10-12
 
 ### Changed

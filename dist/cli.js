@@ -23,6 +23,9 @@ import {
   weightedCost
 } from "./chunk-GQ7K7YQS.js";
 
+// src/cli.ts
+import { setTimeout as sleep } from "timers/promises";
+
 // src/render/index.ts
 import { promises as fs4 } from "fs";
 import { homedir as homedir2 } from "os";
@@ -886,6 +889,55 @@ async function runDoctor() {
   );
 }
 
+// src/config/migrate.ts
+import { spawn } from "child_process";
+import fs8 from "fs";
+import path6 from "path";
+var VERSIONED_CLI_RE = /[\\/]plugins[\\/]cache[\\/]festatusline[\\/]festatusline[\\/][^\\/"']+[\\/]dist[\\/]cli\.js/;
+function isRecord(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+function pointsAtVersionedCli(command) {
+  return typeof command === "string" && VERSIONED_CLI_RE.test(command);
+}
+var MIGRATE_DELAY_MS = 5e3;
+async function readSettings(settingsPath) {
+  try {
+    const parsed = JSON.parse(await fs8.promises.readFile(settingsPath, "utf8"));
+    return isRecord(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+function pinned(settings) {
+  return isRecord(settings?.statusLine) && pointsAtVersionedCli(settings?.statusLine.command);
+}
+async function scheduleMigration(cliPath) {
+  if (!pinned(await readSettings(getClaudeSettingsPath()))) return false;
+  spawn(process.execPath, [cliPath, "migrate", "--now"], {
+    detached: true,
+    stdio: "ignore"
+  }).unref();
+  return true;
+}
+async function migrateStatusLine() {
+  const settingsPath = getClaudeSettingsPath();
+  const current = await readSettings(settingsPath);
+  if (!pinned(current)) return false;
+  const command = await writeLauncher(fallbackCliPath());
+  const next = {
+    ...current,
+    statusLine: { refreshIntervalMs: 6e4, ...current.statusLine, type: "command", command }
+  };
+  const target = await fs8.promises.realpath(settingsPath);
+  const { mode } = await fs8.promises.stat(target);
+  const temp = path6.join(path6.dirname(target), `.settings.json.${process.pid}.tmp`);
+  await fs8.promises.writeFile(temp, `${JSON.stringify(next, null, 2)}
+`, { mode });
+  await fs8.promises.rename(temp, target);
+  return true;
+}
+
 // src/cli.ts
 source_default.level = 3;
 function isLocale(v) {
@@ -897,7 +949,17 @@ var commands = {
     return runSetupWizard();
   },
   install: (args) => installToClaude(args.includes("--force")),
-  doctor: () => runDoctor()
+  doctor: () => runDoctor(),
+  // Run by the plugin's SessionStart hook on every start. Silent and never failing: a hook's
+  // stdout lands in Claude's context, and a stale statusLine is no reason to bother anyone.
+  migrate: async (args) => {
+    if (args.includes("--now")) {
+      await sleep(MIGRATE_DELAY_MS);
+      await migrateStatusLine().catch(() => false);
+      return;
+    }
+    await scheduleMigration(process.argv[1] ?? "").catch(() => false);
+  }
 };
 async function dispatch(argv) {
   const [, , sub, ...rest] = argv;
