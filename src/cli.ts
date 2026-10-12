@@ -1,7 +1,9 @@
 import chalk from 'chalk';
+import { setTimeout as sleep } from 'timers/promises';
 import { renderFromStdin } from './render/index.js';
 import { installToClaude } from './config/install.js';
 import { runDoctor } from './config/doctor.js';
+import { MIGRATE_DELAY_MS, migrateStatusLine, scheduleMigration } from './config/migrate.js';
 import { loadSettings } from './config/load.js';
 import { setLocale, type Locale } from './i18n/index.js';
 
@@ -23,6 +25,17 @@ const commands: Record<string, Command> = {
   },
   install: (args) => installToClaude(args.includes('--force')),
   doctor: () => runDoctor(),
+  // Run by the plugin's SessionStart hook on every start. Silent and never failing: a hook's
+  // stdout lands in Claude's context, and a stale statusLine is no reason to bother anyone.
+  migrate: async (args) => {
+    if (args.includes('--now')) {
+      await sleep(MIGRATE_DELAY_MS);
+      await migrateStatusLine().catch(() => false);
+      return;
+    }
+    // The hook runs this as `node <plugin>/dist/cli.js migrate`, so argv[1] is that same CLI.
+    await scheduleMigration(process.argv[1] ?? '').catch(() => false);
+  },
 };
 
 async function dispatch(argv: string[]): Promise<void> {

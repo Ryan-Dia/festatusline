@@ -66,8 +66,9 @@ The setup command writes the following into `~/.claude/settings.json`:
 
 `statusline.mjs` is a small launcher that looks up the installed plugin version on every
 run, so `statusLine` never has to change when festatusline updates. Setups from before 0.11.0
-pointed at one version's cache folder directly; `/festatusline:update` moves them to the
-launcher once, and that one time needs a Claude Code restart.
+pointed at one version's cache folder directly. From 0.12.1 the plugin moves them to the
+launcher by itself: after any update — `/plugin update` included — restart Claude Code once,
+and a few seconds into that session the new version takes over, with no command to run.
 
 ---
 

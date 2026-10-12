@@ -12,7 +12,7 @@ const ClaudeSettingsSchema = z
 
 type ClaudeSettingsFile = z.infer<typeof ClaudeSettingsSchema>;
 
-function getClaudeSettingsPath(): string {
+export function getClaudeSettingsPath(): string {
   return path.join(getClaudeDir(), 'settings.json');
 }
 
@@ -21,7 +21,7 @@ function getClaudeSettingsPath(): string {
  * beside the bundle chunk running this code; `argv[1]` is the backup for anything else, but
  * never when it is the launcher itself (`install` run through it), which would import itself.
  */
-function fallbackCliPath(): string {
+export function fallbackCliPath(): string {
   const besideBundle = path.join(path.dirname(fileURLToPath(import.meta.url)), 'cli.js');
   if (fs.existsSync(besideBundle)) return besideBundle;
   const invoked = process.argv[1] ? path.resolve(process.argv[1]) : '';

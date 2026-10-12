@@ -120,6 +120,22 @@ npm 에 발행하지 않는다. 배포 경로는 GitHub 플러그인 마켓플�
    설치 시점 CLI 순으로 찾아 실행하므로 **경로 교체도 재시작도 필요 없다**. 런처는 `install`
    이 쓴다 (`/festatusline:setup`·`/festatusline:update` 가 `install --force` 를 호출).
 
+### 0.11.0 이전 사용자 자동 이전 (`hooks/hooks.json` + `src/config/migrate.ts`, 0.12.1~)
+
+- 0.11.0 이전 셋업의 `statusLine` 은 `.../plugins/cache/festatusline/festatusline/<버전>/dist/cli.js`
+  를 직접 가리킨다. `/plugin update` 는 이 경로를 안 바꾸므로 옛 버전이 계속 돌고, Claude Code 가
+  옛 폴더에 `.orphaned_at` 을 찍었다가 지우면 상태바가 **통째로 빈다**. 옛 버전 코드는 고칠 수 없으니
+  새 버전 쪽에서 플러그인 **SessionStart 훅**(`startup|resume`)으로 `dist/cli.js migrate` 를 돌려 런처로
+  옮긴다.
+- **훅 안에서 바로 쓰면 안 된다.** Claude Code 는 시작할 때 `statusLine` 을 읽고 그 뒤에야
+  settings.json 감시를 시작해서, 훅 실행 중 바꾼 값은 그 세션에 반영되지 않았다 (2.1.296 실측: 옛
+  명령이 세션 내내 렌더됨). 시작 후 바꾼 값은 즉시 반영된다. 그래서 `migrate` 는 고정 경로일 때만
+  분리된 `migrate --now` 를 띄우고 바로 끝나며, 그 자식이 5초(`MIGRATE_DELAY_MS`) 뒤에 쓴다.
+  expect 로 띄운 실제 대화형 세션에서 옛 상태바 1회 → 새 상태바로 바뀌는 것까지 확인했다.
+- 훅 stdout 은 Claude 컨텍스트로 들어가므로 **아무것도 출력하지 않는다.** 실패도 전부 삼킨다.
+- `installToClaude` 와 달리 settings.json 을 **파싱하지 못하면 절대 쓰지 않는다** (자동 실행이라 빈
+  객체로 덮어쓰면 사용자 설정이 날아간다). 심볼릭 링크는 실제 파일에 쓰고 권한도 유지한다.
+
 플러그인 설치·업데이트는 Release 가 아니라 **`main` 브랜치의 `dist/` 와 마켓플레이스 JSON 버전**을
 보므로, Release 는 사람이 변경 내역을 읽는 용도다. 빠뜨려도 `/plugin update` 는 동작한다.
 
