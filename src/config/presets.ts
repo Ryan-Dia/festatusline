@@ -5,7 +5,9 @@ import { detectLegacyPreset } from './legacyPresets.js';
 // row's third slot sits under the daily row's `Session` bar; `fableWeeklyRateLimit` hides
 // itself when there is no Fable data, so this stays a two-column row for everyone else.
 // minimal reuses the weekly row too, so the default layout shows Fable as well.
-// Sits at the far right of the bottom info row, after the repo/branch where a tier has one.
+// Every preset carries it. It sits at the far right of the bottom info row, after the
+// repo/branch where a tier has one; basic has no such row, so it ends the weekly row instead,
+// next to the limits it resets. Appended, it leaves the column alignment untouched.
 const RESET_PASS = { id: 'resetPass' };
 
 const DAILY_ROW = [{ id: 'dailyUsage' }, { id: 'context' }, { id: 'sessionRateLimit' }];
@@ -64,10 +66,10 @@ export const PRESETS: Record<string, Partial<Settings>> = {
     ],
   },
   'multi-cli': {
-    lines: [[{ id: 'model' }, { id: 'dailyUsage' }, { id: 'gptUsage' }]],
+    lines: [[{ id: 'model' }, { id: 'dailyUsage' }, { id: 'gptUsage' }, RESET_PASS]],
   },
   basic: {
-    lines: [DAILY_ROW, WEEKLY_ROW],
+    lines: [DAILY_ROW, [...WEEKLY_ROW, RESET_PASS]],
   },
   pro: {
     lines: [

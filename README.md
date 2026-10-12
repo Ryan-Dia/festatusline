@@ -253,14 +253,15 @@ Select a theme in the TUI or set `"theme"` in settings.json.
 
 | Preset | Lines | Highlights |
 |---|---|---|
-| `basic` | 2 | daily row / weekly row |
-| `pro` | 4 | basic + spacer + `model` + `gitRepo` |
+| `basic` | 2 | daily row / weekly row + `resetPass` |
+| `pro` | 4 | daily + weekly rows + spacer + `model` + `gitRepo` + `resetPass` |
 | `max` | 5 | pro + `cacheHit` + `cacheTtl` + `sessionCost` row |
 
 The daily row is `dailyUsage` + `context` + `sessionRateLimit`, and the weekly row is
 `weeklyUsage` + `weeklyRateLimit` + `fableWeeklyRateLimit` — each column is padded to sit under
 the one above it. The `Fable` bar hides itself where that data isn't available, leaving a
-two-column weekly row.
+two-column weekly row. Every preset shows `resetPass`: at the end of the bottom row, or in `basic`,
+which has none, at the end of the weekly row.
 
 Apply a preset via `/festatusline:setup` in Claude Code. The setup wizard and the preset menu both
 render a live preview of the highlighted preset — sample usage numbers, your current theme and

@@ -81,6 +81,12 @@ describe('detectLegacyPreset', () => {
 });
 
 describe('preset definitions', () => {
+  it('puts the reset pass in every preset', () => {
+    for (const name of Object.keys(PRESETS)) {
+      expect(ids(expandPreset(name)).flat(), name).toContain('resetPass');
+    }
+  });
+
   it('gives minimal, basic, pro, and max the Fable bar via the shared weekly row', () => {
     for (const name of ['minimal', 'basic', 'pro', 'max']) {
       const weeklyRow = PRESETS[name]?.lines?.[1]?.map((w) => w.id) ?? [];

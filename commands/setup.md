@@ -32,6 +32,7 @@ Configure the festatusline status line plugin.
 | `gptUsage` | Today's Codex CLI request count |
 | `weeklyRateLimit` | Weekly rate limit status |
 | `fableWeeklyRateLimit` | Fable's own weekly quota (hidden when unavailable) |
+| `resetPass` | Limit resets held + time to the earliest expiry (in every preset) |
 | `cacheHit` | Prompt cache hit rate |
 | `cacheTtl` | Cache TTL remaining time |
 | `sessionCost` | Estimated session cost |
@@ -53,19 +54,19 @@ Configure the festatusline status line plugin.
 
 Ask all questions in a single AskUserQuestion call:
 1. Preset — options with descriptions and multi-line previews showing the exact layout:
-   - `basic` (2 lines): daily row + weekly row only
+   - `basic` (2 lines): daily row + weekly row, reset pass at the end of the weekly row
      preview (use actual newlines \n between lines):
      ```
      Daily   │ Ctx ■■■□□□□□□□  38% (75K/200K)  │ Session ■■■□□□□□□□  30% (3h 0m)
-     Weekly  │ all ■■□□□□□□□□  25% (4d 0h)     │ Fable   ■■■■■■■■□□  89% (4d 0h)
+     Weekly  │ all ■■□□□□□□□□  25% (4d 0h)     │ Fable   ■■■■■■■■□□  89% (4d 0h) │ 🎟 Reset 1 · D-15
      ```
-   - `pro` (4 lines, recommended): basic + spacer + model/repo line
+   - `pro` (4 lines, recommended): daily + weekly rows + spacer + model/repo/reset pass line
      preview:
      ```
      Daily   │ Ctx ■■■□□□□□□□  38% (75K/200K)  │ Session ■■■□□□□□□□  30% (3h 0m)
      Weekly  │ all ■■□□□□□□□□  25% (4d 0h)     │ Fable   ■■■■■■■■□□  89% (4d 0h)
 
-     Opus 5 [high] │ 📁 my-repo(main)
+     Opus 5 [high] │ 📁 my-repo(main) │ 🎟 Reset 1 · D-15
      ```
    - `max` (5 lines): pro + cache/cost row
      preview:
@@ -74,7 +75,7 @@ Ask all questions in a single AskUserQuestion call:
      Weekly  │ all ■■□□□□□□□□  25% (4d 0h)     │ Fable   ■■■■■■■■□□  89% (4d 0h)
 
      ⚡70% │ ⏱ 30m │ $0.420
-     Opus 5 [high] │ 📁 my-repo(main)
+     Opus 5 [high] │ 📁 my-repo(main) │ 🎟 Reset 1 · D-15
      ```
 2. Theme — `default` (recommended), `dracula`, `nord`, `gruvbox`, `tokyo-night`
 3. Locale — `en` (recommended, default), `ko`, `zh`. List `en` first so it is the
@@ -90,7 +91,7 @@ Ask all questions in a single AskUserQuestion call:
      Weekly  │ all ■■□□□□□□□□  25% (4d 0h)     │ Fable   ■■■■■■■■□□  89% (4d 0h)
      Codex   │ 7d  ■□□□□□□□□□  10% (1d 0h)
 
-     Opus 5 [high] │ 📁 my-repo(main)
+     Opus 5 [high] │ 📁 my-repo(main) │ 🎟 Reset 1 · D-15
      ```
 
 **If arguments provided:**

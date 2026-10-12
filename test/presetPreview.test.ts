@@ -47,7 +47,8 @@ describe('basic / pro / max ladder', () => {
     for (const name of ['pro', 'max']) {
       const [daily, weekly] = plain(name);
       expect(daily, name).toBe(basicDaily);
-      expect(weekly, name).toBe(basicWeekly);
+      // basic alone ends its weekly row with the reset pass, having no bottom row to put it in.
+      expect(basicWeekly, name).toBe(`${weekly} │ 🎟 리셋권 1 · D-15`);
     }
   });
 
@@ -99,7 +100,10 @@ describe('basic / pro / max ladder', () => {
 
   it('does not bundle Codex into any preset by default', () => {
     for (const name of PRESET_NAMES) {
-      expect(plain(name).some((l) => l.startsWith('Codex')), name).toBe(false);
+      expect(
+        plain(name).some((l) => l.startsWith('Codex')),
+        name,
+      ).toBe(false);
     }
   });
 });

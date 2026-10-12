@@ -249,13 +249,15 @@ TUI 에서 테마를 바꾸거나 settings.json 의 `"theme"` 필드를 직접 �
 
 | 프리셋 | 라인 수 | 주요 구성 |
 |---|---|---|
-| `basic` | 2 | 일간 행 / 주간 행 |
-| `pro` | 4 | basic + 개행 + `model` + `gitRepo` |
+| `basic` | 2 | 일간 행 / 주간 행 + `resetPass` |
+| `pro` | 4 | 일간·주간 행 + 개행 + `model` + `gitRepo` + `resetPass` |
 | `max` | 5 | pro + `cacheHit`, `cacheTtl`, `sessionCost` 행 |
 
 일간 행은 `dailyUsage` + `context` + `sessionRateLimit`, 주간 행은
 `weeklyUsage` + `weeklyRateLimit` + `fableWeeklyRateLimit` 이며, 각 열이 윗줄 열 아래에 오도록
 폭이 맞춰져 있습니다. `Fable` 바는 데이터를 못 받는 환경에서 스스로 숨어 주간 행이 2열이 됩니다.
+모든 프리셋에 `resetPass` 가 들어 있습니다. 맨 아래 행 끝에 오며, 그런 행이 없는 `basic` 에서는 주간
+행 끝에 붙습니다.
 
 Claude Code 에서 `/festatusline:setup` 으로 적용할 수 있습니다. setup 마법사와 프리셋 메뉴 모두
 커서가 놓인 프리셋의 실시간 미리보기를 보여줍니다 — 예시 사용량 수치에 현재 테마·로케일이
