@@ -21,7 +21,7 @@ import {
   source_default,
   t,
   weightedCost
-} from "./chunk-ZKS4X4GD.js";
+} from "./chunk-GQ7K7YQS.js";
 
 // src/render/index.ts
 import { promises as fs4 } from "fs";
@@ -893,7 +893,7 @@ function isLocale(v) {
 }
 var commands = {
   setup: async () => {
-    const { runSetupWizard } = await import("./setup-WGYF5C6O.js");
+    const { runSetupWizard } = await import("./setup-CMGWOFYY.js");
     return runSetupWizard();
   },
   install: (args) => installToClaude(args.includes("--force")),
@@ -910,7 +910,7 @@ async function dispatch(argv) {
     await renderFromStdin();
     return;
   }
-  const { runTui } = await import("./tui-LLPAVSL2.js");
+  const { runTui } = await import("./tui-4AXJWCGS.js");
   await runTui();
 }
 async function main() {

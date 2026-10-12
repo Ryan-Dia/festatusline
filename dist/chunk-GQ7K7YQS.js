@@ -5164,10 +5164,10 @@ var PRESETS = {
     ]
   },
   "multi-cli": {
-    lines: [[{ id: "model" }, { id: "dailyUsage" }, { id: "gptUsage" }]]
+    lines: [[{ id: "model" }, { id: "dailyUsage" }, { id: "gptUsage" }, RESET_PASS]]
   },
   basic: {
-    lines: [DAILY_ROW2, WEEKLY_ROW2]
+    lines: [DAILY_ROW2, [...WEEKLY_ROW2, RESET_PASS]]
   },
   pro: {
     lines: [
@@ -6033,4 +6033,4 @@ export {
   ALL_WIDGETS,
   renderAllLines
 };
-//# sourceMappingURL=chunk-ZKS4X4GD.js.map
+//# sourceMappingURL=chunk-GQ7K7YQS.js.map

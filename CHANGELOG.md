@@ -12,6 +12,25 @@ summarised under [Earlier](#earlier).
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-10-12
+
+### Changed
+
+- Every preset now shows the reset pass. `basic` and `multi-cli` were the two without it, so
+  anyone on them never saw `resetPass` after updating. `basic` has no bottom info row to put it
+  in, so it ends the weekly row, next to the limits it resets — appended, so the columns stay
+  aligned with `pro`/`max` and `basic` stays two rows. `multi-cli` takes it at the end of its
+  single row. The `/festatusline:setup` previews now show the reset pass too; `pro` and `max`
+  had been missing it there since 0.9.0.
+
+### Notes
+
+- Upgrading from before 0.11.0: run `/festatusline:update`, not `/plugin update`, then restart
+  Claude Code once. Those versions pointed `statusLine` straight at their own versioned cache
+  folder, so `/plugin update` alone leaves the old version running — and once Claude Code
+  cleans up that orphaned folder (it marks it `.orphaned_at`), the statusline goes blank.
+  `/festatusline:update` repoints it; from 0.11.0 on the launcher makes this unnecessary.
+
 ## [0.11.2] - 2026-10-08
 
 ### Fixed
