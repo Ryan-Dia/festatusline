@@ -39,7 +39,16 @@ node "$(jq -r '.plugins["festatusline@festatusline"][0].installPath' ~/.claude/p
    - The version now installed (step 1's command again), and whether it changed from step 1
    - If it did not change, say plainly that festatusline was already up to date — don't imply
      an update happened when the version is identical
-   - The launcher picks the new version up on the statusline's next refresh, no restart
-     needed. The one exception is a setup this step just moved onto the launcher (its
+   - The launcher picks the new version up from the next message in the conversation, no
+     restart needed. The one exception is a setup this step just moved onto the launcher (its
      `statusLine` command changed): Claude Code reads that command once at session start, so
      that one time it needs a restart
+   - Always end with the setup notice below, in the user's language, whether or not the
+     version changed (another session may have updated it after this one started). Claude
+     Code loads slash commands once at session start, so `/festatusline:setup` keeps running
+     the old copy in this session and misses new options such as the path depth question.
+     Don't offer to restart Claude Code — there is no way to do it from inside the session.
+     ```
+     To pick new options with /festatusline:setup, restart Claude Code first.
+     This session keeps using the setup it loaded when it started.
+     ```
