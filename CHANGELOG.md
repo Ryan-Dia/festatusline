@@ -12,6 +12,23 @@ summarised under [Earlier](#earlier).
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-10-14
+
+### Changed
+
+- festatusline now requires Node 22 or later, the same floor as Claude Code's npm package.
+  The bundled chalk 6 and the TUI's ink 8 declare Node 22, and the test suite now runs only
+  there, so support follows what is tested. On an older Node the statusline shows
+  `festatusline: please update Node to 22+ (found v20.x)` instead of loading code that may
+  fail and leave it blank; the SessionStart hook stays silent and other commands exit with
+  an error. The check runs in `dist/cli.js` before anything else loads, so it also covers
+  setups whose launcher predates this release.
+- Runtime dependencies: chalk 5 → 6, zod 3 → 4, ink 5 → 8, React 18 → 19. zod 4's
+  namespace import carries every locale (~360 KB), which the statusline would have re-parsed
+  on every render (~15 ms slower); the build swaps that unused index for an empty module.
+  Median render: 0.13.2 ~120 ms, 0.14.0 ~127 ms; a first read of a week of transcripts
+  ~940 ms → ~860 ms.
+
 ## [0.13.2] - 2026-10-14
 
 ### Fixed

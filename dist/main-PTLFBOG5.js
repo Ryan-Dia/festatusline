@@ -1,0 +1,1131 @@
+#!/usr/bin/env node
+import {
+  createMtimeCache,
+  createTranslator,
+  emptyFamilyTotals,
+  envLocale,
+  external_exports,
+  getClaudeDir,
+  getCodexSnapshot,
+  getConfigPath,
+  getTheme,
+  getTimeWindows,
+  isFableModel,
+  isSonnetModel,
+  loadSettings,
+  modelFamily,
+  renderAllLines,
+  resolveLines,
+  setLocale,
+  source_default,
+  t,
+  weightedCost
+} from "./chunk-WUMAV2DH.js";
+import "./chunk-2H7UOFLK.js";
+
+// src/main.ts
+import { setTimeout as sleep } from "timers/promises";
+
+// src/render/index.ts
+import { promises as fs4 } from "fs";
+import { homedir as homedir3 } from "os";
+import { join as join2 } from "path";
+
+// src/data/stdin.ts
+var nullableNumber = () => external_exports.number().nullish();
+var nullableString = () => external_exports.string().nullish();
+var ModelSchema = external_exports.object({
+  id: nullableString(),
+  display_name: nullableString()
+});
+var ContextWindowCurrentUsageSchema = external_exports.object({
+  input_tokens: nullableNumber(),
+  output_tokens: nullableNumber(),
+  cache_creation_input_tokens: nullableNumber(),
+  cache_read_input_tokens: nullableNumber()
+});
+var ContextWindowSchema = external_exports.object({
+  total_input_tokens: nullableNumber(),
+  total_output_tokens: nullableNumber(),
+  context_window_size: nullableNumber(),
+  current_usage: ContextWindowCurrentUsageSchema.nullish(),
+  used_percentage: nullableNumber(),
+  remaining_percentage: nullableNumber()
+});
+var RateLimitPeriodSchema = external_exports.object({
+  used_percentage: nullableNumber(),
+  resets_at: nullableNumber()
+});
+var RateLimitsSchema = external_exports.object({
+  five_hour: RateLimitPeriodSchema.nullish(),
+  seven_day: RateLimitPeriodSchema.nullish()
+});
+var CostSchema = external_exports.object({
+  total_cost_usd: nullableNumber(),
+  total_duration_ms: nullableNumber(),
+  total_api_duration_ms: nullableNumber(),
+  total_lines_added: nullableNumber(),
+  total_lines_removed: nullableNumber()
+});
+var RepoSchema = external_exports.object({
+  host: nullableString(),
+  owner: nullableString(),
+  name: nullableString()
+});
+var WorkspaceSchema = external_exports.object({
+  current_dir: nullableString(),
+  project_dir: nullableString(),
+  added_dirs: external_exports.array(external_exports.string()).nullish(),
+  // Set for any linked worktree created with `git worktree add`, unlike the top-level
+  // `worktree` object which only appears for --worktree sessions.
+  git_worktree: nullableString(),
+  repo: RepoSchema.nullish()
+});
+var OutputStyleSchema = external_exports.object({
+  name: nullableString()
+});
+var EffortSchema = external_exports.object({
+  level: nullableString()
+});
+var ThinkingSchema = external_exports.object({
+  enabled: external_exports.boolean().nullish()
+});
+var VimSchema = external_exports.object({
+  mode: nullableString()
+});
+var AgentSchema = external_exports.object({
+  name: nullableString()
+});
+var PrSchema = external_exports.object({
+  number: nullableNumber(),
+  url: nullableString(),
+  review_state: nullableString(),
+  kind: nullableString()
+});
+var WorktreeSchema = external_exports.object({
+  name: nullableString(),
+  path: nullableString(),
+  branch: nullableString(),
+  original_cwd: nullableString(),
+  original_branch: nullableString()
+});
+var stdinShape = {
+  type: nullableString(),
+  model: ModelSchema.nullish(),
+  session_id: nullableString(),
+  session_name: nullableString(),
+  prompt_id: nullableString(),
+  transcript_path: nullableString(),
+  cwd: nullableString(),
+  cost: CostSchema.nullish(),
+  context_window: ContextWindowSchema.nullish(),
+  workspace: WorkspaceSchema.nullish(),
+  hook_event_name: nullableString(),
+  version: nullableString(),
+  output_style: OutputStyleSchema.nullish(),
+  rate_limits: RateLimitsSchema.nullish(),
+  exceeds_200k_tokens: external_exports.boolean().nullish(),
+  fast_mode: external_exports.boolean().nullish(),
+  effort: EffortSchema.nullish(),
+  thinking: ThinkingSchema.nullish(),
+  vim: VimSchema.nullish(),
+  agent: AgentSchema.nullish(),
+  pr: PrSchema.nullish(),
+  worktree: WorktreeSchema.nullish()
+};
+var ClaudeStdinSchema = external_exports.object(stdinShape);
+function salvageStdin(raw) {
+  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) return {};
+  const source = raw;
+  const salvaged = {};
+  for (const [key, schema] of Object.entries(stdinShape)) {
+    const result = schema.safeParse(source[key]);
+    if (result.success && result.data != null) salvaged[key] = result.data;
+  }
+  return salvaged;
+}
+function parseStdin(raw) {
+  const trimmed = raw.trim();
+  if (!trimmed) return {};
+  let json;
+  try {
+    json = JSON.parse(trimmed);
+  } catch {
+    return {};
+  }
+  const result = ClaudeStdinSchema.safeParse(json);
+  return result.success ? result.data : salvageStdin(json);
+}
+async function readStdin() {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    process.stdin.on("data", (chunk) => chunks.push(chunk));
+    process.stdin.on("end", () => {
+      resolve(parseStdin(Buffer.concat(chunks).toString("utf8")));
+    });
+    process.stdin.on("error", reject);
+  });
+}
+
+// src/data/usage.ts
+function totalTokens(e) {
+  return e.inputTokens + e.outputTokens + e.cacheCreationTokens + e.cacheReadTokens;
+}
+function getUsageSnapshot(entries) {
+  const { todayStartMs, weekStartMs } = getTimeWindows();
+  let dailyTokens = 0;
+  let weeklyTokens = 0;
+  let sonnetWeeklyTokens = 0;
+  let fableWeeklyTokens = 0;
+  let weightedDaily = 0;
+  let weightedWeekly = 0;
+  const weightedWeeklyByFamily = emptyFamilyTotals();
+  for (const e of entries) {
+    const total = totalTokens(e);
+    const weighted = weightedCost(e);
+    if (e.timestamp >= todayStartMs) {
+      dailyTokens += total;
+      weightedDaily += weighted;
+    }
+    if (e.timestamp >= weekStartMs) {
+      weeklyTokens += total;
+      weightedWeekly += weighted;
+      weightedWeeklyByFamily[modelFamily(e.model)] += weighted;
+      if (isSonnetModel(e.model)) sonnetWeeklyTokens += total;
+      if (isFableModel(e.model)) fableWeeklyTokens += total;
+    }
+  }
+  return {
+    dailyTokens,
+    weeklyTokens,
+    sonnetWeeklyTokens,
+    fableWeeklyTokens,
+    weightedDaily,
+    weightedWeekly,
+    weightedWeeklyByFamily,
+    allEntries: entries
+  };
+}
+
+// src/data/claudeOAuthUsage.ts
+import { promises as fs } from "fs";
+import { homedir } from "os";
+import { join } from "path";
+
+// src/data/macKeychain.ts
+import { execFile } from "child_process";
+import { createHash } from "crypto";
+var BASE_SERVICE = "Claude Code-credentials";
+var TIMEOUT_MS = 3e3;
+function keychainServiceNames(configDir) {
+  const suffix = createHash("sha256").update(configDir).digest("hex").slice(0, 8);
+  return [`${BASE_SERVICE}-${suffix}`, BASE_SERVICE];
+}
+function keychainAccount() {
+  return process.env.USER || process.env.USERNAME || "user";
+}
+var runSecurity = (args) => new Promise((resolve) => {
+  execFile("security", args, { timeout: TIMEOUT_MS }, (err, stdout) => {
+    resolve(err ? null : stdout.trim() || null);
+  });
+});
+function extractToken(raw) {
+  try {
+    const parsed = JSON.parse(raw);
+    const oauth = parsed?.claudeAiOauth;
+    return typeof oauth?.accessToken === "string" ? oauth.accessToken : null;
+  } catch {
+    return null;
+  }
+}
+async function readKeychainToken(configDir, run = runSecurity) {
+  if (process.platform !== "darwin") return null;
+  const account = keychainAccount();
+  for (const service of keychainServiceNames(configDir)) {
+    const raw = await run(["find-generic-password", "-s", service, "-a", account, "-w"]);
+    if (!raw) continue;
+    const token = extractToken(raw);
+    if (token) return token;
+  }
+  return null;
+}
+
+// src/data/claudeOAuthUsage.ts
+var OAUTH_USAGE_URL = "https://api.anthropic.com/api/oauth/usage";
+var OAUTH_USAGE_WITH_RESETS_URL = `${OAUTH_USAGE_URL}?cedar_ember=1&skip_spend=1`;
+var OAUTH_BETA_HEADER = "oauth-2025-04-20";
+var FALLBACK_CLI_VERSION = "2.1.293";
+var CLI_VERSION_RE = /^\d+\.\d+\.\d+$/;
+function userAgent(cliVersion) {
+  const version = cliVersion && CLI_VERSION_RE.test(cliVersion) ? cliVersion : FALLBACK_CLI_VERSION;
+  return `claude-cli/${version} (external, cli)`;
+}
+var FETCH_TIMEOUT_MS = 3e3;
+var TTL_MS = 5 * 60 * 1e3;
+var FAILURE_BACKOFF_MS = 60 * 1e3;
+var EXPIRED_TTL_MS = 60 * 1e3;
+var CACHE_DIR = process.env.XDG_CACHE_HOME ? join(process.env.XDG_CACHE_HOME, "festatusline") : join(homedir(), ".cache", "festatusline");
+var CACHE_PATH = join(CACHE_DIR, "oauth_usage.json");
+var EMPTY_SLOTS = { fable: null, session: null, weekly: null, resetPass: null };
+var CredentialsSchema = external_exports.object({
+  claudeAiOauth: external_exports.object({
+    accessToken: external_exports.string().nullish()
+  }).nullish()
+});
+var ResetsAtSchema = external_exports.union([external_exports.string(), external_exports.number()]).nullish();
+var ScopedLimitSchema = external_exports.object({
+  kind: external_exports.string().nullish(),
+  percent: external_exports.number().nullish(),
+  resets_at: ResetsAtSchema,
+  scope: external_exports.object({
+    model: external_exports.object({
+      display_name: external_exports.string().nullish()
+    }).nullish()
+  }).nullish()
+});
+var UsageWindowSchema = external_exports.object({
+  utilization: external_exports.number().nullish(),
+  used_percentage: external_exports.number().nullish(),
+  resets_at: ResetsAtSchema
+});
+var OAuthUsageResponseSchema = external_exports.object({
+  five_hour: UsageWindowSchema.nullish(),
+  seven_day: UsageWindowSchema.nullish(),
+  fable_weekly: UsageWindowSchema.nullish(),
+  fable_seven_day: UsageWindowSchema.nullish(),
+  seven_day_fable: UsageWindowSchema.nullish(),
+  limits: external_exports.array(ScopedLimitSchema).nullish(),
+  // Parsed on its own (ResetInventorySchema) so a drifted reset block can't cost the bars.
+  cedar_ember: external_exports.unknown().nullish()
+});
+var ResetInventorySchema = external_exports.object({
+  eligible: external_exports.boolean(),
+  grants: external_exports.array(external_exports.unknown()).nullish()
+});
+var ResetGrantSchema = external_exports.object({
+  resets_left: external_exports.number().int().nonnegative(),
+  paused: external_exports.boolean().nullish(),
+  starts_at: ResetsAtSchema,
+  ends_at: ResetsAtSchema
+});
+function parseResetTimestampMs(value) {
+  if (value == null) return null;
+  if (typeof value === "number") {
+    if (!Number.isFinite(value)) return null;
+    return value > 1e10 ? value : value * 1e3;
+  }
+  const numeric = Number(value);
+  if (Number.isFinite(numeric) && value.trim() !== "") {
+    return numeric > 1e10 ? numeric : numeric * 1e3;
+  }
+  const parsed = new Date(value).getTime();
+  return Number.isNaN(parsed) ? null : parsed;
+}
+function clampPercent(pct) {
+  return Math.min(100, Math.max(0, pct));
+}
+function extractWindowSlot(window) {
+  if (!window) return null;
+  const pct = window.utilization ?? window.used_percentage;
+  if (typeof pct !== "number") return null;
+  const resetsAtMs = parseResetTimestampMs(window.resets_at);
+  if (resetsAtMs == null) return null;
+  return { usedPercent: clampPercent(pct), resetsAt: Math.floor(resetsAtMs / 1e3) };
+}
+function extractFableSlot(data) {
+  const scoped = data.limits?.find(
+    (limit) => limit.kind === "weekly_scoped" && typeof limit.percent === "number" && limit.scope?.model?.display_name?.trim().toLowerCase() === "fable"
+  );
+  if (scoped && typeof scoped.percent === "number") {
+    const resetsAtMs = parseResetTimestampMs(scoped.resets_at);
+    if (resetsAtMs != null) {
+      return { usedPercent: clampPercent(scoped.percent), resetsAt: Math.floor(resetsAtMs / 1e3) };
+    }
+  }
+  for (const legacy of [data.fable_weekly, data.fable_seven_day, data.seven_day_fable]) {
+    const slot = extractWindowSlot(legacy);
+    if (slot) return slot;
+  }
+  return null;
+}
+function extractResetPass(raw, nowMs) {
+  const inventory = ResetInventorySchema.safeParse(raw);
+  if (!inventory.success || !inventory.data.eligible) return null;
+  const usable = (inventory.data.grants ?? []).flatMap((item) => {
+    const result = ResetGrantSchema.safeParse(item);
+    if (!result.success) return [];
+    const { resets_left: left, paused, starts_at: startsAt, ends_at: endsAt } = result.data;
+    const startsMs = parseResetTimestampMs(startsAt);
+    const endsMs = parseResetTimestampMs(endsAt);
+    if (paused || left === 0) return [];
+    if (startsMs != null && startsMs > nowMs) return [];
+    if (endsMs != null && endsMs <= nowMs) return [];
+    return [{ left, endsMs }];
+  });
+  const deadlines = usable.flatMap(({ endsMs }) => endsMs == null ? [] : [endsMs]);
+  return {
+    count: usable.reduce((sum, { left }) => sum + left, 0),
+    expiresAt: deadlines.length > 0 ? Math.floor(Math.min(...deadlines) / 1e3) : null
+  };
+}
+function extractSlots(data, nowMs) {
+  return {
+    fable: extractFableSlot(data),
+    session: extractWindowSlot(data.five_hour),
+    weekly: extractWindowSlot(data.seven_day),
+    resetPass: extractResetPass(data.cedar_ember, nowMs)
+  };
+}
+async function readAccessToken() {
+  const configDir = getClaudeDir();
+  try {
+    const raw = await fs.readFile(join(configDir, ".credentials.json"), "utf8");
+    const result = CredentialsSchema.safeParse(JSON.parse(raw));
+    const token = result.success ? result.data.claudeAiOauth?.accessToken ?? null : null;
+    if (token) return token;
+  } catch {
+  }
+  return readKeychainToken(configDir);
+}
+var SlotSchema = external_exports.object({ usedPercent: external_exports.number(), resetsAt: external_exports.number() }).nullable();
+var CacheEntrySchema = external_exports.object({
+  fetchedAt: external_exports.number(),
+  slots: external_exports.object({
+    fable: SlotSchema,
+    session: SlotSchema,
+    weekly: SlotSchema,
+    // Left out, not null, by caches from before 0.9.0 — getOAuthUsageSlots tells them apart.
+    resetPass: external_exports.object({ count: external_exports.number(), expiresAt: external_exports.number().nullable() }).nullish()
+  }),
+  failedAt: external_exports.number().optional()
+});
+async function readCache() {
+  try {
+    const raw = await fs.readFile(CACHE_PATH, "utf8");
+    const result = CacheEntrySchema.safeParse(JSON.parse(raw));
+    return result.success ? result.data : null;
+  } catch {
+    return null;
+  }
+}
+async function writeCache(entry) {
+  try {
+    await fs.mkdir(CACHE_DIR, { recursive: true });
+    await fs.writeFile(CACHE_PATH, JSON.stringify(entry), "utf8");
+  } catch {
+  }
+}
+async function requestUsage(url, token, cliVersion) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  try {
+    const res = await fetch(url, {
+      headers: {
+        authorization: `Bearer ${token}`,
+        "anthropic-beta": OAUTH_BETA_HEADER,
+        "user-agent": userAgent(cliVersion)
+      },
+      // The bearer token must never be forwarded anywhere but the URL above. This endpoint
+      // has no reason to redirect, so treat any redirect as a failure rather than following
+      // it (older Node 18 fetch implementations did not reliably strip Authorization on a
+      // cross-origin redirect).
+      redirect: "error",
+      signal: controller.signal
+    });
+    if (res.status === 400) return "rejected";
+    if (!res.ok) return null;
+    const json = await res.json();
+    const result = OAuthUsageResponseSchema.safeParse(json);
+    return result.success ? extractSlots(result.data, Date.now()) : null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+async function fetchOAuthSlots(token, cliVersion) {
+  const res = await requestUsage(OAUTH_USAGE_WITH_RESETS_URL, token, cliVersion);
+  if (res !== "rejected") return res;
+  const plain = await requestUsage(OAUTH_USAGE_URL, token, cliVersion);
+  return plain === "rejected" ? null : plain;
+}
+function hasExpiredSlot(slots, nowMs) {
+  const { fable, session, weekly, resetPass } = slots;
+  const windowEnded = [fable, session, weekly].some(
+    (slot) => slot != null && slot.resetsAt * 1e3 <= nowMs
+  );
+  const passLapsed = resetPass?.expiresAt != null && resetPass.expiresAt * 1e3 <= nowMs;
+  return windowEnded || passLapsed;
+}
+async function getOAuthUsageSlots(cliVersion) {
+  const cache = await readCache();
+  const now = Date.now();
+  if (cache && "resetPass" in cache.slots) {
+    const ttl = hasExpiredSlot(cache.slots, now) ? EXPIRED_TTL_MS : TTL_MS;
+    if (now - cache.fetchedAt < ttl) return cache.slots;
+  }
+  if (cache?.failedAt != null && now - cache.failedAt < FAILURE_BACKOFF_MS) {
+    return cache.slots;
+  }
+  const token = await readAccessToken();
+  if (!token) {
+    return cache?.slots ?? EMPTY_SLOTS;
+  }
+  const slots = await fetchOAuthSlots(token, await cliVersion);
+  if (slots) {
+    await writeCache({ fetchedAt: now, slots });
+    return slots;
+  }
+  const stale = cache ?? { fetchedAt: 0, slots: EMPTY_SLOTS };
+  await writeCache({ ...stale, failedAt: now });
+  return stale.slots;
+}
+
+// src/data/claude-settings.ts
+import fs2 from "fs";
+import path from "path";
+var ClaudeSettingsSchema = external_exports.object({
+  // Session-scoped flag, normally supplied via --settings. `/effort ultracode` picked in
+  // the TUI never lands here, so this only catches sessions pinned through the file — and
+  // it is the only channel that distinguishes ultracode from plain xhigh at all.
+  ultracode: external_exports.boolean().optional()
+});
+async function readClaudeSettings() {
+  const settingsPath = path.join(getClaudeDir(), "settings.json");
+  try {
+    const raw = await fs2.promises.readFile(settingsPath, "utf8");
+    const result = ClaudeSettingsSchema.safeParse(JSON.parse(raw));
+    return result.success ? result.data : {};
+  } catch {
+    return {};
+  }
+}
+
+// src/data/jsonl.ts
+import { createHash as createHash2 } from "crypto";
+import fs3 from "fs";
+import { homedir as homedir2 } from "os";
+import path2 from "path";
+import readline from "readline";
+var UsageSchema = external_exports.object({
+  input_tokens: external_exports.number().optional().default(0),
+  output_tokens: external_exports.number().optional().default(0),
+  cache_creation_input_tokens: external_exports.number().optional().default(0),
+  cache_read_input_tokens: external_exports.number().optional().default(0),
+  cache_creation: external_exports.object({
+    ephemeral_5m_input_tokens: external_exports.number().optional().default(0),
+    ephemeral_1h_input_tokens: external_exports.number().optional().default(0)
+  }).optional()
+});
+var JsonlLineSchema = external_exports.object({
+  timestamp: external_exports.string().optional(),
+  model: external_exports.string().optional(),
+  message: external_exports.object({
+    model: external_exports.string().optional(),
+    usage: UsageSchema.optional()
+  }).optional(),
+  usage: UsageSchema.optional()
+});
+function parseUsageLine(line) {
+  const trimmed = line.trim();
+  if (!trimmed || !trimmed.includes('"usage"')) return null;
+  try {
+    const result = JsonlLineSchema.safeParse(JSON.parse(trimmed));
+    if (!result.success) return null;
+    const obj = result.data;
+    const usage = obj.message?.usage ?? obj.usage;
+    if (!usage) return null;
+    const cacheCreation = usage.cache_creation;
+    return {
+      timestamp: obj.timestamp ? new Date(obj.timestamp).getTime() : Date.now(),
+      model: obj.message?.model ?? obj.model ?? "",
+      inputTokens: usage.input_tokens,
+      outputTokens: usage.output_tokens,
+      cacheCreationTokens: usage.cache_creation_input_tokens,
+      cacheReadTokens: usage.cache_read_input_tokens,
+      ephemeral5mTokens: cacheCreation?.ephemeral_5m_input_tokens ?? 0,
+      ephemeral1hTokens: cacheCreation?.ephemeral_1h_input_tokens ?? 0
+    };
+  } catch {
+    return null;
+  }
+}
+var fileCache = createMtimeCache();
+async function parseJsonlFile(filePath) {
+  return fileCache.get(filePath, async (p) => {
+    const entries = [];
+    const stream = fs3.createReadStream(p, { encoding: "utf8" });
+    const rl = readline.createInterface({ input: stream, crlfDelay: Infinity });
+    for await (const line of rl) {
+      const entry = parseUsageLine(line);
+      if (entry) entries.push(entry);
+    }
+    return entries;
+  });
+}
+var INDEX_VERSION = 1;
+var READ_CHUNK_BYTES = 4 * 1024 * 1024;
+var EntryTupleSchema = external_exports.tuple([
+  external_exports.number(),
+  external_exports.string(),
+  external_exports.number(),
+  external_exports.number(),
+  external_exports.number(),
+  external_exports.number(),
+  external_exports.number(),
+  external_exports.number()
+]);
+var TranscriptIndexSchema = external_exports.object({
+  version: external_exports.literal(INDEX_VERSION),
+  // `offset` is the byte just past the last complete line read.
+  files: external_exports.record(external_exports.string(), external_exports.object({ offset: external_exports.number(), entries: external_exports.array(EntryTupleSchema) }))
+});
+var toTuple = (e) => [
+  e.timestamp,
+  e.model,
+  e.inputTokens,
+  e.outputTokens,
+  e.cacheCreationTokens,
+  e.cacheReadTokens,
+  e.ephemeral5mTokens,
+  e.ephemeral1hTokens
+];
+var fromTuple = ([
+  timestamp,
+  model,
+  inputTokens,
+  outputTokens,
+  cacheCreationTokens,
+  cacheReadTokens,
+  ephemeral5mTokens,
+  ephemeral1hTokens
+]) => ({
+  timestamp,
+  model,
+  inputTokens,
+  outputTokens,
+  cacheCreationTokens,
+  cacheReadTokens,
+  ephemeral5mTokens,
+  ephemeral1hTokens
+});
+function indexPath(projectsDir) {
+  const cacheDir = process.env.XDG_CACHE_HOME ? path2.join(process.env.XDG_CACHE_HOME, "festatusline") : path2.join(homedir2(), ".cache", "festatusline");
+  const key = createHash2("sha256").update(projectsDir).digest("hex").slice(0, 8);
+  return path2.join(cacheDir, `transcripts-${key}.json`);
+}
+async function readIndex(filePath) {
+  try {
+    const parsed = TranscriptIndexSchema.parse(
+      JSON.parse(await fs3.promises.readFile(filePath, "utf8"))
+    );
+    return new Map(
+      Object.entries(parsed.files).map(([file, { offset, entries }]) => [
+        file,
+        { offset, entries: entries.map(fromTuple) }
+      ])
+    );
+  } catch {
+    return /* @__PURE__ */ new Map();
+  }
+}
+async function writeIndex(filePath, files) {
+  const body = {
+    version: INDEX_VERSION,
+    files: Object.fromEntries(
+      [...files].map(([file, { offset, entries }]) => [
+        file,
+        { offset, entries: entries.map(toTuple) }
+      ])
+    )
+  };
+  const tmpPath = `${filePath}.${process.pid}.tmp`;
+  await fs3.promises.mkdir(path2.dirname(filePath), { recursive: true });
+  await fs3.promises.writeFile(tmpPath, JSON.stringify(body), "utf8");
+  await fs3.promises.rename(tmpPath, filePath);
+}
+async function readAppended(filePath, size, prev) {
+  const resume = prev && prev.offset <= size ? prev : { offset: 0, entries: [] };
+  if (resume.offset === size) return resume;
+  const added = [];
+  const handle = await fs3.promises.open(filePath, "r");
+  let position = resume.offset;
+  let carry = Buffer.alloc(0);
+  try {
+    while (position < size) {
+      const chunk = Buffer.alloc(Math.min(READ_CHUNK_BYTES, size - position));
+      const { bytesRead } = await handle.read(chunk, 0, chunk.length, position);
+      if (bytesRead === 0) break;
+      position += bytesRead;
+      const data = Buffer.concat([carry, chunk.subarray(0, bytesRead)]);
+      const lastNewline = data.lastIndexOf(10);
+      if (lastNewline < 0) {
+        carry = data;
+      } else {
+        data.toString("utf8", 0, lastNewline).split("\n").forEach((line) => {
+          const entry = parseUsageLine(line);
+          if (entry) added.push(entry);
+        });
+        carry = data.subarray(lastNewline + 1);
+      }
+    }
+  } finally {
+    await handle.close();
+  }
+  return { offset: position - carry.length, entries: [...resume.entries, ...added] };
+}
+async function listTranscripts(projectsDir, sinceMs) {
+  const projectDirs = await fs3.promises.readdir(projectsDir);
+  const perDir = await Promise.all(
+    projectDirs.map(async (dir) => {
+      const dirPath = path2.join(projectsDir, dir);
+      let files;
+      try {
+        files = await fs3.promises.readdir(dirPath);
+      } catch {
+        return [];
+      }
+      const stats = await Promise.all(
+        files.filter((f) => f.endsWith(".jsonl")).map(async (f) => {
+          const filePath = path2.join(dirPath, f);
+          try {
+            const { size, mtimeMs } = await fs3.promises.stat(filePath);
+            return mtimeMs >= sinceMs ? [{ filePath, size }] : [];
+          } catch {
+            return [];
+          }
+        })
+      );
+      return stats.flat();
+    })
+  );
+  return perDir.flat();
+}
+async function loadAllEntries(sinceMs = 0) {
+  const projectsDir = path2.join(getClaudeDir(), "projects");
+  let transcripts;
+  try {
+    transcripts = await listTranscripts(projectsDir, sinceMs);
+  } catch {
+    return [];
+  }
+  const indexFile = indexPath(projectsDir);
+  const index = await readIndex(indexFile);
+  const next = /* @__PURE__ */ new Map();
+  let changed = false;
+  for (const { filePath, size } of transcripts) {
+    const prev = index.get(filePath);
+    try {
+      const progress = await readAppended(filePath, size, prev);
+      next.set(filePath, progress);
+      if (progress !== prev) changed = true;
+    } catch {
+      if (prev) next.set(filePath, prev);
+    }
+  }
+  if (changed || next.size !== index.size) {
+    await writeIndex(indexFile, next).catch(() => {
+    });
+  }
+  return [...next.values()].flatMap((p) => p.entries);
+}
+async function getLastModelFromTranscript(transcriptPath) {
+  try {
+    const entries = await parseJsonlFile(transcriptPath);
+    let lastModel = null;
+    let lastTimestamp = 0;
+    for (const e of entries) {
+      if (e.model && e.timestamp > lastTimestamp) {
+        lastTimestamp = e.timestamp;
+        lastModel = e.model;
+      }
+    }
+    return lastModel;
+  } catch {
+    return null;
+  }
+}
+function getLastCacheCreation(entries) {
+  let latest = null;
+  for (const e of entries) {
+    if (e.cacheCreationTokens > 0) {
+      if (!latest || e.timestamp > latest.timestamp) latest = e;
+    }
+  }
+  if (!latest) return null;
+  const ttlMs = latest.ephemeral1hTokens > 0 ? 36e5 : 3e5;
+  return { timestamp: latest.timestamp, ttlMs };
+}
+
+// src/render/index.ts
+var CACHE_DIR2 = process.env.XDG_CACHE_HOME ? join2(process.env.XDG_CACHE_HOME, "festatusline") : join2(homedir3(), ".cache", "festatusline");
+var RATE_LIMITS_CACHE_PATH = join2(CACHE_DIR2, "rate_limits.json");
+var RateLimitsCacheSchema = RateLimitsSchema;
+async function tryOrNull(fn) {
+  try {
+    return await fn();
+  } catch {
+    return null;
+  }
+}
+async function readRateLimitsCache() {
+  return tryOrNull(async () => {
+    const raw = await fs4.readFile(RATE_LIMITS_CACHE_PATH, "utf8");
+    const result = RateLimitsCacheSchema.safeParse(JSON.parse(raw));
+    return result.success ? result.data : null;
+  });
+}
+async function writeRateLimitsCache(rateLimits) {
+  await tryOrNull(async () => {
+    await fs4.mkdir(CACHE_DIR2, { recursive: true });
+    await fs4.writeFile(RATE_LIMITS_CACHE_PATH, JSON.stringify(rateLimits), "utf8");
+  });
+}
+function toRateLimitPeriod(slot) {
+  return slot ? { used_percentage: slot.usedPercent, resets_at: slot.resetsAt } : null;
+}
+function usablePeriod(period) {
+  return period && period.resets_at != null ? period : null;
+}
+function hasUsableRateLimit(rateLimits) {
+  return usablePeriod(rateLimits?.five_hour) != null || usablePeriod(rateLimits?.seven_day) != null;
+}
+var SAME_WINDOW_TOLERANCE_S = 120;
+function fresher(a, b) {
+  if (!a) return b;
+  if (!b) return a;
+  const windowGap = (b.resets_at ?? 0) - (a.resets_at ?? 0);
+  if (Math.abs(windowGap) > SAME_WINDOW_TOLERANCE_S) return windowGap > 0 ? b : a;
+  return (b.used_percentage ?? 0) > (a.used_percentage ?? 0) ? b : a;
+}
+function mergeRateLimits(stdinRateLimits, oauthSlots, cachedRateLimits) {
+  const pick = (stdin, oauth, cached) => {
+    const local = usablePeriod(stdin) ?? usablePeriod(cached);
+    return fresher(local, toRateLimitPeriod(oauth ?? null)) ?? void 0;
+  };
+  const fiveHour = pick(
+    stdinRateLimits?.five_hour,
+    oauthSlots?.session,
+    cachedRateLimits?.five_hour
+  );
+  const sevenDay = pick(
+    stdinRateLimits?.seven_day,
+    oauthSlots?.weekly,
+    cachedRateLimits?.seven_day
+  );
+  return fiveHour || sevenDay ? { five_hour: fiveHour, seven_day: sevenDay } : void 0;
+}
+var USAGE_WIDGET_IDS = ["modelMix", "sonnetWeeklyUsage", "fableWeeklyUsage"];
+var CACHE_TTL_LOOKBACK_MS = 60 * 60 * 1e3;
+async function loadTranscriptData(lines) {
+  const ids = new Set(lines.flat().map((w) => w.id));
+  const needsUsage = USAGE_WIDGET_IDS.some((id) => ids.has(id));
+  const needsCacheTtl = ids.has("cacheTtl");
+  if (!needsUsage && !needsCacheTtl) return { usage: null, lastCacheCreation: null };
+  const { now, weekStartMs } = getTimeWindows();
+  const entries = await loadAllEntries(needsUsage ? weekStartMs : now - CACHE_TTL_LOOKBACK_MS);
+  return {
+    usage: needsUsage ? getUsageSnapshot(entries) : null,
+    lastCacheCreation: needsCacheTtl ? getLastCacheCreation(entries) : null
+  };
+}
+async function renderFromStdin() {
+  const stdinPromise = readStdin();
+  const settingsPromise = loadSettings();
+  const [stdin, settings, claudeSettings, transcriptData, codex, oauthSlots, cachedRateLimits] = await Promise.all([
+    stdinPromise,
+    settingsPromise,
+    readClaudeSettings(),
+    tryOrNull(() => settingsPromise.then((s) => loadTranscriptData(resolveLines(s)))),
+    tryOrNull(getCodexSnapshot),
+    tryOrNull(() => getOAuthUsageSlots(stdinPromise.then((payload) => payload.version))),
+    readRateLimitsCache()
+  ]);
+  const usage = transcriptData?.usage ?? null;
+  const lastCacheCreation = transcriptData?.lastCacheCreation ?? null;
+  const t2 = createTranslator(envLocale() ?? settings.locale);
+  if (hasUsableRateLimit(stdin.rate_limits)) {
+    writeRateLimitsCache(stdin.rate_limits).catch(() => {
+    });
+  }
+  const cacheCreated = stdin.context_window?.current_usage?.cache_creation_input_tokens;
+  const cacheTtlCreatedAt = cacheCreated && cacheCreated > 0 ? Date.now() : lastCacheCreation?.timestamp ?? null;
+  const cacheTtlMs = lastCacheCreation?.ttlMs ?? 3e5;
+  let sessionLastModel = null;
+  if (!stdin.model && stdin.transcript_path) {
+    const transcriptPath = stdin.transcript_path;
+    sessionLastModel = await tryOrNull(() => getLastModelFromTranscript(transcriptPath));
+  }
+  const theme = getTheme(settings.theme);
+  const ctx = {
+    stdin: {
+      ...stdin,
+      rate_limits: mergeRateLimits(stdin.rate_limits, oauthSlots, cachedRateLimits)
+    },
+    usage,
+    codex,
+    fableRateLimit: oauthSlots?.fable ?? null,
+    resetPass: oauthSlots?.resetPass ?? null,
+    sessionLastModel,
+    theme,
+    t: t2,
+    now: /* @__PURE__ */ new Date(),
+    weeklyAnchorDay: settings.weeklyAnchorDay,
+    pathDepth: settings.pathDepth,
+    envEffortLevel: process.env.CLAUDE_EFFORT,
+    ultracode: claudeSettings.ultracode,
+    cacheTtlCreatedAt,
+    cacheTtlMs
+  };
+  const output = renderAllLines(resolveLines(settings), ctx, settings.separator);
+  process.stdout.write(`${output}
+`);
+}
+
+// src/config/install.ts
+import fs6 from "fs";
+import path4 from "path";
+import { fileURLToPath } from "url";
+
+// src/config/launcher.ts
+import fs5 from "fs";
+import path3 from "path";
+function launcherPath() {
+  return path3.join(path3.dirname(getConfigPath()), "statusline.mjs");
+}
+function launcherSource(fallbackCli) {
+  return `// festatusline statusline launcher, written by \`festatusline install\`. It looks up the
+// installed plugin version on every run, so a plugin update needs no settings.json edit.
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
+
+const FALLBACK_CLI = ${JSON.stringify(fallbackCli)};
+const PLUGIN_ID = 'festatusline@festatusline';
+const pluginsDir = join(process.env.CLAUDE_CONFIG_DIR ?? join(homedir(), '.claude'), 'plugins');
+
+function existing(cli) {
+  return existsSync(cli) ? cli : null;
+}
+
+function fromRegistry() {
+  try {
+    const registry = JSON.parse(readFileSync(join(pluginsDir, 'installed_plugins.json'), 'utf8'));
+    const entries = registry?.plugins?.[PLUGIN_ID] ?? [];
+    // A user-scope install is the one statusLine belongs to; project scopes come after.
+    const ordered = [...entries].sort((a, b) => (a.scope === 'user' ? -1 : b.scope === 'user' ? 1 : 0));
+    for (const entry of ordered) {
+      const cli = typeof entry?.installPath === 'string' ? existing(join(entry.installPath, 'dist', 'cli.js')) : null;
+      if (cli) return cli;
+    }
+  } catch {
+    // No registry, or one this launcher can't read: fall through.
+  }
+  return null;
+}
+
+function newestCached() {
+  const base = join(pluginsDir, 'cache', 'festatusline', 'festatusline');
+  try {
+    const versions = readdirSync(base)
+      .filter((v) => /^\\d+\\.\\d+\\.\\d+$/.test(v))
+      .sort((a, b) => b.localeCompare(a, undefined, { numeric: true }));
+    for (const version of versions) {
+      const cli = existing(join(base, version, 'dist', 'cli.js'));
+      if (cli) return cli;
+    }
+  } catch {
+    // Not installed as a plugin.
+  }
+  return null;
+}
+
+const cli = fromRegistry() ?? newestCached() ?? existing(FALLBACK_CLI);
+if (cli) {
+  await import(pathToFileURL(cli).href);
+} else {
+  process.stdout.write('festatusline is not installed. Run /festatusline:setup\\n');
+}
+`;
+}
+async function writeLauncher(fallbackCli) {
+  const target = launcherPath();
+  await fs5.promises.mkdir(path3.dirname(target), { recursive: true });
+  const temp = `${target}.${process.pid}.tmp`;
+  await fs5.promises.writeFile(temp, launcherSource(fallbackCli), "utf8");
+  await fs5.promises.rename(temp, target);
+  return `node ${JSON.stringify(target)}`;
+}
+
+// src/config/install.ts
+var ClaudeSettingsSchema2 = external_exports.object({ statusLine: external_exports.record(external_exports.string(), external_exports.unknown()).optional() }).catchall(external_exports.unknown());
+function getClaudeSettingsPath() {
+  return path4.join(getClaudeDir(), "settings.json");
+}
+function fallbackCliPath() {
+  const besideBundle = path4.join(path4.dirname(fileURLToPath(import.meta.url)), "cli.js");
+  if (fs6.existsSync(besideBundle)) return besideBundle;
+  const invoked = process.argv[1] ? path4.resolve(process.argv[1]) : "";
+  return invoked === launcherPath() ? "" : invoked;
+}
+async function installToClaude(force = false) {
+  const settingsPath = getClaudeSettingsPath();
+  let current = {};
+  try {
+    const raw = await fs6.promises.readFile(settingsPath, "utf8");
+    const parsed = ClaudeSettingsSchema2.safeParse(JSON.parse(raw));
+    if (parsed.success) current = parsed.data;
+  } catch {
+  }
+  if (current.statusLine && !force) {
+    process.stdout.write(`${t("install.alreadySet")}
+`);
+    process.stdout.write(`${t("install.currentConfig")} ${JSON.stringify(current.statusLine)}
+`);
+    process.stdout.write(`${t("install.overwriteHint")}
+`);
+    return;
+  }
+  const backup = `${settingsPath}.bak`;
+  if (Object.keys(current).length > 0) {
+    await fs6.promises.writeFile(backup, `${JSON.stringify(current, null, 2)}
+`, "utf8");
+  }
+  const command = await writeLauncher(fallbackCliPath());
+  current.statusLine = {
+    refreshIntervalMs: 6e4,
+    ...current.statusLine,
+    type: "command",
+    command
+  };
+  await fs6.promises.mkdir(path4.dirname(settingsPath), { recursive: true });
+  await fs6.promises.writeFile(settingsPath, `${JSON.stringify(current, null, 2)}
+`, "utf8");
+  process.stdout.write(`${t("install.success")}
+`);
+}
+
+// src/config/doctor.ts
+import fs7 from "fs";
+import path5 from "path";
+import os from "os";
+async function exists(p) {
+  try {
+    await fs7.promises.access(p);
+    return true;
+  } catch {
+    return false;
+  }
+}
+async function runDoctor() {
+  const claudeDir = getClaudeDir();
+  const codexDir = process.env.CODEX_CONFIG_DIR ?? process.env.CODEX_HOME ?? path5.join(os.homedir(), ".codex");
+  const claudeOk = await exists(claudeDir);
+  const codexOk = await exists(codexDir);
+  process.stdout.write(
+    `${t("doctor.claudeDir")}: ${claudeDir} \u2014 ${claudeOk ? t("doctor.found") : t("doctor.notFound")}
+`
+  );
+  process.stdout.write(
+    `${t("doctor.codexDir")}: ${codexDir} \u2014 ${codexOk ? t("doctor.found") : t("doctor.notFound")}
+`
+  );
+}
+
+// src/config/migrate.ts
+import { spawn } from "child_process";
+import fs8 from "fs";
+import path6 from "path";
+var VERSIONED_CLI_RE = /[\\/]plugins[\\/]cache[\\/]festatusline[\\/]festatusline[\\/][^\\/"']+[\\/]dist[\\/]cli\.js/;
+function isRecord(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+function pointsAtVersionedCli(command) {
+  return typeof command === "string" && VERSIONED_CLI_RE.test(command);
+}
+var MIGRATE_DELAY_MS = 5e3;
+async function readSettings(settingsPath) {
+  try {
+    const parsed = JSON.parse(await fs8.promises.readFile(settingsPath, "utf8"));
+    return isRecord(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+function pinned(settings) {
+  return isRecord(settings?.statusLine) && pointsAtVersionedCli(settings?.statusLine.command);
+}
+async function scheduleMigration(cliPath) {
+  if (!pinned(await readSettings(getClaudeSettingsPath()))) return false;
+  spawn(process.execPath, [cliPath, "migrate", "--now"], {
+    detached: true,
+    stdio: "ignore"
+  }).unref();
+  return true;
+}
+async function migrateStatusLine() {
+  const settingsPath = getClaudeSettingsPath();
+  const current = await readSettings(settingsPath);
+  if (!pinned(current)) return false;
+  const command = await writeLauncher(fallbackCliPath());
+  const next = {
+    ...current,
+    statusLine: { refreshIntervalMs: 6e4, ...current.statusLine, type: "command", command }
+  };
+  const target = await fs8.promises.realpath(settingsPath);
+  const { mode } = await fs8.promises.stat(target);
+  const temp = path6.join(path6.dirname(target), `.settings.json.${process.pid}.tmp`);
+  await fs8.promises.writeFile(temp, `${JSON.stringify(next, null, 2)}
+`, { mode });
+  await fs8.promises.rename(temp, target);
+  return true;
+}
+
+// src/main.ts
+source_default.level = 3;
+function isLocale(v) {
+  return v === "ko" || v === "en" || v === "zh";
+}
+var commands = {
+  setup: async () => {
+    const { runSetupWizard } = await import("./setup-KLJZOR6C.js");
+    return runSetupWizard();
+  },
+  install: (args) => installToClaude(args.includes("--force")),
+  doctor: () => runDoctor(),
+  // Run by the plugin's SessionStart hook on every start. Silent and never failing: a hook's
+  // stdout lands in Claude's context, and a stale statusLine is no reason to bother anyone.
+  migrate: async (args) => {
+    if (args.includes("--now")) {
+      await sleep(MIGRATE_DELAY_MS);
+      await migrateStatusLine().catch(() => false);
+      return;
+    }
+    await scheduleMigration(process.argv[1] ?? "").catch(() => false);
+  }
+};
+async function dispatch(argv) {
+  const [, , sub, ...rest] = argv;
+  const cmd = sub ? commands[sub] : void 0;
+  if (cmd) {
+    await cmd(rest);
+    return;
+  }
+  if (!process.stdin.isTTY) {
+    await renderFromStdin();
+    return;
+  }
+  const { runTui } = await import("./tui-73YEQNLM.js");
+  await runTui();
+}
+async function main() {
+  const settings = await loadSettings();
+  const envLocale2 = process.env.FESTATUSLINE_LOCALE;
+  setLocale(isLocale(envLocale2) ? envLocale2 : settings.locale);
+  await dispatch(process.argv);
+}
+export {
+  main
+};
+//# sourceMappingURL=main-PTLFBOG5.js.map
