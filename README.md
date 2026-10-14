@@ -37,7 +37,8 @@ Inspired by [ccstatusline](https://github.com/sirmalloc/ccstatusline).
 /plugin install festatusline@festatusline
 ```
 
-**3. Run interactive setup** (pick preset, theme, locale — registers the statusline automatically):
+**3. Run interactive setup** (pick preset, theme, locale, how much of the folder path to show —
+registers the statusline automatically):
 
 ```
 /festatusline:setup
@@ -50,7 +51,12 @@ Inspired by [ccstatusline](https://github.com/sirmalloc/ccstatusline).
 ```
 
 It refreshes the marketplace and updates the plugin in one step — no `/plugin` commands
-needed first. The new version shows up on the statusline's next refresh; no restart needed.
+needed first. The new version shows up on the statusline from your next message; no restart
+needed.
+
+To pick options a release added (like the folder path depth) with `/festatusline:setup`, restart
+Claude Code first. Claude Code loads slash commands once at session start, so a session that was
+open during the update keeps running the old setup.
 
 The setup command writes the following into `~/.claude/settings.json`:
 
@@ -275,6 +281,11 @@ locale — so you can see the layout before committing to it.
 Any preset can also carry a Codex row (`codexModel` + `codexWeeklyRateLimit`), inserted directly
 below the weekly row. The setup wizard asks about it as a separate step after the preset choice —
 it is not tied to any one tier.
+
+The last step asks how much of the folder path the `📁` widget shows — the current folder only
+(default), or up to 1, 2 or 3 parent folders (`pathDepth`). Its previews use a fixed example
+folder, `~/dev/company/orca/festatusline`, so each depth looks different even when your own
+folder sits right under home. `basic` has no folder widget and skips this step.
 
 `minimal`, `full`, `korean-dev` and `multi-cli` remain available in the preset menu but are not
 offered by the setup wizard. `minimal` is what renders when no settings file exists yet; its weekly

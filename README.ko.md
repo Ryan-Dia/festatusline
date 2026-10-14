@@ -37,7 +37,7 @@
 /plugin install festatusline@festatusline
 ```
 
-**3. 인터랙티브 셋업** (프리셋·테마·언어 선택 → statusLine 자동 등록):
+**3. 인터랙티브 셋업** (프리셋·테마·언어·경로 표시 단계 선택 → statusLine 자동 등록):
 
 ```
 /festatusline:setup
@@ -50,7 +50,11 @@
 ```
 
 마켓플레이스 갱신과 플러그인 업데이트를 한 번에 처리합니다 — `/plugin` 명령을 따로 실행할
-필요가 없습니다. 새 버전은 상태바가 다음에 갱신될 때 바로 반영되고, 재시작은 필요 없습니다.
+필요가 없습니다. 새 버전은 다음 대화부터 상태바에 바로 반영되고, 재시작은 필요 없습니다.
+
+새 릴리스에서 추가된 옵션(경로 표시 단계 등)을 `/festatusline:setup` 으로 고르려면 Claude Code 를
+먼저 재시작하세요. Claude Code 는 슬래시 명령을 세션 시작 때 한 번만 읽기 때문에, 업데이트할 때
+열려 있던 세션은 옛 setup 을 계속 씁니다.
 
 셋업 후 `~/.claude/settings.json` 에 기록되는 내용:
 
@@ -271,6 +275,11 @@ Claude Code 에서 `/festatusline:setup` 으로 적용할 수 있습니다. setu
 어떤 프리셋이든 Codex 행(`codexModel` + `codexWeeklyRateLimit`)을 추가로 붙일 수 있으며, 주간 행
 바로 아래에 삽입됩니다. setup 마법사에서 프리셋을 고른 다음 별도 단계로 물어보며, 특정 등급에
 종속되지 않습니다.
+
+마지막 단계에서는 `📁` 위젯이 경로를 어디까지 보여줄지 고릅니다 — 현재 폴더만(기본), 또는 상위
+1·2·3단계까지(`pathDepth`). 미리보기는 고정 예시 폴더 `~/dev/company/orca/festatusline` 로 그려서,
+실제 폴더가 홈 바로 아래에 있어도 단계별 차이가 보입니다. `basic` 은 폴더 위젯이 없어 이 단계를
+건너뜁니다.
 
 `minimal`, `full`, `korean-dev`, `multi-cli` 는 프리셋 메뉴에는 남아 있지만 setup 마법사에는
 나오지 않습니다. `minimal` 은 설정 파일이 아직 없을 때 쓰이는 기본 프리셋이며, 주간 행이 위와
