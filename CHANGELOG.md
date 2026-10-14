@@ -12,6 +12,15 @@ summarised under [Earlier](#earlier).
 
 ## [Unreleased]
 
+## [0.13.1] - 2026-10-14
+
+### Fixed
+
+- `/festatusline:update` now ends by telling you to restart Claude Code before running
+  `/festatusline:setup`. Claude Code loads slash commands once at session start, so a setup
+  run in the same session as the update kept using the old copy and never asked the new
+  path depth question. It only tells you, since a session has no way to restart itself.
+
 ## [0.13.0] - 2026-10-14
 
 ### Added
