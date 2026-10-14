@@ -3,7 +3,7 @@ import {
   LanguageSelect,
   PresetPreview,
   saveSettings
-} from "./chunk-BGNN5FUJ.js";
+} from "./chunk-3JIISW6R.js";
 import {
   PRESETS,
   SettingsSchema,
@@ -12,7 +12,7 @@ import {
   setLocale,
   t,
   withCodexRow
-} from "./chunk-GQ7K7YQS.js";
+} from "./chunk-CTAUZFVR.js";
 
 // src/tui/setup.ts
 import React2 from "react";
@@ -23,6 +23,12 @@ import React, { useState } from "react";
 import { Box, Text, useApp } from "ink";
 import SelectInput from "ink-select-input";
 var SETUP_PRESET_NAMES = ["basic", "pro", "max"];
+var PATH_DEPTH_LABEL_KEYS = [
+  "tui.setup.pathDepth0",
+  "tui.setup.pathDepth1",
+  "tui.setup.pathDepth2",
+  "tui.setup.pathDepth3"
+];
 var SETUP_PRESET_LABEL_KEYS = {
   basic: "tui.preset.basic",
   pro: "tui.preset.pro",
@@ -35,6 +41,22 @@ function SetupWizard({ initialSettings, onSave }) {
   const [highlighted, setHighlighted] = useState(SETUP_PRESET_NAMES[0]);
   const [chosenPreset, setChosenPreset] = useState(SETUP_PRESET_NAMES[0]);
   const [codexHighlighted, setCodexHighlighted] = useState("no");
+  const [codexRow, setCodexRow] = useState(false);
+  const [depthHighlighted, setDepthHighlighted] = useState(0);
+  const baseLines = expandPreset(chosenPreset);
+  const chosenLines = codexRow ? withCodexRow(baseLines) : baseLines;
+  const finish = async (withCodex, pathDepth) => {
+    const next = SettingsSchema.parse({
+      ...settings,
+      ...PRESETS[chosenPreset],
+      preset: chosenPreset,
+      codexRow: withCodex,
+      pathDepth,
+      lines: void 0
+    });
+    await onSave(next);
+    exit();
+  };
   if (step === "language") {
     return /* @__PURE__ */ React.createElement(
       LanguageSelect,
@@ -75,42 +97,61 @@ function SetupWizard({ initialSettings, onSave }) {
       }
     ), /* @__PURE__ */ React.createElement(PresetPreview, { name: highlighted, settings }));
   }
-  const baseLines = expandPreset(chosenPreset);
-  const codexItems = [
-    { label: t("tui.setup.codexNo"), value: "no" },
-    { label: t("tui.setup.codexYes"), value: "yes" },
+  if (step === "codex") {
+    const codexItems = [
+      { label: t("tui.setup.codexNo"), value: "no" },
+      { label: t("tui.setup.codexYes"), value: "yes" },
+      { label: t("tui.back"), value: "__back__" }
+    ];
+    return /* @__PURE__ */ React.createElement(Box, { flexDirection: "column", padding: 1 }, /* @__PURE__ */ React.createElement(Text, { bold: true }, t("tui.setup.codexQuestion")), /* @__PURE__ */ React.createElement(
+      SelectInput,
+      {
+        items: codexItems,
+        onHighlight: (item) => {
+          if (item.value === "yes" || item.value === "no") setCodexHighlighted(item.value);
+        },
+        onSelect: async (item) => {
+          if (item.value === "__back__") {
+            setStep("preset");
+            return;
+          }
+          const withCodex = item.value === "yes";
+          setCodexRow(withCodex);
+          if (baseLines.flat().some((w) => w.id === "gitRepo")) {
+            setStep("path");
+            return;
+          }
+          await finish(withCodex, settings.pathDepth);
+        }
+      }
+    ), /* @__PURE__ */ React.createElement(
+      PresetPreview,
+      {
+        lines: codexHighlighted === "yes" ? withCodexRow(baseLines) : baseLines,
+        settings
+      }
+    ));
+  }
+  const pathItems = [
+    ...PATH_DEPTH_LABEL_KEYS.map((key, depth) => ({ label: t(key), value: String(depth) })),
     { label: t("tui.back"), value: "__back__" }
   ];
-  return /* @__PURE__ */ React.createElement(Box, { flexDirection: "column", padding: 1 }, /* @__PURE__ */ React.createElement(Text, { bold: true }, t("tui.setup.codexQuestion")), /* @__PURE__ */ React.createElement(
+  return /* @__PURE__ */ React.createElement(Box, { flexDirection: "column", padding: 1 }, /* @__PURE__ */ React.createElement(Text, { bold: true }, t("tui.setup.pathQuestion")), /* @__PURE__ */ React.createElement(
     SelectInput,
     {
-      items: codexItems,
+      items: pathItems,
       onHighlight: (item) => {
-        if (item.value === "yes" || item.value === "no") setCodexHighlighted(item.value);
+        if (item.value !== "__back__") setDepthHighlighted(Number(item.value));
       },
       onSelect: async (item) => {
         if (item.value === "__back__") {
-          setStep("preset");
+          setStep("codex");
           return;
         }
-        const next = SettingsSchema.parse({
-          ...settings,
-          ...PRESETS[chosenPreset],
-          preset: chosenPreset,
-          codexRow: item.value === "yes",
-          lines: void 0
-        });
-        await onSave(next);
-        exit();
+        await finish(codexRow, Number(item.value));
       }
     }
-  ), /* @__PURE__ */ React.createElement(
-    PresetPreview,
-    {
-      lines: codexHighlighted === "yes" ? withCodexRow(baseLines) : baseLines,
-      settings
-    }
-  ));
+  ), /* @__PURE__ */ React.createElement(PresetPreview, { lines: chosenLines, settings: { ...settings, pathDepth: depthHighlighted } }));
 }
 
 // src/tui/setup.ts
@@ -124,4 +165,4 @@ async function runSetupWizard() {
 export {
   runSetupWizard
 };
-//# sourceMappingURL=setup-CMGWOFYY.js.map
+//# sourceMappingURL=setup-Q52SEKUR.js.map

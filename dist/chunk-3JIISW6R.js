@@ -10,7 +10,7 @@ import {
   renderAllLines,
   resolveLines,
   t
-} from "./chunk-GQ7K7YQS.js";
+} from "./chunk-CTAUZFVR.js";
 
 // src/config/save.ts
 import fs from "fs";
@@ -58,8 +58,11 @@ import React2 from "react";
 import { Box as Box2, Text as Text2 } from "ink";
 
 // src/tui/preview.ts
+import { homedir } from "os";
+import { join } from "path";
 var HOUR_MS = 60 * 60 * 1e3;
 var DAY_MS = 24 * HOUR_MS;
+var PREVIEW_DIR = join(homedir(), "dev", "company", "orca", "festatusline");
 function buildPreviewContext(settings) {
   const now = /* @__PURE__ */ new Date();
   const unixAfter = (ms) => Math.floor((now.getTime() + ms) / 1e3);
@@ -84,7 +87,11 @@ function buildPreviewContext(settings) {
       cost: { total_cost_usd: 0.42, total_lines_added: 156, total_lines_removed: 23 },
       fast_mode: false,
       pr: { number: 1234, url: "https://example.com/pull/1234", review_state: "approved" },
-      effort: { level: "xhigh" }
+      effort: { level: "xhigh" },
+      workspace: { current_dir: PREVIEW_DIR },
+      // Carries the branch the way a --worktree session does, so the preview never shells out
+      // to git in a folder that does not exist.
+      worktree: { branch: "main" }
     },
     usage: {
       dailyTokens: 48e4,
@@ -116,6 +123,7 @@ function buildPreviewContext(settings) {
     t: createTranslator(envLocale() ?? settings.locale),
     now,
     weeklyAnchorDay: settings.weeklyAnchorDay,
+    pathDepth: settings.pathDepth,
     cacheTtlCreatedAt: now.getTime() - 30 * 60 * 1e3,
     cacheTtlMs: HOUR_MS
   };
@@ -156,4 +164,4 @@ export {
   LanguageSelect,
   PresetPreview
 };
-//# sourceMappingURL=chunk-BGNN5FUJ.js.map
+//# sourceMappingURL=chunk-3JIISW6R.js.map

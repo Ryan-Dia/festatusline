@@ -4562,7 +4562,10 @@ var SettingsSchema = external_exports.object({
   theme: external_exports.string().default("default"),
   locale: external_exports.enum(["ko", "en", "zh"]).default("en"),
   weeklyAnchorDay: external_exports.number().min(0).max(6).nullable().default(null),
-  separator: external_exports.string().default(" \u2502 ")
+  separator: external_exports.string().default(" \u2502 "),
+  // Parent folders shown above the current folder in the gitRepo widget. A top-level field
+  // rather than widget config, since config lives in `lines` and writing that freezes the preset.
+  pathDepth: external_exports.number().int().min(0).max(3).default(0)
 });
 
 // src/config/load.ts
@@ -4606,7 +4609,7 @@ var ko = {
   "widget.cacheHit": "\uCE90\uC2DC \uC801\uC911\uB960",
   "widget.cacheTtl": "\uCE90\uC2DC \uC720\uD6A8\uC2DC\uAC04",
   "widget.gitBranch": "Git \uBE0C\uB79C\uCE58",
-  "widget.gitRepo": "Git \uB808\uD3EC",
+  "widget.gitRepo": "\uD3F4\uB354 + \uBE0C\uB79C\uCE58",
   "widget.modelMix": "\uC8FC\uAC04 \uBAA8\uB378 \uBE44\uC911",
   "widget.pr": "PR / MR \uC0C1\uD0DC",
   "widget.fastMode": "\uD328\uC2A4\uD2B8 \uBAA8\uB4DC",
@@ -4643,6 +4646,11 @@ var ko = {
   "tui.setup.codexQuestion": "Codex CLI \uC0AC\uC6A9\uB7C9 \uC704\uC82F\uC744 \uCD94\uAC00\uD560\uAE4C\uC694?",
   "tui.setup.codexYes": "\uC608, \uCD94\uAC00",
   "tui.setup.codexNo": "\uC544\uB2C8\uC624",
+  "tui.setup.pathQuestion": "\uACBD\uB85C\uB97C \uC5B4\uB514\uAE4C\uC9C0 \uD45C\uC2DC\uD560\uAE4C\uC694?",
+  "tui.setup.pathDepth0": "\uD604\uC7AC \uD3F4\uB354\uB9CC (\uAE30\uBCF8)",
+  "tui.setup.pathDepth1": "\uC0C1\uC704 1\uB2E8\uACC4\uAE4C\uC9C0",
+  "tui.setup.pathDepth2": "\uC0C1\uC704 2\uB2E8\uACC4\uAE4C\uC9C0",
+  "tui.setup.pathDepth3": "\uC0C1\uC704 3\uB2E8\uACC4\uAE4C\uC9C0",
   "tui.lang.ko": "\uD55C\uAD6D\uC5B4",
   "tui.lang.en": "English",
   "tui.lang.zh": "\u4E2D\u6587",
@@ -4681,7 +4689,7 @@ var en = {
   "widget.cacheHit": "Cache Hit",
   "widget.cacheTtl": "Cache TTL",
   "widget.gitBranch": "Git Branch",
-  "widget.gitRepo": "Git Repo",
+  "widget.gitRepo": "Folder + Branch",
   "widget.modelMix": "Weekly Model Mix",
   "widget.pr": "PR / MR Status",
   "widget.fastMode": "Fast Mode",
@@ -4718,6 +4726,11 @@ var en = {
   "tui.setup.codexQuestion": "Add Codex CLI usage widgets?",
   "tui.setup.codexYes": "Yes, add them",
   "tui.setup.codexNo": "No",
+  "tui.setup.pathQuestion": "How much of the folder path should be shown?",
+  "tui.setup.pathDepth0": "Current folder only (default)",
+  "tui.setup.pathDepth1": "Up to 1 parent folder",
+  "tui.setup.pathDepth2": "Up to 2 parent folders",
+  "tui.setup.pathDepth3": "Up to 3 parent folders",
   "tui.lang.ko": "\uD55C\uAD6D\uC5B4",
   "tui.lang.en": "English",
   "tui.lang.zh": "\u4E2D\u6587",
@@ -4756,7 +4769,7 @@ var zh = {
   "widget.cacheHit": "\u7F13\u5B58\u547D\u4E2D\u7387",
   "widget.cacheTtl": "\u7F13\u5B58\u6709\u6548\u671F",
   "widget.gitBranch": "Git \u5206\u652F",
-  "widget.gitRepo": "Git \u4ED3\u5E93",
+  "widget.gitRepo": "\u6587\u4EF6\u5939 + \u5206\u652F",
   "widget.modelMix": "\u6BCF\u5468\u6A21\u578B\u5360\u6BD4",
   "widget.pr": "PR / MR \u72B6\u6001",
   "widget.fastMode": "\u5FEB\u901F\u6A21\u5F0F",
@@ -4793,6 +4806,11 @@ var zh = {
   "tui.setup.codexQuestion": "\u8981\u6DFB\u52A0 Codex CLI \u7528\u91CF\u7EC4\u4EF6\u5417\uFF1F",
   "tui.setup.codexYes": "\u662F\uFF0C\u6DFB\u52A0",
   "tui.setup.codexNo": "\u5426",
+  "tui.setup.pathQuestion": "\u8DEF\u5F84\u663E\u793A\u5230\u54EA\u4E00\u7EA7\uFF1F",
+  "tui.setup.pathDepth0": "\u4EC5\u5F53\u524D\u6587\u4EF6\u5939\uFF08\u9ED8\u8BA4\uFF09",
+  "tui.setup.pathDepth1": "\u5411\u4E0A 1 \u7EA7",
+  "tui.setup.pathDepth2": "\u5411\u4E0A 2 \u7EA7",
+  "tui.setup.pathDepth3": "\u5411\u4E0A 3 \u7EA7",
   "tui.lang.ko": "\uD55C\uAD6D\uC5B4",
   "tui.lang.en": "English",
   "tui.lang.zh": "\u4E2D\u6587",
@@ -5740,7 +5758,7 @@ var CacheTtlWidget = {
 
 // src/widgets/GitInfo.ts
 import { execFileSync } from "child_process";
-import { basename } from "path";
+import { homedir } from "os";
 function gitCommand(args, cwd) {
   try {
     return execFileSync("git", args, {
@@ -5767,11 +5785,19 @@ function getCachedBranch(ctx) {
   branchCache.set(cwd, { value, expiresAt: now + 5e3 });
   return value;
 }
-function getRepoName(ctx) {
-  const fromStdin = ctx.stdin.workspace?.repo?.name;
-  if (fromStdin) return fromStdin;
-  const topLevel = gitCommand(["rev-parse", "--show-toplevel"], workspaceDir(ctx));
-  return topLevel ? basename(topLevel) : null;
+function splitPath(p) {
+  return p.split(/[\\/]+/).filter(Boolean);
+}
+function formatDirPath(dir, depth, home) {
+  const segments = splitPath(dir);
+  const homeSegments = splitPath(home);
+  const underHome = homeSegments.length > 0 && homeSegments.length <= segments.length && homeSegments.every((segment, i) => segment === segments[i]);
+  const rest = underHome ? segments.slice(homeSegments.length) : segments;
+  if (!rest.length) return underHome ? "~" : "/";
+  const shown = rest.slice(-(depth + 1));
+  if (depth === 0) return shown.join("/");
+  if (shown.length < rest.length) return `\u2026/${shown.join("/")}`;
+  return `${underHome ? "~" : ""}/${shown.join("/")}`;
 }
 var GitBranchWidget = {
   id: "gitBranch",
@@ -5784,10 +5810,9 @@ var GitRepoWidget = {
   id: "gitRepo",
   labelKey: "widget.gitRepo",
   render(ctx, _cfg) {
-    const repo = getRepoName(ctx);
-    if (!repo) return null;
+    const folder = formatDirPath(workspaceDir(ctx), ctx.pathDepth ?? 0, homedir());
     const branch = getCachedBranch(ctx);
-    return branch ? `\u{1F4C1} ${repo}(${branch})` : `\u{1F4C1} ${repo}`;
+    return branch ? `\u{1F4C1} ${folder}(${branch})` : `\u{1F4C1} ${folder}`;
   }
 };
 
@@ -6033,4 +6058,4 @@ export {
   ALL_WIDGETS,
   renderAllLines
 };
-//# sourceMappingURL=chunk-GQ7K7YQS.js.map
+//# sourceMappingURL=chunk-CTAUZFVR.js.map

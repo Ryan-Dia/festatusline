@@ -12,6 +12,24 @@ summarised under [Earlier](#earlier).
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-10-14
+
+### Added
+
+- Setup now ends by asking how much of the folder path to show: the current folder only
+  (default) or up to 1, 2 or 3 parent folders (`pathDepth` in settings). Parents start from
+  `~` once they reach the home folder, and a leading `…/` marks the ones cut off. It is a
+  top-level setting rather than widget config because widget config lives in `lines`, and
+  writing `lines` would stop the preset from following updates. Presets without the folder
+  widget (`basic`) skip the question.
+
+### Changed
+
+- `gitRepo` shows the current folder name instead of the repository name from the `origin`
+  remote, so a clone in a differently named folder, or a session in a subfolder, shows where
+  you actually are. It also stays visible outside a git repo, without a branch, where it used
+  to disappear. The widget id stays `gitRepo` so saved layouts keep working.
+
 ## [0.12.1] - 2026-10-12
 
 ### Fixed

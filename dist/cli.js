@@ -21,7 +21,7 @@ import {
   source_default,
   t,
   weightedCost
-} from "./chunk-GQ7K7YQS.js";
+} from "./chunk-CTAUZFVR.js";
 
 // src/cli.ts
 import { setTimeout as sleep } from "timers/promises";
@@ -728,6 +728,7 @@ async function renderFromStdin() {
     t: t2,
     now: /* @__PURE__ */ new Date(),
     weeklyAnchorDay: settings.weeklyAnchorDay,
+    pathDepth: settings.pathDepth,
     envEffortLevel: process.env.CLAUDE_EFFORT,
     ultracode: claudeSettings.ultracode,
     cacheTtlCreatedAt,
@@ -945,7 +946,7 @@ function isLocale(v) {
 }
 var commands = {
   setup: async () => {
-    const { runSetupWizard } = await import("./setup-CMGWOFYY.js");
+    const { runSetupWizard } = await import("./setup-Q52SEKUR.js");
     return runSetupWizard();
   },
   install: (args) => installToClaude(args.includes("--force")),
@@ -972,7 +973,7 @@ async function dispatch(argv) {
     await renderFromStdin();
     return;
   }
-  const { runTui } = await import("./tui-4AXJWCGS.js");
+  const { runTui } = await import("./tui-UDQO6E2Y.js");
   await runTui();
 }
 async function main() {
