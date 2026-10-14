@@ -12,6 +12,23 @@ summarised under [Earlier](#earlier).
 
 ## [Unreleased]
 
+## [0.13.2] - 2026-10-14
+
+### Fixed
+
+- The statusline took about 2 seconds per render, and longer the more Claude Code history
+  you had: every render re-read and parsed every transcript under `~/.claude/projects`
+  (242 MB on the machine measured). The cache meant to prevent that lived in memory, and
+  each render is a new process, so it was always empty. Now a layout without a widget that
+  needs the transcripts (`modelMix`, `sonnetWeeklyUsage`, `fableWeeklyUsage`, `cacheTtl`)
+  never opens them — `basic` and `pro` among them. Layouts that do need them keep the parsed
+  entries on disk (`~/.cache/festatusline/transcripts-*.json`) and read only what was
+  appended since the last render, skipping transcripts untouched within the window they
+  need: the last week for the usage widgets, the last hour for `cacheTtl` (`max`). Median
+  render time went from 2080 ms to 130 ms for `pro` + Codex, from 1868 ms to 118 ms for a
+  `cacheTtl` layout, and from 1907 ms to 131 ms for a `modelMix` layout after a one-time
+  987 ms first read.
+
 ## [0.13.1] - 2026-10-14
 
 ### Fixed

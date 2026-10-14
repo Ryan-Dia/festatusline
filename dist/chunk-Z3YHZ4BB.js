@@ -4851,6 +4851,14 @@ function createTranslator(locale) {
   return (key) => bundles[locale][key] ?? bundles.en[key] ?? key;
 }
 
+// src/data/time.ts
+function getTimeWindows() {
+  const now = Date.now();
+  const todayStart = /* @__PURE__ */ new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  return { now, todayStartMs: todayStart.getTime(), weekStartMs: now - 7 * 24 * 60 * 60 * 1e3 };
+}
+
 // src/data/codex.ts
 import fs3 from "fs";
 import path2 from "path";
@@ -4891,14 +4899,6 @@ function createMtimeCache() {
       return value;
     }
   };
-}
-
-// src/data/time.ts
-function getTimeWindows() {
-  const now = Date.now();
-  const todayStart = /* @__PURE__ */ new Date();
-  todayStart.setHours(0, 0, 0, 0);
-  return { now, todayStartMs: todayStart.getTime(), weekStartMs: now - 7 * 24 * 60 * 60 * 1e3 };
 }
 
 // src/data/codex.ts
@@ -6030,19 +6030,18 @@ function renderAllLines(lines, ctx, separator) {
 export {
   source_default,
   external_exports,
-  createTtlCache,
-  createMtimeCache,
-  SettingsSchema,
-  getClaudeDir,
-  getConfigPath,
-  loadSettings,
   getTimeWindows,
   modelFamily,
   isSonnetModel,
   isFableModel,
   weightedCost,
   emptyFamilyTotals,
+  createMtimeCache,
   getCodexSnapshot,
+  SettingsSchema,
+  getClaudeDir,
+  getConfigPath,
+  loadSettings,
   withCodexRow,
   PRESETS,
   PRESET_NAMES,
@@ -6058,4 +6057,4 @@ export {
   ALL_WIDGETS,
   renderAllLines
 };
-//# sourceMappingURL=chunk-CTAUZFVR.js.map
+//# sourceMappingURL=chunk-Z3YHZ4BB.js.map
