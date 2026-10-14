@@ -2,7 +2,7 @@ import { promises as fs } from 'fs';
 import { homedir } from 'os';
 import { join } from 'path';
 import { readStdin, RateLimitsSchema, type RateLimits } from '../data/stdin.js';
-import { getUsageSnapshot } from '../data/usage.js';
+import { getUsageSnapshot, type UsageSnapshot } from '../data/usage.js';
 import { getCodexSnapshot } from '../data/codex.js';
 import {
   getOAuthUsageSlots,
@@ -10,12 +10,14 @@ import {
   type RateLimitSlot,
 } from '../data/claudeOAuthUsage.js';
 import { readClaudeSettings } from '../data/claude-settings.js';
-import { getLastCacheCreation, getLastModelFromTranscript } from '../data/jsonl.js';
+import { getLastCacheCreation, getLastModelFromTranscript, loadAllEntries } from '../data/jsonl.js';
+import { getTimeWindows } from '../data/time.js';
 import { loadSettings } from '../config/load.js';
 import { resolveLines } from '../config/presets.js';
 import { getTheme } from '../theme/index.js';
 import { createTranslator, envLocale } from '../i18n/index.js';
 import { renderAllLines } from './line.js';
+import type { WidgetCfg } from '../config/schema.js';
 import type { RenderContext } from '../widgets/types.js';
 
 const CACHE_DIR = process.env.XDG_CACHE_HOME
@@ -126,29 +128,48 @@ export function mergeRateLimits(
   return fiveHour || sevenDay ? { five_hour: fiveHour, seven_day: sevenDay } : undefined;
 }
 
+// The only widgets that read the transcripts under ~/.claude/projects. Those run to hundreds
+// of MB, so a layout without these never opens them.
+const USAGE_WIDGET_IDS = ['modelMix', 'sonnetWeeklyUsage', 'fableWeeklyUsage'];
+// cacheTtl hides once the longest (1 h) cache TTL has run out, so older entries can't matter.
+const CACHE_TTL_LOOKBACK_MS = 60 * 60 * 1000;
+
+type TranscriptData = {
+  usage: UsageSnapshot | null;
+  lastCacheCreation: { timestamp: number; ttlMs: number } | null;
+};
+
+async function loadTranscriptData(lines: WidgetCfg[][]): Promise<TranscriptData> {
+  const ids = new Set(lines.flat().map((w) => w.id));
+  const needsUsage = USAGE_WIDGET_IDS.some((id) => ids.has(id));
+  const needsCacheTtl = ids.has('cacheTtl');
+  if (!needsUsage && !needsCacheTtl) return { usage: null, lastCacheCreation: null };
+
+  const { now, weekStartMs } = getTimeWindows();
+  const entries = await loadAllEntries(needsUsage ? weekStartMs : now - CACHE_TTL_LOOKBACK_MS);
+  return {
+    usage: needsUsage ? getUsageSnapshot(entries) : null,
+    lastCacheCreation: needsCacheTtl ? getLastCacheCreation(entries) : null,
+  };
+}
+
 export async function renderFromStdin(): Promise<void> {
   // The OAuth fetch identifies itself with the running Claude Code version from stdin; it
   // awaits that only if it actually fetches, so the cache read still overlaps stdin.
   const stdinPromise = readStdin();
-  const [
-    stdin,
-    settings,
-    claudeSettings,
-    usage,
-    codex,
-    oauthSlots,
-    cachedRateLimits,
-    lastCacheCreation,
-  ] = await Promise.all([
-    stdinPromise,
-    loadSettings(),
-    readClaudeSettings(),
-    tryOrNull(getUsageSnapshot),
-    tryOrNull(getCodexSnapshot),
-    tryOrNull(() => getOAuthUsageSlots(stdinPromise.then((payload) => payload.version))),
-    readRateLimitsCache(),
-    tryOrNull(getLastCacheCreation),
-  ]);
+  const settingsPromise = loadSettings();
+  const [stdin, settings, claudeSettings, transcriptData, codex, oauthSlots, cachedRateLimits] =
+    await Promise.all([
+      stdinPromise,
+      settingsPromise,
+      readClaudeSettings(),
+      tryOrNull(() => settingsPromise.then((s) => loadTranscriptData(resolveLines(s)))),
+      tryOrNull(getCodexSnapshot),
+      tryOrNull(() => getOAuthUsageSlots(stdinPromise.then((payload) => payload.version))),
+      readRateLimitsCache(),
+    ]);
+  const usage = transcriptData?.usage ?? null;
+  const lastCacheCreation = transcriptData?.lastCacheCreation ?? null;
 
   const t = createTranslator(envLocale() ?? settings.locale);
 

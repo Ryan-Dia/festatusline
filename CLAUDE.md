@@ -39,8 +39,8 @@ src/
 ├── cli.ts                 # 엔트리: stdin 감지 시 render, TTY 시 TUI
 ├── data/
 │   ├── stdin.ts           # Claude Code stdin JSON 파싱 (zod)
-│   ├── jsonl.ts           # ~/.claude/projects/**/*.jsonl 파싱 (mtime 캐시)
-│   ├── usage.ts           # 일간/주간/Sonnet 주간 사용량 집계 (30s 캐시)
+│   ├── jsonl.ts           # ~/.claude/projects/**/*.jsonl 파싱 (디스크 증분 캐시)
+│   ├── usage.ts           # 일간/주간/Sonnet 주간 사용량 집계
 │   ├── reset.ts           # 일간/주간 리셋 카운트다운
 │   ├── codex.ts           # ~/.codex 파싱 → GPT 사용량
 │   ├── cache.ts           # TTL 캐시 유틸리티
@@ -330,6 +330,18 @@ refactor: Extract token formatter into shared util
 - 토큰은 `readAccessToken()` → `fetch` Authorization 헤더 두 지점에만 닿는다. 캐시 파일엔
   퍼센트/리셋 시각과 리셋권 개수·기한만 기록한다(테스트로 고정). `refreshToken` 은 스키마에서 읽지도 않는다.
   `redirect: 'error'` 로 리다이렉트 시 토큰이 다른 호스트로 따라가는 것을 막는다.
+
+### transcript 파싱 (`src/data/jsonl.ts`, 0.13.2~)
+
+- 렌더마다 새 프로세스라 **인메모리 캐시는 무의미하다.** 0.13.1 까지는 매 렌더가
+  `~/.claude/projects` 전체(실측 242MB)를 다시 파싱해서 렌더 1회에 ~2초가 걸렸다.
+- 그래서 두 겹으로 막는다. ① `render/index.ts` 가 레이아웃에 transcript 를 쓰는 위젯
+  (`modelMix`·`sonnetWeeklyUsage`·`fableWeeklyUsage`·`cacheTtl`)이 없으면 **아예 열지 않는다**.
+  위젯을 새로 만들어 `ctx.usage`/`cacheTtlCreatedAt` 를 읽게 하면 `USAGE_WIDGET_IDS` 에 꼭 추가할 것 —
+  빠뜨리면 그 위젯은 늘 `null` 이다. ② 쓰는 경우엔 `~/.cache/festatusline/transcripts-<해시>.json`
+  에 파일별 파싱 결과와 읽은 바이트 위치를 두고, transcript 가 append-only 라는 점을 이용해
+  **늘어난 부분만** 읽는다. 파일이 짧아지면 처음부터 다시 읽는다.
+- mtime 이 창(주간 7일 / cacheTtl 1시간)보다 오래된 파일은 건너뛰고 인덱스에서도 뺀다.
 
 ### effort / ultracode
 

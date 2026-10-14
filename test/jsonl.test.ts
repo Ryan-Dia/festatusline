@@ -23,10 +23,12 @@ describe('loadAllEntries', () => {
   beforeEach(async () => {
     tmpDir = await fs.mkdtemp(join(tmpdir(), 'festatusline-jsonl-'));
     process.env.CLAUDE_CONFIG_DIR = tmpDir;
+    process.env.XDG_CACHE_HOME = join(tmpDir, 'cache');
   });
 
   afterEach(async () => {
     delete process.env.CLAUDE_CONFIG_DIR;
+    delete process.env.XDG_CACHE_HOME;
     await fs.rm(tmpDir, { recursive: true, force: true });
   });
 
@@ -105,16 +107,103 @@ describe('loadAllEntries', () => {
   });
 });
 
+describe('loadAllEntries keeps its progress on disk', () => {
+  let tmpDir: string;
+  let file: string;
+
+  const line = (inputTokens: number): string =>
+    makeUsageLine({
+      usage: {
+        input_tokens: inputTokens,
+        output_tokens: 0,
+        cache_creation_input_tokens: 0,
+        cache_read_input_tokens: 0,
+      },
+    });
+  const inputs = async (sinceMs?: number): Promise<number[]> =>
+    (await loadAllEntries(sinceMs)).map((e) => e.inputTokens).sort((a, b) => a - b);
+
+  beforeEach(async () => {
+    tmpDir = await fs.mkdtemp(join(tmpdir(), 'festatusline-index-'));
+    process.env.CLAUDE_CONFIG_DIR = tmpDir;
+    process.env.XDG_CACHE_HOME = join(tmpDir, 'cache');
+    await fs.mkdir(join(tmpDir, 'projects', 'p'), { recursive: true });
+    file = join(tmpDir, 'projects', 'p', 'session.jsonl');
+  });
+
+  afterEach(async () => {
+    delete process.env.CLAUDE_CONFIG_DIR;
+    delete process.env.XDG_CACHE_HOME;
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  });
+
+  it('reads only what was appended since the last call', async () => {
+    await fs.writeFile(file, `${line(1)}\n`);
+    expect(await inputs()).toEqual([1]);
+    await fs.appendFile(file, `${line(2)}\n`);
+    expect(await inputs()).toEqual([1, 2]);
+  });
+
+  it('serves entries from the index without rereading the file', async () => {
+    await fs.writeFile(file, `${line(1)}\n`);
+    await inputs();
+    // Same size, different bytes: only a reread would notice, and transcripts never do this.
+    await fs.writeFile(file, `${line(7)}\n`);
+    expect(await inputs()).toEqual([1]);
+  });
+
+  it('waits for a line still being written', async () => {
+    const full = line(2);
+    await fs.writeFile(file, `${line(1)}\n${full.slice(0, 20)}`);
+    expect(await inputs()).toEqual([1]);
+    await fs.appendFile(file, `${full.slice(20)}\n`);
+    expect(await inputs()).toEqual([1, 2]);
+  });
+
+  it('starts over when a file shrinks', async () => {
+    await fs.writeFile(file, `${line(1)}\n${line(2)}\n`);
+    expect(await inputs()).toEqual([1, 2]);
+    await fs.writeFile(file, `${line(3)}\n`);
+    expect(await inputs()).toEqual([3]);
+  });
+
+  it('skips transcripts untouched since sinceMs', async () => {
+    await fs.writeFile(file, `${line(1)}\n`);
+    const old = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000);
+    await fs.utimes(file, old, old);
+    expect(await inputs(Date.now() - 7 * 24 * 60 * 60 * 1000)).toEqual([]);
+    expect(await inputs()).toEqual([1]);
+  });
+
+  it('drops deleted transcripts from the index', async () => {
+    await fs.writeFile(file, `${line(1)}\n`);
+    await inputs();
+    await fs.rm(file);
+    expect(await inputs()).toEqual([]);
+  });
+
+  it('falls back to a full read when the index is unreadable', async () => {
+    await fs.writeFile(file, `${line(1)}\n`);
+    await inputs();
+    const cacheDir = join(tmpDir, 'cache', 'festatusline');
+    const [indexFile] = await fs.readdir(cacheDir);
+    await fs.writeFile(join(cacheDir, indexFile!), '{not json');
+    expect(await inputs()).toEqual([1]);
+  });
+});
+
 describe('getLastCacheCreation', () => {
   let tmpDir: string;
 
   beforeEach(async () => {
     tmpDir = await fs.mkdtemp(join(tmpdir(), 'festatusline-cache-'));
     process.env.CLAUDE_CONFIG_DIR = tmpDir;
+    process.env.XDG_CACHE_HOME = join(tmpDir, 'cache');
   });
 
   afterEach(async () => {
     delete process.env.CLAUDE_CONFIG_DIR;
+    delete process.env.XDG_CACHE_HOME;
     await fs.rm(tmpDir, { recursive: true, force: true });
   });
 
@@ -123,7 +212,7 @@ describe('getLastCacheCreation', () => {
     await fs.mkdir(projDir, { recursive: true });
     await fs.writeFile(join(projDir, 'f.jsonl'), makeUsageLine() + '\n');
 
-    const result = await getLastCacheCreation();
+    const result = getLastCacheCreation(await loadAllEntries());
     expect(result).toBeNull();
   });
 
@@ -140,7 +229,7 @@ describe('getLastCacheCreation', () => {
     });
     await fs.writeFile(join(projDir, 'f.jsonl'), line + '\n');
 
-    const result = await getLastCacheCreation();
+    const result = getLastCacheCreation(await loadAllEntries());
     expect(result).not.toBeNull();
     expect(result!.ttlMs).toBe(300_000);
   });
@@ -159,7 +248,7 @@ describe('getLastCacheCreation', () => {
     });
     await fs.writeFile(join(projDir, 'f.jsonl'), line + '\n');
 
-    const result = await getLastCacheCreation();
+    const result = getLastCacheCreation(await loadAllEntries());
     expect(result).not.toBeNull();
     expect(result!.ttlMs).toBe(3_600_000);
   });

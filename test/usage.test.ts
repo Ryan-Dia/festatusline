@@ -1,11 +1,8 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import type { UsageEntry } from '../src/data/jsonl.js';
+import { getUsageSnapshot } from '../src/data/usage.js';
 
 let mockEntries: UsageEntry[] = [];
-
-vi.mock('../src/data/jsonl.js', () => ({
-  loadAllEntries: vi.fn(() => Promise.resolve(mockEntries)),
-}));
 
 function makeEntry(overrides: Partial<UsageEntry> = {}): UsageEntry {
   return {
@@ -23,20 +20,11 @@ function makeEntry(overrides: Partial<UsageEntry> = {}): UsageEntry {
 
 describe('getUsageSnapshot', () => {
   beforeEach(() => {
-    vi.resetModules();
     mockEntries = [];
-    vi.doMock('../src/data/jsonl.js', () => ({
-      loadAllEntries: vi.fn(() => Promise.resolve(mockEntries)),
-    }));
   });
 
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  it('returns zeros and null model for empty entries', async () => {
-    const { getUsageSnapshot } = await import('../src/data/usage.js');
-    const snap = await getUsageSnapshot();
+  it('returns zeros and null model for empty entries', () => {
+    const snap = getUsageSnapshot(mockEntries);
     expect(snap.dailyTokens).toBe(0);
     expect(snap.weeklyTokens).toBe(0);
     expect(snap.sonnetWeeklyTokens).toBe(0);
@@ -44,7 +32,7 @@ describe('getUsageSnapshot', () => {
     expect(snap.allEntries).toHaveLength(0);
   });
 
-  it('counts today tokens for dailyTokens and excludes older entries', async () => {
+  it('counts today tokens for dailyTokens and excludes older entries', () => {
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
     const todayMs = todayStart.getTime();
@@ -54,13 +42,12 @@ describe('getUsageSnapshot', () => {
       makeEntry({ timestamp: todayMs - 1000, inputTokens: 200, outputTokens: 100 }),
     ];
 
-    const { getUsageSnapshot } = await import('../src/data/usage.js');
-    const snap = await getUsageSnapshot();
+    const snap = getUsageSnapshot(mockEntries);
     expect(snap.dailyTokens).toBe(150);
     expect(snap.weeklyTokens).toBe(450);
   });
 
-  it('filters Sonnet model for sonnetWeeklyTokens', async () => {
+  it('filters Sonnet model for sonnetWeeklyTokens', () => {
     const weekAgoMs = Date.now() - 6 * 24 * 60 * 60 * 1000;
 
     mockEntries = [
@@ -68,13 +55,12 @@ describe('getUsageSnapshot', () => {
       makeEntry({ timestamp: weekAgoMs + 1000, model: 'claude-opus-4', inputTokens: 200, outputTokens: 100 }),
     ];
 
-    const { getUsageSnapshot } = await import('../src/data/usage.js');
-    const snap = await getUsageSnapshot();
+    const snap = getUsageSnapshot(mockEntries);
     expect(snap.sonnetWeeklyTokens).toBe(150);
     expect(snap.weeklyTokens).toBe(450);
   });
 
-  it('filters Fable model for fableWeeklyTokens', async () => {
+  it('filters Fable model for fableWeeklyTokens', () => {
     const weekAgoMs = Date.now() - 6 * 24 * 60 * 60 * 1000;
 
     mockEntries = [
@@ -82,25 +68,23 @@ describe('getUsageSnapshot', () => {
       makeEntry({ timestamp: weekAgoMs + 1000, model: 'claude-opus-4', inputTokens: 200, outputTokens: 100 }),
     ];
 
-    const { getUsageSnapshot } = await import('../src/data/usage.js');
-    const snap = await getUsageSnapshot();
+    const snap = getUsageSnapshot(mockEntries);
     expect(snap.fableWeeklyTokens).toBe(150);
     expect(snap.weeklyTokens).toBe(450);
   });
 
-  it('excludes entries older than 7 days from weeklyTokens', async () => {
+  it('excludes entries older than 7 days from weeklyTokens', () => {
     const eightDaysAgoMs = Date.now() - 8 * 24 * 60 * 60 * 1000;
 
     mockEntries = [
       makeEntry({ timestamp: eightDaysAgoMs, inputTokens: 500, outputTokens: 500 }),
     ];
 
-    const { getUsageSnapshot } = await import('../src/data/usage.js');
-    const snap = await getUsageSnapshot();
+    const snap = getUsageSnapshot(mockEntries);
     expect(snap.weeklyTokens).toBe(0);
   });
 
-  it('weights the week by model family so an Opus token outweighs a Sonnet one', async () => {
+  it('weights the week by model family so an Opus token outweighs a Sonnet one', () => {
     const weekAgoMs = Date.now() - 6 * 24 * 60 * 60 * 1000;
 
     mockEntries = [
@@ -108,8 +92,7 @@ describe('getUsageSnapshot', () => {
       makeEntry({ timestamp: weekAgoMs + 1000, model: 'claude-sonnet-4-6', inputTokens: 1_000 }),
     ];
 
-    const { getUsageSnapshot } = await import('../src/data/usage.js');
-    const snap = await getUsageSnapshot();
+    const snap = getUsageSnapshot(mockEntries);
 
     // Identical raw token counts, but Opus sits on tier 5 against Sonnet's tier 3.
     expect(snap.weeklyTokens).toBe(2_000);
@@ -118,7 +101,7 @@ describe('getUsageSnapshot', () => {
     expect(snap.weightedWeekly).toBe(80_000);
   });
 
-  it('scopes weightedDaily to today while weightedWeekly keeps the week', async () => {
+  it('scopes weightedDaily to today while weightedWeekly keeps the week', () => {
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
     const todayMs = todayStart.getTime();
@@ -128,13 +111,12 @@ describe('getUsageSnapshot', () => {
       makeEntry({ timestamp: todayMs - 1000, model: 'claude-opus-5', inputTokens: 100 }),
     ];
 
-    const { getUsageSnapshot } = await import('../src/data/usage.js');
-    const snap = await getUsageSnapshot();
+    const snap = getUsageSnapshot(mockEntries);
     expect(snap.weightedDaily).toBe(100 * 10 * 5);
     expect(snap.weightedWeekly).toBe(2 * 100 * 10 * 5);
   });
 
-  it('buckets an unrecognized model under the other family', async () => {
+  it('buckets an unrecognized model under the other family', () => {
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
 
@@ -142,13 +124,12 @@ describe('getUsageSnapshot', () => {
       makeEntry({ timestamp: todayStart.getTime() + 1000, model: '', outputTokens: 10 }),
     ];
 
-    const { getUsageSnapshot } = await import('../src/data/usage.js');
-    const snap = await getUsageSnapshot();
+    const snap = getUsageSnapshot(mockEntries);
     expect(snap.weightedWeeklyByFamily.other).toBe(10 * 50 * 3);
     expect(snap.weightedWeeklyByFamily.opus).toBe(0);
   });
 
-  it('includes all cache token types in total', async () => {
+  it('includes all cache token types in total', () => {
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
 
@@ -162,8 +143,7 @@ describe('getUsageSnapshot', () => {
       }),
     ];
 
-    const { getUsageSnapshot } = await import('../src/data/usage.js');
-    const snap = await getUsageSnapshot();
+    const snap = getUsageSnapshot(mockEntries);
     expect(snap.dailyTokens).toBe(50);
   });
 });
