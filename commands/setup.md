@@ -1,6 +1,6 @@
 ---
 description: Configure festatusline status line settings
-argument-hint: "[preset] [locale] [codex]"
+argument-hint: "[preset] [locale] [codex] [pathDepth]"
 allowed-tools: Read, Write, Bash(jq:*), Bash(cat:*), Bash(mkdir:*), Bash(ls:*), Bash(sort:*), Bash(tail:*), Bash(mv:*), Bash(node:*), AskUserQuestion
 ---
 
@@ -15,6 +15,7 @@ Configure the festatusline status line plugin.
 - `$2`: Locale — `ko`, `en` (default), `zh`
 - `$3`: Add Codex CLI usage row — `yes`, `no` (default). Independent of preset: any tier
   can carry the Codex row or not.
+- `$4`: Folder path depth — `0` (default, current folder only), `1`, `2`, `3` parent folders.
 
 ## Available Widgets
 
@@ -36,7 +37,7 @@ Configure the festatusline status line plugin.
 | `cacheHit` | Prompt cache hit rate |
 | `cacheTtl` | Cache TTL remaining time |
 | `sessionCost` | Estimated session cost |
-| `gitRepo` | Current git repository name |
+| `gitRepo` | Current folder (+ parents per `pathDepth`) and git branch |
 | `gitBranch` | Current git branch name |
 | `codexModel` | Codex CLI model name |
 | `codexWeeklyRateLimit` | Codex weekly rate limit status |
@@ -66,7 +67,7 @@ Ask all questions in a single AskUserQuestion call:
      Daily   │ Ctx ■■■□□□□□□□  38% (75K/200K)  │ Session ■■■□□□□□□□  30% (3h 0m)
      Weekly  │ all ■■□□□□□□□□  25% (4d 0h)     │ Fable   ■■■■■■■■□□  89% (4d 0h)
 
-     Opus 5 [high] │ 📁 my-repo(main) │ 🎟 Reset 1 · D-15
+     Opus 5 [high] │ 📁 festatusline(main) │ 🎟 Reset 1 · D-15
      ```
    - `max` (5 lines): pro + cache/cost row
      preview:
@@ -75,7 +76,7 @@ Ask all questions in a single AskUserQuestion call:
      Weekly  │ all ■■□□□□□□□□  25% (4d 0h)     │ Fable   ■■■■■■■■□□  89% (4d 0h)
 
      ⚡70% │ ⏱ 30m │ $0.420
-     Opus 5 [high] │ 📁 my-repo(main) │ 🎟 Reset 1 · D-15
+     Opus 5 [high] │ 📁 festatusline(main) │ 🎟 Reset 1 · D-15
      ```
 2. Theme — `default` (recommended), `dracula`, `nord`, `gruvbox`, `tokyo-night`
 3. Locale — `en` (recommended, default), `ko`, `zh`. List `en` first so it is the
@@ -91,12 +92,30 @@ Ask all questions in a single AskUserQuestion call:
      Weekly  │ all ■■□□□□□□□□  25% (4d 0h)     │ Fable   ■■■■■■■■□□  89% (4d 0h)
      Codex   │ 7d  ■□□□□□□□□□  10% (1d 0h)
 
-     Opus 5 [high] │ 📁 my-repo(main) │ 🎟 Reset 1 · D-15
+     Opus 5 [high] │ 📁 festatusline(main) │ 🎟 Reset 1 · D-15
      ```
 
+Then, **only if the chosen preset is `pro` or `max`** (`basic` has no folder widget), ask one
+more question in a second AskUserQuestion call — the first call is already at the four-question
+limit:
+
+5. Path depth — how much of the folder path the `📁` widget shows. Use these previews
+   verbatim. They are drawn from the fixed example folder `~/dev/company/orca/festatusline`,
+   not the user's own folder: that one is often right under home, where depths 1–3 would
+   all look the same. Depth N adds N parent folders, starting with `~/` once they reach
+   home and with `…/` while some are cut off.
+   - `0` — Current folder only (Recommended), preview:
+     `Opus 5 [high] │ 📁 festatusline(main) │ 🎟 Reset 1 · D-15`
+   - `1` — 1 parent folder, preview:
+     `Opus 5 [high] │ 📁 …/orca/festatusline(main) │ 🎟 Reset 1 · D-15`
+   - `2` — 2 parent folders, preview:
+     `Opus 5 [high] │ 📁 …/company/orca/festatusline(main) │ 🎟 Reset 1 · D-15`
+   - `3` — 3 parent folders, preview:
+     `Opus 5 [high] │ 📁 ~/dev/company/orca/festatusline(main) │ 🎟 Reset 1 · D-15`
+
 **If arguments provided:**
-Use `$1` as preset (default: `pro`), `$2` as locale (default: `en`), and `$3` as the Codex
-choice (default: `no`).
+Use `$1` as preset (default: `pro`), `$2` as locale (default: `en`), `$3` as the Codex
+choice (default: `no`), and `$4` as the path depth (default: `0`).
 
 ### 2. Build settings JSON
 
@@ -108,11 +127,13 @@ setup. A written-out `lines` array is treated as a hand-edited layout and freeze
 ```json
 {
   "preset": "pro",
-  "codexRow": false
+  "codexRow": false,
+  "pathDepth": 0
 }
 ```
 
 - `preset`: `basic`, `pro`, or `max`
+- `pathDepth`: `0`–`3` from the path-depth answer or `$4`; `0` when the question was skipped
 - `codexRow`: `true` if Codex was requested (`$3` is `yes`, or the interactive question was
   answered `Yes`), otherwise `false`. The renderer inserts the Codex row right below the
   weekly row on any tier.
@@ -128,7 +149,7 @@ Create `~/.config/festatusline/settings.json`:
 mkdir -p ~/.config/festatusline
 ```
 
-Write the complete settings object with `preset`, `codexRow`, `theme`, `locale`, `separator`
+Write the complete settings object with `preset`, `codexRow`, `pathDepth`, `theme`, `locale`, `separator`
 (` │ `), and `weeklyAnchorDay` (null). **Do not include `lines`** — if an existing
 settings file has one, drop it, otherwise it overrides the preset.
 
@@ -146,6 +167,7 @@ node "$(ls -d ~/.claude/plugins/cache/festatusline/festatusline/*/dist/cli.js 2>
 
 Show what was configured:
 - Preset and locale selected
+- Path depth (when asked)
 - Theme applied
 - Settings file path: `~/.config/festatusline/settings.json`
 - Note: restart Claude Code (or the terminal session) to activate the statusline — it's

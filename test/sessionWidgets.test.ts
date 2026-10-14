@@ -4,7 +4,7 @@ import { ModelMixWidget } from '../src/widgets/ModelMix.js';
 import { PrStatusWidget } from '../src/widgets/PrStatus.js';
 import { FastModeWidget } from '../src/widgets/FastMode.js';
 import { LinesChangedWidget } from '../src/widgets/LinesChanged.js';
-import { GitBranchWidget, GitRepoWidget } from '../src/widgets/GitInfo.js';
+import { GitBranchWidget, GitRepoWidget, formatDirPath } from '../src/widgets/GitInfo.js';
 import { emptyFamilyTotals } from '../src/data/modelTier.js';
 import { getTheme } from '../src/theme/index.js';
 import type { RenderContext } from '../src/widgets/types.js';
@@ -157,17 +157,28 @@ describe('ModelMixWidget', () => {
 });
 
 describe('GitInfo widgets read the payload before shelling out', () => {
-  it('takes the repo name from workspace.repo', () => {
+  it('shows the current folder name rather than the origin repo name', () => {
     const ctx = makeCtx({
       stdin: {
         workspace: {
-          current_dir: '/nonexistent/path',
+          current_dir: '/nonexistent/work/my-clone',
           repo: { host: 'github.com', owner: 'anthropics', name: 'claude-code' },
         },
         worktree: { branch: 'worktree-my-feature' },
       },
     });
-    expect(GitRepoWidget.render(ctx, {})).toBe('📁 claude-code(worktree-my-feature)');
+    expect(GitRepoWidget.render(ctx, {})).toBe('📁 my-clone(worktree-my-feature)');
+  });
+
+  it('adds parent folders up to pathDepth', () => {
+    const ctx = makeCtx({
+      stdin: {
+        workspace: { current_dir: '/nonexistent/work/my-clone' },
+        worktree: { branch: 'main' },
+      },
+      pathDepth: 1,
+    });
+    expect(GitRepoWidget.render(ctx, {})).toBe('📁 …/work/my-clone(main)');
   });
 
   it('takes the branch from a --worktree session payload', () => {
@@ -180,8 +191,47 @@ describe('GitInfo widgets read the payload before shelling out', () => {
     expect(GitBranchWidget.render(ctx, {})).toBe('worktree-my-feature');
   });
 
-  it('renders nothing for a directory that is not a repo and carries no repo field', () => {
+  it('still shows the folder outside a git repo, without a branch', () => {
     const ctx = makeCtx({ stdin: { workspace: { current_dir: '/' } } });
-    expect(GitRepoWidget.render(ctx, {})).toBeNull();
+    expect(GitRepoWidget.render(ctx, {})).toBe('📁 /');
+  });
+});
+
+describe('formatDirPath', () => {
+  const home = '/Users/me';
+  const deep = '/Users/me/dev/company/team/orca/festatusline';
+
+  it('shows only the folder name at depth 0', () => {
+    expect(formatDirPath(deep, 0, home)).toBe('festatusline');
+    expect(formatDirPath('/Users/me/orca', 0, home)).toBe('orca');
+  });
+
+  it('marks cut-off parents with …/', () => {
+    expect(formatDirPath(deep, 1, home)).toBe('…/orca/festatusline');
+    expect(formatDirPath(deep, 2, home)).toBe('…/team/orca/festatusline');
+    expect(formatDirPath(deep, 3, home)).toBe('…/company/team/orca/festatusline');
+  });
+
+  it('starts from ~ once the parents reach the home directory', () => {
+    expect(formatDirPath('/Users/me/dev/orca/festatusline', 3, home))
+      .toBe('~/dev/orca/festatusline');
+    expect(formatDirPath('/Users/me/orca/festatusline', 2, home)).toBe('~/orca/festatusline');
+    expect(formatDirPath('/Users/me/orca/festatusline', 3, home)).toBe('~/orca/festatusline');
+  });
+
+  it('starts from / once the parents reach the root outside home', () => {
+    expect(formatDirPath('/opt/work/infra/orca/festatusline', 3, home))
+      .toBe('…/work/infra/orca/festatusline');
+    expect(formatDirPath('/opt/orca', 3, home)).toBe('/opt/orca');
+  });
+
+  it('does not treat a sibling that shares the home prefix as home', () => {
+    expect(formatDirPath('/Users/meow/orca', 2, home)).toBe('/Users/meow/orca');
+  });
+
+  it('renders home and root themselves', () => {
+    expect(formatDirPath(home, 0, home)).toBe('~');
+    expect(formatDirPath(`${home}/`, 2, home)).toBe('~');
+    expect(formatDirPath('/', 1, home)).toBe('/');
   });
 });

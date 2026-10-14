@@ -106,7 +106,8 @@ Codex 행을 추가한 `max` 프리셋 기준입니다. 실제 출력에는 트�
   "theme": "default",
   "locale": "ko",
   "weeklyAnchorDay": null,
-  "separator": " │ "
+  "separator": " │ ",
+  "pathDepth": 0
 }
 ```
 
@@ -130,6 +131,9 @@ Codex 행을 추가한 `max` 프리셋 기준입니다. 실제 출력에는 트�
 ```
 
 위젯 항목에 `"color": "#hexcode"` 를 추가하면 색상을 개별 오버라이드할 수 있습니다.
+
+`pathDepth`(0~3, 기본 0)는 `gitRepo` 가 현재 폴더 위로 상위 폴더를 몇 단계까지 보여줄지 정합니다.
+셋업의 마지막 질문으로 고르며, `gitRepo` 가 들어 있는 프리셋에서만 묻습니다.
 
 직접 파일을 편집하거나 Claude Code 에서 `/festatusline:setup` 으로 재설정할 수 있습니다.
 
@@ -221,7 +225,7 @@ Codex 행을 추가한 `max` 프리셋 기준입니다. 실제 출력에는 트�
 | id | 출력 예시 | 설명 |
 |---|---|---|
 | `gitBranch` | `main` | 현재 작업 디렉터리의 브랜치 |
-| `gitRepo` | `📁 festatusline(main)` | 리포지토리 이름 + 브랜치 합산 표시. Claude Code 가 `workspace.repo` 를 넘겨주면 그 값을 쓰고, 없으면 `git rev-parse` 로 폴백. |
+| `gitRepo` | `📁 festatusline(main)` / `📁 …/orca/festatusline(main)` | 현재 폴더 + 브랜치. 기본은 폴더명만 표시하고, `pathDepth`(1~3)를 주면 상위 폴더를 그만큼 덧붙인다. 홈 폴더에 닿으면 `~` 부터, 잘린 부분이 있으면 `…/` 로 시작. git 레포 밖에서는 브랜치 없이 폴더만 표시. |
 | `pr` | `PR #1234 ✓` / `MR !77 ✗` | 현재 브랜치의 열린 PR. GitLab 머지 리퀘스트는 `MR !번호` 로 표시 |
 
 ### 레이아웃 (1개)

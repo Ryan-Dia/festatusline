@@ -93,6 +93,17 @@ describe('basic / pro / max ladder', () => {
     expect(enWeekly).toMatch(/^Weekly {2}│ all .*│ Fable {3}/);
   });
 
+  it('draws the folder from the example path at the chosen depth', () => {
+    const folder = (pathDepth: number): string | undefined => plain(
+      'pro',
+      SettingsSchema.parse({ pathDepth }),
+    ).at(-1);
+    expect(folder(0)).toContain('📁 festatusline(main)');
+    expect(folder(1)).toContain('📁 …/orca/festatusline(main)');
+    expect(folder(2)).toContain('📁 …/company/orca/festatusline(main)');
+    expect(folder(3)).toContain('📁 ~/dev/company/orca/festatusline(main)');
+  });
+
   it('adds gitRepo on pro and the cache/cost row on max', () => {
     expect(plain('pro').at(-1)).toContain('📁');
     expect(plain('max').some((l) => l.includes('$'))).toBe(true);

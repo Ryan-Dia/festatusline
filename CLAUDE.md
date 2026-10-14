@@ -165,7 +165,7 @@ npm 에 발행하지 않는다. 배포 경로는 GitHub 플러그인 마켓플�
 | `cacheHit` | 프롬프트 캐시 적중률 |
 | `cacheTtl` | 캐시 TTL 잔여 시간 |
 | `gitBranch` | 현재 Git 브랜치명 |
-| `gitRepo` | 현재 Git 레포명 (`workspace.repo` 우선, 없으면 git 폴백) |
+| `gitRepo` | 현재 폴더명 + 브랜치. `pathDepth`(0~3) 만큼 상위 폴더 추가, git 밖에서도 표시. id 는 호환성 때문에 유지 |
 | `pr` | 현재 브랜치의 열린 PR / GitLab MR |
 | `fastMode` | 패스트 모드 표시 (켜져 있을 때만) |
 | `linesChanged` | 세션 내 추가/삭제 줄 수 |

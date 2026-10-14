@@ -106,7 +106,8 @@ Setup records which preset you picked, not the widget rows it expands to:
   "theme": "default",
   "locale": "ko",
   "weeklyAnchorDay": null,
-  "separator": " │ "
+  "separator": " │ ",
+  "pathDepth": 0
 }
 ```
 
@@ -131,6 +132,9 @@ yourself (the widget editor writes this for you):
 ```
 
 Each widget entry can include an optional `"color": "#hexcode"` override.
+
+`pathDepth` (0–3, default 0) sets how many parent folders `gitRepo` shows above the current
+folder. Setup asks for it last, for the presets that include `gitRepo`.
 
 Edit manually or use `/festatusline:setup` in Claude Code to reconfigure.
 
@@ -225,7 +229,7 @@ Edit manually or use `/festatusline:setup` in Claude Code to reconfigure.
 | id | Example output | Description |
 |---|---|---|
 | `gitBranch` | `main` | Current branch of the workspace directory |
-| `gitRepo` | `📁 festatusline(main)` | Repo name + branch combined. Takes the name from `workspace.repo` when Claude Code supplies it, falling back to `git rev-parse`. |
+| `gitRepo` | `📁 festatusline(main)` / `📁 …/orca/festatusline(main)` | Current folder + branch. Shows just the folder name by default; `pathDepth` (1–3) adds that many parent folders, starting from `~` once they reach your home folder and with `…/` when some are cut off. Outside a git repo it shows the folder without a branch. |
 | `pr` | `PR #1234 ✓` / `MR !77 ✗` | Open pull request for the branch; GitLab merge requests render as `MR !n` |
 
 ### Layout (1)

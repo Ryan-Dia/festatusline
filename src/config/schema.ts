@@ -17,6 +17,9 @@ export const SettingsSchema = z.object({
   locale: z.enum(['ko', 'en', 'zh']).default('en'),
   weeklyAnchorDay: z.number().min(0).max(6).nullable().default(null),
   separator: z.string().default(' │ '),
+  // Parent folders shown above the current folder in the gitRepo widget. A top-level field
+  // rather than widget config, since config lives in `lines` and writing that freezes the preset.
+  pathDepth: z.number().int().min(0).max(3).default(0),
 });
 
 export type Settings = z.infer<typeof SettingsSchema>;

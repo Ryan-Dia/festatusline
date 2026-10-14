@@ -1,5 +1,5 @@
 import { execFileSync } from 'child_process';
-import { basename } from 'path';
+import { homedir } from 'os';
 import type { Widget, RenderContext, WidgetConfig } from './types.js';
 
 function gitCommand(args: string[], cwd: string): string | null {
@@ -37,17 +37,29 @@ function getCachedBranch(ctx: RenderContext): string | null {
   return value;
 }
 
-/**
- * Claude Code parses the repo name off the `origin` remote and ships it on the payload, so
- * the common case costs no subprocess. It is absent outside a git repo and when no origin
- * is configured — an origin-less local repo still has a name, hence the git fallback.
- */
-function getRepoName(ctx: RenderContext): string | null {
-  const fromStdin = ctx.stdin.workspace?.repo?.name;
-  if (fromStdin) return fromStdin;
+function splitPath(p: string): string[] {
+  return p.split(/[\\/]+/).filter(Boolean);
+}
 
-  const topLevel = gitCommand(['rev-parse', '--show-toplevel'], workspaceDir(ctx));
-  return topLevel ? basename(topLevel) : null;
+/**
+ * The folder name, plus `depth` parent folders when asked for. Paths under the home directory
+ * start from `~`; once the requested parents stop short of `~` or the filesystem root, a `…/`
+ * marks the cut. Depth 0 is the bare folder name whatever sits above it.
+ */
+export function formatDirPath(dir: string, depth: number, home: string): string {
+  const segments = splitPath(dir);
+  const homeSegments = splitPath(home);
+  const underHome =
+    homeSegments.length > 0 &&
+    homeSegments.length <= segments.length &&
+    homeSegments.every((segment, i) => segment === segments[i]);
+  const rest = underHome ? segments.slice(homeSegments.length) : segments;
+  if (!rest.length) return underHome ? '~' : '/';
+
+  const shown = rest.slice(-(depth + 1));
+  if (depth === 0) return shown.join('/');
+  if (shown.length < rest.length) return `…/${shown.join('/')}`;
+  return `${underHome ? '~' : ''}/${shown.join('/')}`;
 }
 
 export const GitBranchWidget: Widget = {
@@ -58,13 +70,14 @@ export const GitBranchWidget: Widget = {
   },
 };
 
+// The id predates the folder display: it showed the origin repo name, and stays `gitRepo` so
+// saved layouts and the legacy preset fingerprints keep matching.
 export const GitRepoWidget: Widget = {
   id: 'gitRepo',
   labelKey: 'widget.gitRepo',
   render(ctx: RenderContext, _cfg: WidgetConfig): string | null {
-    const repo = getRepoName(ctx);
-    if (!repo) return null;
+    const folder = formatDirPath(workspaceDir(ctx), ctx.pathDepth ?? 0, homedir());
     const branch = getCachedBranch(ctx);
-    return branch ? `📁 ${repo}(${branch})` : `📁 ${repo}`;
+    return branch ? `📁 ${folder}(${branch})` : `📁 ${folder}`;
   },
 };

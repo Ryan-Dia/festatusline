@@ -1,3 +1,5 @@
+import { homedir } from 'os';
+import { join } from 'path';
 import { PRESETS, resolveLines } from '../config/presets.js';
 import { SettingsSchema, type Settings, type WidgetCfg } from '../config/schema.js';
 import { renderAllLines } from '../render/line.js';
@@ -8,6 +10,10 @@ import type { RenderContext } from '../widgets/types.js';
 
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
+
+// Deep enough that each path depth adds a visible parent before reaching `~`. The folder the
+// TUI happens to run in is often right under home, where depths 1–3 would all look the same.
+export const PREVIEW_DIR = join(homedir(), 'dev', 'company', 'orca', 'festatusline');
 
 // Representative numbers so every widget has something to draw. Reset timestamps are
 // relative to now, otherwise the bars would render as "reset" the day this ships.
@@ -37,6 +43,10 @@ function buildPreviewContext(settings: Settings): RenderContext {
       fast_mode: false,
       pr: { number: 1234, url: 'https://example.com/pull/1234', review_state: 'approved' },
       effort: { level: 'xhigh' },
+      workspace: { current_dir: PREVIEW_DIR },
+      // Carries the branch the way a --worktree session does, so the preview never shells out
+      // to git in a folder that does not exist.
+      worktree: { branch: 'main' },
     },
     usage: {
       dailyTokens: 480_000,
@@ -68,6 +78,7 @@ function buildPreviewContext(settings: Settings): RenderContext {
     t: createTranslator(envLocale() ?? settings.locale),
     now,
     weeklyAnchorDay: settings.weeklyAnchorDay,
+    pathDepth: settings.pathDepth,
     cacheTtlCreatedAt: now.getTime() - 30 * 60 * 1000,
     cacheTtlMs: HOUR_MS,
   };

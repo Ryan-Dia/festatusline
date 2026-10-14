@@ -182,6 +182,7 @@ export async function renderFromStdin(): Promise<void> {
     t,
     now: new Date(),
     weeklyAnchorDay: settings.weeklyAnchorDay,
+    pathDepth: settings.pathDepth,
     envEffortLevel: process.env.CLAUDE_EFFORT,
     ultracode: claudeSettings.ultracode,
     cacheTtlCreatedAt,
