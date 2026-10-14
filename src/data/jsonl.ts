@@ -205,7 +205,6 @@ async function readAppended(
   try {
     while (position < size) {
       const chunk = Buffer.alloc(Math.min(READ_CHUNK_BYTES, size - position));
-      // eslint-disable-next-line no-await-in-loop -- chunks must be read in order
       const { bytesRead } = await handle.read(chunk, 0, chunk.length, position);
       if (bytesRead === 0) break;
       position += bytesRead;
@@ -287,7 +286,6 @@ export async function loadAllEntries(sinceMs = 0): Promise<UsageEntry[]> {
   for (const { filePath, size } of transcripts) {
     const prev = index.get(filePath);
     try {
-      // eslint-disable-next-line no-await-in-loop -- sequential on purpose, see above
       const progress = await readAppended(filePath, size, prev);
       next.set(filePath, progress);
       if (progress !== prev) changed = true;

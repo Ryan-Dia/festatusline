@@ -15,7 +15,12 @@ Claude Code 용 상태바(statusline) 도구. [ccstatusline](https://github.com/
 - TypeScript + tsup (ESM 번들)
 - Ink 5 + React 18 (TUI)
 - zod (설정 스키마 검증)
-- vitest (테스트)
+- vitest 4 (테스트) — 개발 환경은 Node ≥ 20 필요 (런타임은 그대로 ≥ 18)
+- ESLint 9 flat config (`eslint.config.mjs`) + `eslint-config-airbnb-extended` 의 `legacy` 설정
+  — 아카이브된 `airbnb`/`airbnb/hooks`/`airbnb-typescript` 를 규칙 단위로 재현한다 (이전할 때 .ts·.tsx
+  모두 활성 규칙 247개가 같음을 확인). **ESLint 10 은 이 패키지가 지원하지 않아(peer `^9`) 보류**,
+  TypeScript 7 은 typescript-eslint 가 지원하지 않아(`<6.1`) 5.9 유지. vitest 5 는 Node ≥ 22.12 와
+  `@types/node` ≥ 22 를 요구해서 런타임 타입 기준(Node 20 타입)과 어긋나 4 에 둔다.
 
 ## 주요 명령어
 
