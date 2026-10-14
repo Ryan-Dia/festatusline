@@ -7,7 +7,7 @@ import { getClaudeDir } from './load.js';
 import { launcherPath, writeLauncher } from './launcher.js';
 
 const ClaudeSettingsSchema = z
-  .object({ statusLine: z.record(z.unknown()).optional() })
+  .object({ statusLine: z.record(z.string(), z.unknown()).optional() })
   .catchall(z.unknown());
 
 type ClaudeSettingsFile = z.infer<typeof ClaudeSettingsSchema>;

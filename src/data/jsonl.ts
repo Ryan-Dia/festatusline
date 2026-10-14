@@ -109,7 +109,7 @@ type EntryTuple = z.infer<typeof EntryTupleSchema>;
 const TranscriptIndexSchema = z.object({
   version: z.literal(INDEX_VERSION),
   // `offset` is the byte just past the last complete line read.
-  files: z.record(z.object({ offset: z.number(), entries: z.array(EntryTupleSchema) })),
+  files: z.record(z.string(), z.object({ offset: z.number(), entries: z.array(EntryTupleSchema) })),
 });
 
 type FileProgress = { offset: number; entries: UsageEntry[] };

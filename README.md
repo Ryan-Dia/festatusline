@@ -3,7 +3,7 @@
 **English** | [한국어](./README.ko.md)
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
-[![Node ≥18](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org)
+[![Node ≥22](https://img.shields.io/badge/node-%3E%3D22-brightgreen)](https://nodejs.org)
 [![i18n](https://img.shields.io/badge/i18n-ko%20%7C%20en%20%7C%20zh-orange)](./README.ko.md)
 
 > Customizable [Claude Code](https://claude.ai/code) statusline with multilingual support (ko/en/zh), 5 themes, 7 presets, and 27 widgets including Codex CLI integration.
@@ -19,7 +19,8 @@ Inspired by [ccstatusline](https://github.com/sirmalloc/ccstatusline).
 - **27 widgets** — Claude usage, Codex CLI, Git info, session cost, cache stats
 - **Codex CLI integration** — reads `~/.codex` for GPT request counts, rate limits, and model
 - **7 Presets + interactive setup** — zero-config via `/festatusline:setup`
-- **Node ≥18 only** — no Bun dependency
+- **Node ≥22** (the same floor as Claude Code's npm package) — no Bun dependency. On an older
+  Node the statusline shows `festatusline: please update Node to 22+ (found v20.x)` instead
 
 ---
 

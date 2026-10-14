@@ -8,19 +8,27 @@ Claude Code 용 상태바(statusline) 도구. [ccstatusline](https://github.com/
 - **테마 5종** 내장: default, dracula, nord, gruvbox, tokyo-night
 - **한국 개발자 친화 위젯**: 일간/주간/Sonnet 주간 사용량 + 초기화 타이머
 - **Codex CLI 사용량** 통합 (`~/.codex`)
-- 런타임: Node.js ≥ 18 전용 (Bun 미사용)
+- 런타임: Node.js ≥ 22 전용 (Bun 미사용, 0.14.0~). `src/cli.ts` 는 `nodeGuard.ts`(자체 import 없음) 외엔 import 가 없는 진입점으로
+  버전부터 확인하고 통과해야 `main.ts` 를 동적 import 한다. 22 미만이면 렌더 모드는
+  상태바에 업데이트 안내, `migrate`(SessionStart 훅)는 무출력, 나머지는 stderr + exit 1. 런처·훅이 모두
+  `dist/cli.js` 를 거치므로 여기 한 곳이면 된다. 0.14.0 시점 실제 렌더 코드는 Node 20 에서도 돌았지만,
+  테스트가 Node 22 에서만 돌아서(vitest 5) 지원 범위를 테스트 범위에 맞췄다
 
 ## 기술 스택
 
 - TypeScript + tsup (ESM 번들)
 - Ink 5 + React 18 (TUI)
 - zod (설정 스키마 검증)
-- vitest 4 (테스트) — 개발 환경은 Node ≥ 20 필요 (런타임은 그대로 ≥ 18)
+- vitest 5 (테스트) — Node ≥ 22.12 필요
 - ESLint 9 flat config (`eslint.config.mjs`) + `eslint-config-airbnb-extended` 의 `legacy` 설정
   — 아카이브된 `airbnb`/`airbnb/hooks`/`airbnb-typescript` 를 규칙 단위로 재현한다 (이전할 때 .ts·.tsx
   모두 활성 규칙 247개가 같음을 확인). **ESLint 10 은 이 패키지가 지원하지 않아(peer `^9`) 보류**,
-  TypeScript 7 은 typescript-eslint 가 지원하지 않아(`<6.1`) 5.9 유지. vitest 5 는 Node ≥ 22.12 와
-  `@types/node` ≥ 22 를 요구해서 런타임 타입 기준(Node 20 타입)과 어긋나 4 에 둔다.
+  TypeScript 7 은 typescript-eslint 가 지원하지 않아(`<6.1`) 5.9 유지.
+- 런타임 의존성: ink 8 + React 19 (TUI, 번들 제외·플러그인 캐시엔 `node_modules` 가 없어 저장소
+  체크아웃에서만 동작), chalk 6 + zod 4 (렌더 경로, 번들 포함). **`import { z } from 'zod'` 의 `z` 는
+  zod 전체 네임스페이스라 `z.locales`(언어팩 ~360KB)가 트리 셰이킹되지 않는다** — 매 렌더가 그걸
+  파싱해 ~15ms 느려져서 `tsup.config.ts` 의 `dropZodLocales` 플러그인이 빈 모듈로 바꾼다. 영어 메시지는
+  zod 가 `locales/en.js` 를 직접 불러와 영향 없다. `z.locales` 를 쓰기 시작하면 플러그인을 빼야 한다.
 
 ## 주요 명령어
 

@@ -3,7 +3,7 @@
 [English](./README.md) | **한국어**
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
-[![Node ≥18](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org)
+[![Node ≥22](https://img.shields.io/badge/node-%3E%3D22-brightgreen)](https://nodejs.org)
 [![i18n](https://img.shields.io/badge/i18n-ko%20%7C%20en%20%7C%20zh-orange)](./README.md)
 
 > Claude Code 상태바(statusline) 도구. 다국어(ko/en/zh), 5종 테마, 7종 프리셋, 27개 위젯, Codex CLI 통합을 지원합니다.
@@ -19,7 +19,8 @@
 - **27개 위젯** — Claude 사용량, Codex CLI, Git 정보, 세션 비용, 캐시 통계
 - **Codex CLI 통합** — `~/.codex` 파싱으로 GPT 요청 수·레이트 리밋·모델 표시
 - **7종 프리셋 + 인터랙티브 셋업** — `/festatusline:setup` 으로 제로 설정 완료
-- **Node ≥18 전용** — Bun API 미사용
+- **Node ≥22** (Claude Code npm 패키지와 같은 기준) — Bun API 미사용. 더 낮은 Node 에서는
+  상태바에 `festatusline: please update Node to 22+ (found v20.x)` 안내가 대신 표시됩니다
 
 ---
 
