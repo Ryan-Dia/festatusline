@@ -20,6 +20,9 @@ export const SettingsSchema = z.object({
   // Parent folders shown above the current folder in the gitRepo widget. A top-level field
   // rather than widget config, since config lives in `lines` and writing that freezes the preset.
   pathDepth: z.number().int().min(0).max(3).default(0),
+  // A line above the status line when a required update is out (src/data/updateCheck.ts).
+  // Off also means no check against GitHub at all.
+  updateNotice: z.boolean().default(true),
 });
 
 export type Settings = z.infer<typeof SettingsSchema>;

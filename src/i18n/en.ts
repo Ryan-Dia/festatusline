@@ -64,6 +64,7 @@ export const en: Record<I18nKey, string> = {
   'tui.setup.pathDepth1': 'Up to 1 parent folder',
   'tui.setup.pathDepth2': 'Up to 2 parent folders',
   'tui.setup.pathDepth3': 'Up to 3 parent folders',
+  'update.required': '⚠ festatusline {version} required update · run /festatusline:update',
   'tui.lang.ko': '한국어',
   'tui.lang.en': 'English',
   'tui.lang.zh': '中文',

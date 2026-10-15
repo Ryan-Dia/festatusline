@@ -56,6 +56,7 @@ src/
 │   ├── usage.ts           # 일간/주간/Sonnet 주간 사용량 집계
 │   ├── reset.ts           # 일간/주간 리셋 카운트다운
 │   ├── codex.ts           # ~/.codex 파싱 → GPT 사용량
+│   ├── updateCheck.ts     # update.json 의 minVersion 확인 → 필수 업데이트 안내
 │   ├── cache.ts           # TTL 캐시 유틸리티
 │   ├── claude-settings.ts # ~/.claude/settings.json 파싱 (ultracode 플래그만)
 │   ├── modelTier.ts       # 모델 계열 분류 + /usage 동일 가중치
@@ -126,6 +127,7 @@ npm 에 발행하지 않는다. 배포 경로는 GitHub 플러그인 마켓플�
    버전에 멈춰 있다. 본문 형식은 기존 릴리스를 따른다: `## ✨ Features` / `## 🐞 Bug Fixes` /
    `## 🔧 Changes` 섹션, 항목 끝에 커밋 해시를 `` (`abc1234`) `` 로 붙이고, 마지막 줄에
    `**Full Changelog**: .../compare/v<이전>...v<이번>` 링크를 단다.
+   필수 업데이트라면 1번에서 `update.json` 의 `minVersion` 도 이번 버전으로 올린다 (아래 "필수 업데이트 안내").
 8. 내 환경 반영: `claude plugin marketplace update festatusline` →
    `claude plugin update festatusline@festatusline -y`. `statusLine` 은 0.11.0 부터 고정 경로
    런처(`~/.config/festatusline/statusline.mjs`, `src/config/launcher.ts`)를 가리키고, 런처가
@@ -288,7 +290,7 @@ refactor: Extract token formatter into shared util
 
 ### OAuth 네트워크 계층 (`src/data/claudeOAuthUsage.ts`)
 
-- 이 모듈 하나만 로컬 파일이 아니라 **네트워크 호출**을 한다. Claude Code 는 모델별
+- 이 모듈은 로컬 파일이 아니라 **네트워크 호출**을 한다 (다른 하나는 공개 파일만 읽는 `updateCheck.ts`). Claude Code 는 모델별
   (Opus/Sonnet/Fable) 주간 한도를 statusline stdin 에 절대 실어주지 않는다 — `/usage` 화면과
   CLI 내부 OAuth 호출에서만 볼 수 있다. 이 사실은 오카(Orca, https://github.com/stablyai/orca)
   소스를 직접 확인해서 검증했다: `claude-fetcher.ts` 가 `~/.claude/.credentials.json` 의
@@ -368,6 +370,34 @@ refactor: Extract token formatter into shared util
 - 런처는 `install` 때만 새로 써지므로, SessionStart 훅(`migrate`)이 `refreshLauncher()` 로 내용이 다른
   옛 런처를 교체한다 (기존 `FALLBACK_CLI` 유지, 없으면 만들지 않음). **런처 소스를 바꾸면 기존
   사용자에게는 다음 세션 시작 때 반영된다.**
+
+### 렌더 프로세스 수명 (0.15.0~)
+
+- 렌더는 stdin 을 **EOF 까지 기다리지 않는다.** 완전한 JSON 객체가 모이면 바로 진행하고 stdin 을
+  닫으며, 2초(`STDIN_TIMEOUT_MS`) 동안 아무것도 안 오면 빈 페이로드로 그린다. 0.14.0 까지는 EOF 만
+  기다려서, 파이프 쓰기 쪽이 안 닫히면(Claude Code 가 강제 종료됐는데 다른 프로세스가 파이프를 물고
+  있는 경우) 렌더가 영원히 남아 PPID 1 고아로 쌓였다.
+- 렌더 15초 데드라인(`src/render/deadline.ts`)을 CLI 와 **런처 양쪽**에 건다. `unref()` 라 정상 렌더는
+  기다리지 않는다. 런처 쪽은 어떤 버전의 CLI 가 돌든 적용되는 안전망이다. 첫 렌더의 transcript
+  인덱스 생성이 이보다 길면 끝까지 못 가서 매번 다시 만들게 되니, 데드라인을 줄일 땐 주의.
+- 런처는 `install` 때만 새로 써지므로, SessionStart 훅(`migrate`)이 `refreshLauncher()` 로 내용이 다른
+  옛 런처를 교체한다 (기존 `FALLBACK_CLI` 유지, 없으면 만들지 않음). **런처 소스를 바꾸면 기존
+  사용자에게는 다음 세션 시작 때 반영된다.**
+
+### 필수 업데이트 안내 (`src/data/updateCheck.ts`, 0.15.0~)
+
+- 저장소 루트 `update.json` 의 `minVersion` 보다 설치 버전이 낮으면 상태바 맨 위에 빨간 줄을 띄운다.
+  설치 버전은 빌드 때 tsup `define` 이 `FESTATUSLINE_VERSION` 으로 박는다 (vitest 는 `0.0.0-test`).
+- **`minVersion` 은 모든 사용자가 꼭 받아야 하는 릴리스일 때만 올린다** (기기에 해를 끼치는 버그
+  수정 등). 새 기능마다 올리면 안내가 소음이 된다. `main` 의 파일을 읽으므로 **그 버전의 `dist/` 가
+  `main` 에 올라간 커밋에서 같이** 올려야 한다 — 먼저 올리면 받을 수 없는 버전으로 업데이트하라고 뜬다.
+- `marketplace.json` 에 필드를 넣지 않은 이유: Claude Code 가 그 스키마를 검증하므로 모르는 키가
+  설치를 깨뜨릴 수 있다.
+- OAuth 와 함께 **네트워크를 쓰는 두 번째 지점**이다. 토큰·사용자 정보 없이 공개 파일 GET 만 한다.
+  6시간 캐시, 1.5초 타임아웃, 실패 시 1시간 백오프(이게 없으면 오프라인에서 매 렌더가 타임아웃을
+  기다린다), 실패해도 마지막 값을 유지. 404 는 "필수 버전 없음"으로 캐시한다. `updateNotice: false` 면
+  확인 자체를 안 한다.
+- 이 코드가 없는 0.14.0 이하는 안내를 못 받는다.
 
 ### effort / ultracode
 

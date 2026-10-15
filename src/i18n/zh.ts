@@ -64,6 +64,7 @@ export const zh: Record<I18nKey, string> = {
   'tui.setup.pathDepth1': '向上 1 级',
   'tui.setup.pathDepth2': '向上 2 级',
   'tui.setup.pathDepth3': '向上 3 级',
+  'update.required': '⚠ festatusline {version} 必要更新 · 请运行 /festatusline:update',
   'tui.lang.ko': '한국어',
   'tui.lang.en': 'English',
   'tui.lang.zh': '中文',

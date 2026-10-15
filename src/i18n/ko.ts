@@ -62,6 +62,7 @@ export const ko = {
   'tui.setup.pathDepth1': '상위 1단계까지',
   'tui.setup.pathDepth2': '상위 2단계까지',
   'tui.setup.pathDepth3': '상위 3단계까지',
+  'update.required': '⚠ festatusline {version} 필수 업데이트 · /festatusline:update 실행',
   'tui.lang.ko': '한국어',
   'tui.lang.en': 'English',
   'tui.lang.zh': '中文',

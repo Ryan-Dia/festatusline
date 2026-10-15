@@ -1,6 +1,7 @@
 import { promises as fs } from 'fs';
 import { homedir } from 'os';
 import { join } from 'path';
+import chalk from 'chalk';
 import { readStdin, RateLimitsSchema, type RateLimits } from '../data/stdin.js';
 import { getUsageSnapshot, type UsageSnapshot } from '../data/usage.js';
 import { getCodexSnapshot } from '../data/codex.js';
@@ -12,6 +13,7 @@ import {
 import { readClaudeSettings } from '../data/claude-settings.js';
 import { getLastCacheCreation, getLastModelFromTranscript, loadAllEntries } from '../data/jsonl.js';
 import { getTimeWindows } from '../data/time.js';
+import { getRequiredUpdate } from '../data/updateCheck.js';
 import { loadSettings } from '../config/load.js';
 import { resolveLines } from '../config/presets.js';
 import { getTheme } from '../theme/index.js';
@@ -158,16 +160,25 @@ export async function renderFromStdin(): Promise<void> {
   // awaits that only if it actually fetches, so the cache read still overlaps stdin.
   const stdinPromise = readStdin();
   const settingsPromise = loadSettings();
-  const [stdin, settings, claudeSettings, transcriptData, codex, oauthSlots, cachedRateLimits] =
-    await Promise.all([
-      stdinPromise,
-      settingsPromise,
-      readClaudeSettings(),
-      tryOrNull(() => settingsPromise.then((s) => loadTranscriptData(resolveLines(s)))),
-      tryOrNull(getCodexSnapshot),
-      tryOrNull(() => getOAuthUsageSlots(stdinPromise.then((payload) => payload.version))),
-      readRateLimitsCache(),
-    ]);
+  const [
+    stdin,
+    settings,
+    claudeSettings,
+    transcriptData,
+    codex,
+    oauthSlots,
+    cachedRateLimits,
+    requiredUpdate,
+  ] = await Promise.all([
+    stdinPromise,
+    settingsPromise,
+    readClaudeSettings(),
+    tryOrNull(() => settingsPromise.then((s) => loadTranscriptData(resolveLines(s)))),
+    tryOrNull(getCodexSnapshot),
+    tryOrNull(() => getOAuthUsageSlots(stdinPromise.then((payload) => payload.version))),
+    readRateLimitsCache(),
+    tryOrNull(() => settingsPromise.then((s) => (s.updateNotice ? getRequiredUpdate() : null))),
+  ]);
   const usage = transcriptData?.usage ?? null;
   const lastCacheCreation = transcriptData?.lastCacheCreation ?? null;
 
@@ -211,5 +222,9 @@ export async function renderFromStdin(): Promise<void> {
   };
 
   const output = renderAllLines(resolveLines(settings), ctx, settings.separator);
-  process.stdout.write(`${output}\n`);
+  // Its own line on top, so it shows the same on every preset and pushes nothing off a row.
+  const notice = requiredUpdate
+    ? `${chalk.hex(theme.danger)(t('update.required').replace('{version}', requiredUpdate))}\n`
+    : '';
+  process.stdout.write(`${notice}${output}\n`);
 }

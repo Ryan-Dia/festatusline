@@ -143,6 +143,18 @@ Each widget entry can include an optional `"color": "#hexcode"` override.
 `pathDepth` (0–3, default 0) sets how many parent folders `gitRepo` shows above the current
 folder. Setup asks for it last, for the presets that include `gitRepo`.
 
+`updateNotice` (default `true`) adds a red line above the status line when a release you must
+install is out — one that fixes something harmful, not every new version:
+
+```
+⚠ festatusline 0.15.0 required update · run /festatusline:update
+```
+
+It goes away on the next refresh after you update. The check is a plain GET of
+[`update.json`](update.json) in this repository — no token, nothing about you — at most every
+6 hours, and a failed check waits an hour before trying again. Set `"updateNotice": false` to
+turn the line and the check off.
+
 Edit manually or use `/festatusline:setup` in Claude Code to reconfigure.
 
 ---
