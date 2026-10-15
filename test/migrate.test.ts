@@ -5,9 +5,10 @@ import { tmpdir } from 'os';
 import {
   migrateStatusLine,
   pointsAtVersionedCli,
+  refreshLauncher,
   scheduleMigration,
 } from '../src/config/migrate.js';
-import { launcherPath } from '../src/config/launcher.js';
+import { launcherPath, launcherSource } from '../src/config/launcher.js';
 
 const PINNED = 'node ~/.claude/plugins/cache/festatusline/festatusline/0.7.0/dist/cli.js';
 
@@ -114,6 +115,38 @@ describe('migrateStatusLine', () => {
     expect(JSON.parse(await fs.readFile(real, 'utf8')).statusLine.command).toContain(
       'statusline.mjs',
     );
+  });
+});
+
+describe('refreshLauncher', () => {
+  let root: string;
+
+  beforeEach(async () => {
+    root = await fs.mkdtemp(join(tmpdir(), 'festatusline-refresh-'));
+    process.env.XDG_CONFIG_HOME = root;
+  });
+
+  afterEach(async () => {
+    delete process.env.XDG_CONFIG_HOME;
+    await fs.rm(root, { recursive: true, force: true });
+  });
+
+  it('rewrites a launcher an older release wrote, keeping its fallback CLI', async () => {
+    // What 0.11.0–0.14.0 wrote: no render deadline.
+    const old = launcherSource('/repo/dist/cli.js').replace(
+      /^if \(!process\.stdin\.isTTY\).*\n/m,
+      '',
+    );
+    await fs.mkdir(join(root, 'festatusline'), { recursive: true });
+    await fs.writeFile(launcherPath(), old);
+    expect(await refreshLauncher()).toBe(true);
+    expect(await fs.readFile(launcherPath(), 'utf8')).toBe(launcherSource('/repo/dist/cli.js'));
+    expect(await refreshLauncher()).toBe(false);
+  });
+
+  it('never creates a launcher that is not there', async () => {
+    expect(await refreshLauncher()).toBe(false);
+    await expect(fs.access(launcherPath())).rejects.toThrow();
   });
 });
 

@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { promises as fs } from 'fs';
-import { execFileSync } from 'child_process';
+import { execFileSync, spawnSync } from 'child_process';
 import { join } from 'path';
 import { tmpdir } from 'os';
-import { launcherSource } from '../src/config/launcher.js';
+import { launcherFallback, launcherSource } from '../src/config/launcher.js';
 
 // Each fake CLI prints which copy ran, so the test sees what the launcher picked.
 async function fakeCli(dir: string, name: string): Promise<string> {
@@ -73,6 +73,40 @@ describe('statusline launcher', () => {
   it('falls back to the CLI that wrote it when no plugin is installed', async () => {
     const checkout = await fakeCli(join(root, 'checkout'), 'checkout');
     expect(await run(checkout)).toBe('checkout');
+  });
+
+  it('ends a render that hangs, whichever CLI version is running', async () => {
+    // Stands in for a CLI that never finishes, like one waiting on a stdin that stays open.
+    const cli = join(root, 'hang.mjs');
+    await fs.writeFile(cli, 'setInterval(() => {}, 1000);\n');
+    await fs.writeFile(launcher, launcherSource(cli, 200));
+    const started = Date.now();
+    const result = spawnSync(process.execPath, [launcher], {
+      env: { ...process.env, CLAUDE_CONFIG_DIR: claudeDir },
+      input: '{}',
+      timeout: 10_000,
+    });
+    expect(result.status).toBe(1);
+    expect(Date.now() - started).toBeLessThan(5_000);
+  });
+
+  it('never holds up a render that finishes on its own', async () => {
+    const checkout = await fakeCli(join(root, 'checkout'), 'checkout');
+    await fs.writeFile(launcher, launcherSource(checkout, 60_000));
+    const started = Date.now();
+    const result = spawnSync(process.execPath, [launcher], {
+      env: { ...process.env, CLAUDE_CONFIG_DIR: claudeDir },
+      input: '{}',
+      encoding: 'utf8',
+    });
+    expect(result.status).toBe(0);
+    expect(result.stdout).toBe('checkout');
+    expect(Date.now() - started).toBeLessThan(5_000);
+  });
+
+  it('reads back the fallback CLI it was written with', () => {
+    expect(launcherFallback(launcherSource('/repo/dist/cli.js'))).toBe('/repo/dist/cli.js');
+    expect(launcherFallback('// not a launcher')).toBeNull();
   });
 
   it('says how to fix it rather than crashing when nothing is found', async () => {

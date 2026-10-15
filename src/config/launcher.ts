@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { getConfigPath } from './load.js';
+import { RENDER_DEADLINE_MS } from '../render/deadline.js';
 
 /**
  * `statusLine` used to point straight at `plugins/cache/festatusline/festatusline/<version>/`,
@@ -13,7 +14,7 @@ export function launcherPath(): string {
   return path.join(path.dirname(getConfigPath()), 'statusline.mjs');
 }
 
-export function launcherSource(fallbackCli: string): string {
+export function launcherSource(fallbackCli: string, deadlineMs = RENDER_DEADLINE_MS): string {
   return `// festatusline statusline launcher, written by \`festatusline install\`. It looks up the
 // installed plugin version on every run, so a plugin update needs no settings.json edit.
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
@@ -24,6 +25,11 @@ import { pathToFileURL } from 'node:url';
 const FALLBACK_CLI = ${JSON.stringify(fallbackCli)};
 const PLUGIN_ID = 'festatusline@festatusline';
 const pluginsDir = join(process.env.CLAUDE_CONFIG_DIR ?? join(homedir(), '.claude'), 'plugins');
+
+// A render still alive after this is stuck, and Claude Code stopped waiting long ago. Armed
+// here as well as in the CLI so it bounds whichever version runs below, older ones included.
+// unref: it never keeps a finished render alive. A TTY means someone opened the settings TUI.
+if (!process.stdin.isTTY) setTimeout(() => process.exit(1), ${deadlineMs}).unref();
 
 function existing(cli) {
   return existsSync(cli) ? cli : null;
@@ -68,6 +74,18 @@ if (cli) {
   process.stdout.write('festatusline is not installed. Run /festatusline:setup\\n');
 }
 `;
+}
+
+/** The fallback CLI an existing launcher was written with, or null if it names none. */
+export function launcherFallback(source: string): string | null {
+  const match = /^const FALLBACK_CLI = (".*");$/m.exec(source);
+  if (!match?.[1]) return null;
+  try {
+    const value: unknown = JSON.parse(match[1]);
+    return typeof value === 'string' ? value : null;
+  } catch {
+    return null;
+  }
 }
 
 /** Writes the launcher and returns the `statusLine` command that runs it. */

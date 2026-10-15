@@ -1,3 +1,4 @@
+import type { Readable } from 'stream';
 import { z } from 'zod';
 
 // Claude Code documents several payload fields as nullable rather than merely absent:
@@ -170,13 +171,55 @@ export function parseStdin(raw: string): ClaudeStdin {
   return result.success ? result.data : salvageStdin(json);
 }
 
-export async function readStdin(): Promise<ClaudeStdin> {
+// Claude Code writes the payload as soon as it spawns the status line, so this only runs out
+// when nothing is coming.
+export const STDIN_TIMEOUT_MS = 2_000;
+
+/**
+ * Whether `text` already holds the whole payload. Claude Code sends one JSON object, and no
+ * proper prefix of an object parses as JSON, so a parse that succeeds means nothing more is
+ * on the way.
+ */
+function isCompletePayload(text: string): boolean {
+  const trimmed = text.trimEnd();
+  if (!trimmed.endsWith('}')) return false;
+  try {
+    JSON.parse(trimmed);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Reads the payload without waiting for EOF. A writer that never closes the pipe — or one that
+ * died while another process still held its end — used to leave the render waiting forever,
+ * re-parented to init once Claude Code was gone. The stream is destroyed once read, so it no
+ * longer keeps the process alive.
+ */
+export async function readStdin(
+  stream: Readable = process.stdin,
+  timeoutMs = STDIN_TIMEOUT_MS,
+): Promise<ClaudeStdin> {
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
-    process.stdin.on('data', (chunk: Buffer) => chunks.push(chunk));
-    process.stdin.on('end', () => {
+    let timer: NodeJS.Timeout | undefined;
+    const settle = (): void => {
+      clearTimeout(timer);
+      stream.removeAllListeners('data');
+      stream.removeAllListeners('end');
+      stream.destroy();
       resolve(parseStdin(Buffer.concat(chunks).toString('utf8')));
+    };
+    timer = setTimeout(settle, timeoutMs);
+    stream.on('data', (chunk: Buffer) => {
+      chunks.push(chunk);
+      if (isCompletePayload(Buffer.concat(chunks).toString('utf8'))) settle();
     });
-    process.stdin.on('error', reject);
+    stream.on('end', settle);
+    stream.on('error', (err) => {
+      clearTimeout(timer);
+      reject(err);
+    });
   });
 }

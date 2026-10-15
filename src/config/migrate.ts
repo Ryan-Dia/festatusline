@@ -2,7 +2,7 @@ import { spawn } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import { fallbackCliPath, getClaudeSettingsPath } from './install.js';
-import { writeLauncher } from './launcher.js';
+import { launcherFallback, launcherPath, launcherSource, writeLauncher } from './launcher.js';
 
 // What setups before 0.11.0 wrote: one version's own CLI inside the plugin cache, e.g.
 // `node ~/.claude/plugins/cache/festatusline/festatusline/0.7.0/dist/cli.js`.
@@ -48,6 +48,26 @@ export async function scheduleMigration(cliPath: string): Promise<boolean> {
     detached: true,
     stdio: 'ignore',
   }).unref();
+  return true;
+}
+
+/**
+ * Rewrites a launcher that an older release wrote. The launcher only changes on `install`, so a
+ * fix made there — the render deadline, say — would otherwise reach only people who re-run
+ * setup or update. It keeps the fallback CLI the launcher already had, so a repo checkout's
+ * install isn't flipped to the plugin copy, and never creates a launcher that isn't there.
+ * Returns whether it rewrote the file.
+ */
+export async function refreshLauncher(): Promise<boolean> {
+  let current: string;
+  try {
+    current = await fs.promises.readFile(launcherPath(), 'utf8');
+  } catch {
+    return false;
+  }
+  const fallback = launcherFallback(current) ?? fallbackCliPath();
+  if (current === launcherSource(fallback)) return false;
+  await writeLauncher(fallback);
   return true;
 }
 

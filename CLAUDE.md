@@ -51,7 +51,7 @@ node dist/cli.js doctor                               # 데이터 경로 확인
 src/
 ├── cli.ts                 # 엔트리: stdin 감지 시 render, TTY 시 TUI
 ├── data/
-│   ├── stdin.ts           # Claude Code stdin JSON 파싱 (zod)
+│   ├── stdin.ts           # Claude Code stdin JSON 파싱 (zod, EOF 대기 없음)
 │   ├── jsonl.ts           # ~/.claude/projects/**/*.jsonl 파싱 (디스크 증분 캐시)
 │   ├── usage.ts           # 일간/주간/Sonnet 주간 사용량 집계
 │   ├── reset.ts           # 일간/주간 리셋 카운트다운
@@ -355,6 +355,19 @@ refactor: Extract token formatter into shared util
   에 파일별 파싱 결과와 읽은 바이트 위치를 두고, transcript 가 append-only 라는 점을 이용해
   **늘어난 부분만** 읽는다. 파일이 짧아지면 처음부터 다시 읽는다.
 - mtime 이 창(주간 7일 / cacheTtl 1시간)보다 오래된 파일은 건너뛰고 인덱스에서도 뺀다.
+
+### 렌더 프로세스 수명 (0.14.1~)
+
+- 렌더는 stdin 을 **EOF 까지 기다리지 않는다.** 완전한 JSON 객체가 모이면 바로 진행하고 stdin 을
+  닫으며, 2초(`STDIN_TIMEOUT_MS`) 동안 아무것도 안 오면 빈 페이로드로 그린다. 0.14.0 까지는 EOF 만
+  기다려서, 파이프 쓰기 쪽이 안 닫히면(Claude Code 가 강제 종료됐는데 다른 프로세스가 파이프를 물고
+  있는 경우) 렌더가 영원히 남아 PPID 1 고아로 쌓였다.
+- 렌더 15초 데드라인(`src/render/deadline.ts`)을 CLI 와 **런처 양쪽**에 건다. `unref()` 라 정상 렌더는
+  기다리지 않는다. 런처 쪽은 어떤 버전의 CLI 가 돌든 적용되는 안전망이다. 첫 렌더의 transcript
+  인덱스 생성이 이보다 길면 끝까지 못 가서 매번 다시 만들게 되니, 데드라인을 줄일 땐 주의.
+- 런처는 `install` 때만 새로 써지므로, SessionStart 훅(`migrate`)이 `refreshLauncher()` 로 내용이 다른
+  옛 런처를 교체한다 (기존 `FALLBACK_CLI` 유지, 없으면 만들지 않음). **런처 소스를 바꾸면 기존
+  사용자에게는 다음 세션 시작 때 반영된다.**
 
 ### effort / ultracode
 

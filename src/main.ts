@@ -1,9 +1,15 @@
 import chalk from 'chalk';
 import { setTimeout as sleep } from 'timers/promises';
 import { renderFromStdin } from './render/index.js';
+import { armRenderDeadline } from './render/deadline.js';
 import { installToClaude } from './config/install.js';
 import { runDoctor } from './config/doctor.js';
-import { MIGRATE_DELAY_MS, migrateStatusLine, scheduleMigration } from './config/migrate.js';
+import {
+  MIGRATE_DELAY_MS,
+  migrateStatusLine,
+  refreshLauncher,
+  scheduleMigration,
+} from './config/migrate.js';
 import { loadSettings } from './config/load.js';
 import { setLocale, type Locale } from './i18n/index.js';
 
@@ -33,6 +39,7 @@ const commands: Record<string, Command> = {
       await migrateStatusLine().catch(() => false);
       return;
     }
+    await refreshLauncher().catch(() => false);
     // The hook runs this as `node <plugin>/dist/cli.js migrate`, so argv[1] is that same CLI.
     await scheduleMigration(process.argv[1] ?? '').catch(() => false);
   },
@@ -46,6 +53,7 @@ async function dispatch(argv: string[]): Promise<void> {
     return;
   }
   if (!process.stdin.isTTY) {
+    armRenderDeadline();
     await renderFromStdin();
     return;
   }

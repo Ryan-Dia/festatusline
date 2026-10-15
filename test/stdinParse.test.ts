@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { parseStdin, salvageStdin } from '../src/data/stdin.js';
+import { PassThrough } from 'stream';
+import { parseStdin, readStdin, salvageStdin } from '../src/data/stdin.js';
 
 describe('parseStdin', () => {
   it('returns an empty payload for blank or malformed input', () => {
@@ -102,5 +103,49 @@ describe('salvageStdin', () => {
     );
     expect(payload.model?.id).toBe('claude-opus-5');
     expect(payload.context_window).toBeUndefined();
+  });
+});
+
+describe('readStdin', () => {
+  const payload = JSON.stringify({ model: { id: 'claude-opus-5', display_name: 'Opus' } });
+
+  it('returns as soon as the payload is complete, without waiting for EOF', async () => {
+    // Regression: a writer that kept the pipe open left the render waiting forever.
+    const stream = new PassThrough();
+    const read = readStdin(stream, 60_000);
+    stream.write(payload);
+    await expect(read).resolves.toEqual({ model: { id: 'claude-opus-5', display_name: 'Opus' } });
+    expect(stream.destroyed).toBe(true);
+  });
+
+  it('waits for the rest of a payload split across chunks', async () => {
+    const stream = new PassThrough();
+    const read = readStdin(stream, 60_000);
+    let settled = false;
+    void read.then(() => {
+      settled = true;
+    });
+    stream.write(payload.slice(0, 20));
+    await new Promise((resolve) => {
+      setImmediate(resolve);
+    });
+    expect(settled).toBe(false);
+    stream.write(payload.slice(20));
+    await expect(read).resolves.toHaveProperty('model.display_name', 'Opus');
+  });
+
+  it('gives up with an empty payload when nothing arrives', async () => {
+    const stream = new PassThrough();
+    const started = Date.now();
+    await expect(readStdin(stream, 50)).resolves.toEqual({});
+    expect(Date.now() - started).toBeLessThan(1_000);
+    expect(stream.destroyed).toBe(true);
+  });
+
+  it('still settles on EOF for input that never forms a payload', async () => {
+    const stream = new PassThrough();
+    const read = readStdin(stream, 60_000);
+    stream.end('not json');
+    await expect(read).resolves.toEqual({});
   });
 });
