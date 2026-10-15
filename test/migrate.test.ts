@@ -144,6 +144,21 @@ describe('refreshLauncher', () => {
     expect(await refreshLauncher()).toBe(false);
   });
 
+  it('moves a plugin-cache fallback onto the running plugin version', async () => {
+    const cached = (v: string): string =>
+      `/u/.claude/plugins/cache/festatusline/festatusline/${v}/dist/cli.js`;
+    await fs.mkdir(join(root, 'festatusline'), { recursive: true });
+    await fs.writeFile(launcherPath(), launcherSource(cached('0.14.0')));
+    const argv = process.argv[1];
+    process.argv[1] = cached('0.15.0');
+    try {
+      expect(await refreshLauncher()).toBe(true);
+    } finally {
+      process.argv[1] = argv;
+    }
+    expect(await fs.readFile(launcherPath(), 'utf8')).toBe(launcherSource(cached('0.15.0')));
+  });
+
   it('never creates a launcher that is not there', async () => {
     expect(await refreshLauncher()).toBe(false);
     await expect(fs.access(launcherPath())).rejects.toThrow();

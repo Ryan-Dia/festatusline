@@ -4,6 +4,7 @@ import { renderFromStdin } from './render/index.js';
 import { armRenderDeadline } from './render/deadline.js';
 import { installToClaude } from './config/install.js';
 import { runDoctor } from './config/doctor.js';
+import { pruneOldVersions } from './config/prune.js';
 import {
   MIGRATE_DELAY_MS,
   migrateStatusLine,
@@ -29,7 +30,11 @@ const commands: Record<string, Command> = {
     const { runSetupWizard } = await import('./tui/setup.js');
     return runSetupWizard();
   },
-  install: (args) => installToClaude(args.includes('--force')),
+  install: async (args) => {
+    await installToClaude(args.includes('--force'));
+    // /festatusline:update runs this through the version it just installed.
+    await pruneOldVersions(process.argv[1] ?? '').catch(() => []);
+  },
   doctor: () => runDoctor(),
   // Run by the plugin's SessionStart hook on every start. Silent and never failing: a hook's
   // stdout lands in Claude's context, and a stale statusLine is no reason to bother anyone.
@@ -42,6 +47,8 @@ const commands: Record<string, Command> = {
     await refreshLauncher().catch(() => false);
     // The hook runs this as `node <plugin>/dist/cli.js migrate`, so argv[1] is that same CLI.
     await scheduleMigration(process.argv[1] ?? '').catch(() => false);
+    // After refreshLauncher, so a launcher fallback it just moved no longer holds a version.
+    await pruneOldVersions(process.argv[1] ?? '').catch(() => []);
   },
 };
 

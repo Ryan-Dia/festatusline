@@ -384,6 +384,18 @@ refactor: Extract token formatter into shared util
   옛 런처를 교체한다 (기존 `FALLBACK_CLI` 유지, 없으면 만들지 않음). **런처 소스를 바꾸면 기존
   사용자에게는 다음 세션 시작 때 반영된다.**
 
+### 옛 버전 캐시 정리 (`src/config/prune.ts`)
+
+- `/plugin update` 는 옛 버전 폴더를 그대로 남긴다. Claude Code 가 `.orphaned_at` 을 찍지만 11일 넘게
+  안 지운 것을 확인했고, 0.14.0 부터 버전마다 `node_modules`(~217MB)가 들어 있다. 그래서 `install`
+  (`/festatusline:update`)과 SessionStart 훅(`migrate`)이 `pruneOldVersions()` 로 지운다.
+- **설치 버전보다 낮은 것만** 지운다 (동시에 진행 중인 업데이트가 쓰는 더 높은 폴더 보호). 레지스트리
+  `installPath`(모든 scope), `statusLine` 명령(0.11.0 이전 고정 경로는 `migrate --now` 가 옮긴 뒤 다음
+  세션에 지워짐), 런처 `FALLBACK_CLI`, 실행 중인 CLI 가 가리키는 버전은 남긴다. 레지스트리나
+  settings.json 을 못 읽으면 아무것도 안 지운다.
+- 그래서 `refreshLauncher()` 는 플러그인 캐시를 가리키는 `FALLBACK_CLI` 를 실행 중인 버전으로 옮긴다
+  (저장소 체크아웃 경로는 그대로). 안 옮기면 그 버전이 영원히 안 지워진다.
+
 ### 필수 업데이트 안내 (`src/data/updateCheck.ts`, 0.15.0~)
 
 - 저장소 루트 `update.json` 의 `minVersion` 보다 설치 버전이 낮으면 상태바 맨 위에 빨간 줄을 띄운다.

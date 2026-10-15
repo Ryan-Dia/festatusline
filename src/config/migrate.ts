@@ -9,7 +9,7 @@ import { launcherFallback, launcherPath, launcherSource, writeLauncher } from '.
 const VERSIONED_CLI_RE =
   /[\\/]plugins[\\/]cache[\\/]festatusline[\\/]festatusline[\\/][^\\/"']+[\\/]dist[\\/]cli\.js/;
 
-function isRecord(value: unknown): value is Record<string, unknown> {
+export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
@@ -22,7 +22,7 @@ export function pointsAtVersionedCli(command: unknown): boolean {
 // the old command kept rendering). A change a few seconds later is picked up live.
 export const MIGRATE_DELAY_MS = 5_000;
 
-async function readSettings(settingsPath: string): Promise<Record<string, unknown> | null> {
+export async function readSettings(settingsPath: string): Promise<Record<string, unknown> | null> {
   try {
     const parsed: unknown = JSON.parse(await fs.promises.readFile(settingsPath, 'utf8'));
     return isRecord(parsed) ? parsed : null;
@@ -55,7 +55,8 @@ export async function scheduleMigration(cliPath: string): Promise<boolean> {
  * Rewrites a launcher that an older release wrote. The launcher only changes on `install`, so a
  * fix made there — the render deadline, say — would otherwise reach only people who re-run
  * setup or update. It keeps the fallback CLI the launcher already had, so a repo checkout's
- * install isn't flipped to the plugin copy, and never creates a launcher that isn't there.
+ * install isn't flipped to the plugin copy (one plugin version's is moved to the running
+ * one's), and never creates a launcher that isn't there.
  * Returns whether it rewrote the file.
  */
 export async function refreshLauncher(): Promise<boolean> {
@@ -65,7 +66,12 @@ export async function refreshLauncher(): Promise<boolean> {
   } catch {
     return false;
   }
-  const fallback = launcherFallback(current) ?? fallbackCliPath();
+  const kept = launcherFallback(current);
+  const fresh = fallbackCliPath();
+  // A fallback inside the plugin cache follows the plugin to its new version; otherwise it
+  // would keep naming a folder pruneOldVersions has to leave behind, or one already gone.
+  const fallback =
+    kept && !(pointsAtVersionedCli(kept) && pointsAtVersionedCli(fresh)) ? kept : fresh;
   if (current === launcherSource(fallback)) return false;
   await writeLauncher(fallback);
   return true;
