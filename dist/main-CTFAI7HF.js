@@ -843,7 +843,7 @@ async function fetchMinVersion() {
     clearTimeout(timeout);
   }
 }
-async function getRequiredUpdate(installed = "0.15.0") {
+async function getRequiredUpdate(installed = "0.16.0") {
   const now = Date.now();
   const cache = await readCache2();
   let minVersion = cache?.minVersion ?? null;
@@ -1171,6 +1171,10 @@ async function runDoctor() {
   );
 }
 
+// src/config/prune.ts
+import fs10 from "fs";
+import path7 from "path";
+
 // src/config/migrate.ts
 import { spawn } from "child_process";
 import fs9 from "fs";
@@ -1209,7 +1213,9 @@ async function refreshLauncher() {
   } catch {
     return false;
   }
-  const fallback = launcherFallback(current) ?? fallbackCliPath();
+  const kept = launcherFallback(current);
+  const fresh = fallbackCliPath();
+  const fallback = kept && !(pointsAtVersionedCli(kept) && pointsAtVersionedCli(fresh)) ? kept : fresh;
   if (current === launcherSource(fallback)) return false;
   await writeLauncher(fallback);
   return true;
@@ -1232,6 +1238,57 @@ async function migrateStatusLine() {
   return true;
 }
 
+// src/config/prune.ts
+var PLUGIN_ID = "festatusline@festatusline";
+var VERSION_RE2 = /^\d+\.\d+\.\d+$/;
+function pluginCacheDir() {
+  return path7.join(getClaudeDir(), "plugins", "cache", "festatusline", "festatusline");
+}
+function compareVersions2(a, b) {
+  const [x, y] = [a, b].map((v) => v.split(".").map(Number));
+  for (let i = 0; i < 3; i += 1) {
+    const diff = (x?.[i] ?? 0) - (y?.[i] ?? 0);
+    if (diff !== 0) return diff;
+  }
+  return 0;
+}
+async function installedVersions(cacheDir2) {
+  try {
+    const registryPath = path7.join(getClaudeDir(), "plugins", "installed_plugins.json");
+    const registry = JSON.parse(await fs10.promises.readFile(registryPath, "utf8"));
+    const plugins = isRecord(registry) ? registry.plugins : void 0;
+    const entries = isRecord(plugins) ? plugins[PLUGIN_ID] : [];
+    if (!Array.isArray(entries)) return [];
+    return entries.map((entry) => isRecord(entry) ? entry.installPath : void 0).filter((p) => typeof p === "string" && path7.dirname(p) === cacheDir2).map((p) => path7.basename(p)).filter((v) => VERSION_RE2.test(v)).filter((v) => fs10.existsSync(path7.join(cacheDir2, v, "dist", "cli.js")));
+  } catch {
+    return [];
+  }
+}
+function mentions(ref, version) {
+  return ref.replace(/\\/g, "/").includes(`/festatusline/festatusline/${version}/`);
+}
+async function pruneOldVersions(runningCli) {
+  const cacheDir2 = pluginCacheDir();
+  const installed = await installedVersions(cacheDir2);
+  const newest = [...installed].sort(compareVersions2).pop();
+  if (!newest) return [];
+  const settings = await readSettings(path7.join(getClaudeDir(), "settings.json"));
+  if (!settings) return [];
+  const launcher = await fs10.promises.readFile(launcherPath(), "utf8").catch(() => "");
+  const refs = [
+    isRecord(settings.statusLine) && typeof settings.statusLine.command === "string" ? settings.statusLine.command : "",
+    launcherFallback(launcher) ?? "",
+    runningCli
+  ];
+  const stale = (await fs10.promises.readdir(cacheDir2)).filter(
+    (v) => VERSION_RE2.test(v) && compareVersions2(v, newest) < 0 && !installed.includes(v) && !refs.some((ref) => mentions(ref, v))
+  );
+  await Promise.all(
+    stale.map((v) => fs10.promises.rm(path7.join(cacheDir2, v), { recursive: true, force: true }))
+  );
+  return stale;
+}
+
 // src/main.ts
 source_default.level = 3;
 function isLocale(v) {
@@ -1242,7 +1299,10 @@ var commands = {
     const { runSetupWizard } = await import("./setup-P6HDRKQ5.js");
     return runSetupWizard();
   },
-  install: (args) => installToClaude(args.includes("--force")),
+  install: async (args) => {
+    await installToClaude(args.includes("--force"));
+    await pruneOldVersions(process.argv[1] ?? "").catch(() => []);
+  },
   doctor: () => runDoctor(),
   // Run by the plugin's SessionStart hook on every start. Silent and never failing: a hook's
   // stdout lands in Claude's context, and a stale statusLine is no reason to bother anyone.
@@ -1254,6 +1314,7 @@ var commands = {
     }
     await refreshLauncher().catch(() => false);
     await scheduleMigration(process.argv[1] ?? "").catch(() => false);
+    await pruneOldVersions(process.argv[1] ?? "").catch(() => []);
   }
 };
 async function dispatch(argv) {
@@ -1280,4 +1341,4 @@ async function main() {
 export {
   main
 };
-//# sourceMappingURL=main-TQRCGCZQ.js.map
+//# sourceMappingURL=main-CTFAI7HF.js.map

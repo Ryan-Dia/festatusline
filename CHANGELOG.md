@@ -12,6 +12,19 @@ summarised under [Earlier](#earlier).
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-10-15
+
+### Added
+
+- Old plugin versions are now deleted from `~/.claude/plugins/cache/festatusline/festatusline/`
+  on update (`/festatusline:update`) and at the next session start after a plain
+  `/plugin update`. Claude Code leaves every old version behind — marked `.orphaned_at`, but
+  seen still there after 11 days — and since 0.14.0 each carries its own `node_modules`
+  (~217 MB). Only versions older than the installed one go, and none that the plugin registry,
+  `statusLine`, the launcher's fallback or the running CLI still names; with no readable
+  registry or settings.json nothing is deleted. A launcher whose fallback named an old plugin
+  version now follows the plugin to the new one, so it no longer holds that folder.
+
 ## [0.15.0] - 2026-10-15
 
 ### Added
