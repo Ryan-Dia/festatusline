@@ -20,16 +20,16 @@ import {
   source_default,
   t,
   weightedCost
-} from "./chunk-WUMAV2DH.js";
+} from "./chunk-B5FAUB5E.js";
 import "./chunk-2H7UOFLK.js";
 
 // src/main.ts
 import { setTimeout as sleep } from "timers/promises";
 
 // src/render/index.ts
-import { promises as fs4 } from "fs";
-import { homedir as homedir3 } from "os";
-import { join as join2 } from "path";
+import { promises as fs5 } from "fs";
+import { homedir as homedir4 } from "os";
+import { join as join3 } from "path";
 
 // src/data/stdin.ts
 var nullableNumber = () => external_exports.number().nullish();
@@ -156,14 +156,38 @@ function parseStdin(raw) {
   const result = ClaudeStdinSchema.safeParse(json);
   return result.success ? result.data : salvageStdin(json);
 }
-async function readStdin() {
+var STDIN_TIMEOUT_MS = 2e3;
+function isCompletePayload(text) {
+  const trimmed = text.trimEnd();
+  if (!trimmed.endsWith("}")) return false;
+  try {
+    JSON.parse(trimmed);
+    return true;
+  } catch {
+    return false;
+  }
+}
+async function readStdin(stream = process.stdin, timeoutMs = STDIN_TIMEOUT_MS) {
   return new Promise((resolve, reject) => {
     const chunks = [];
-    process.stdin.on("data", (chunk) => chunks.push(chunk));
-    process.stdin.on("end", () => {
+    let timer;
+    const settle = () => {
+      clearTimeout(timer);
+      stream.removeAllListeners("data");
+      stream.removeAllListeners("end");
+      stream.destroy();
       resolve(parseStdin(Buffer.concat(chunks).toString("utf8")));
+    };
+    timer = setTimeout(settle, timeoutMs);
+    stream.on("data", (chunk) => {
+      chunks.push(chunk);
+      if (isCompletePayload(Buffer.concat(chunks).toString("utf8"))) settle();
     });
-    process.stdin.on("error", reject);
+    stream.on("end", settle);
+    stream.on("error", (err) => {
+      clearTimeout(timer);
+      reject(err);
+    });
   });
 }
 
@@ -610,9 +634,9 @@ var fromTuple = ([
   ephemeral1hTokens
 });
 function indexPath(projectsDir) {
-  const cacheDir = process.env.XDG_CACHE_HOME ? path2.join(process.env.XDG_CACHE_HOME, "festatusline") : path2.join(homedir2(), ".cache", "festatusline");
+  const cacheDir2 = process.env.XDG_CACHE_HOME ? path2.join(process.env.XDG_CACHE_HOME, "festatusline") : path2.join(homedir2(), ".cache", "festatusline");
   const key = createHash2("sha256").update(projectsDir).digest("hex").slice(0, 8);
-  return path2.join(cacheDir, `transcripts-${key}.json`);
+  return path2.join(cacheDir2, `transcripts-${key}.json`);
 }
 async function readIndex(filePath) {
   try {
@@ -757,9 +781,90 @@ function getLastCacheCreation(entries) {
   return { timestamp: latest.timestamp, ttlMs };
 }
 
+// src/data/updateCheck.ts
+import { promises as fs4 } from "fs";
+import { homedir as homedir3 } from "os";
+import { join as join2 } from "path";
+var UPDATE_MANIFEST_URL = "https://raw.githubusercontent.com/Ryan-Dia/festatusline/main/update.json";
+var CHECK_TTL_MS = 6 * 60 * 60 * 1e3;
+var FAILURE_BACKOFF_MS2 = 60 * 60 * 1e3;
+var FETCH_TIMEOUT_MS2 = 1500;
+var VERSION_RE = /^\d+\.\d+\.\d+$/;
+var VersionSchema = external_exports.string().regex(VERSION_RE);
+var ManifestSchema = external_exports.object({ minVersion: VersionSchema });
+var CacheSchema = external_exports.object({
+  checkedAt: external_exports.number(),
+  minVersion: VersionSchema.nullable(),
+  failedAt: external_exports.number().optional()
+});
+function cacheDir() {
+  const xdg = process.env.XDG_CACHE_HOME;
+  return xdg ? join2(xdg, "festatusline") : join2(homedir3(), ".cache", "festatusline");
+}
+function cachePath() {
+  return join2(cacheDir(), "update_check.json");
+}
+function compareVersions(a, b) {
+  const pa = a.split(".").map(Number);
+  const pb = b.split(".").map(Number);
+  for (let i = 0; i < 3; i += 1) {
+    const diff = (pa[i] ?? 0) - (pb[i] ?? 0);
+    if (diff !== 0) return diff;
+  }
+  return 0;
+}
+async function readCache2() {
+  try {
+    const result = CacheSchema.safeParse(JSON.parse(await fs4.readFile(cachePath(), "utf8")));
+    return result.success ? result.data : null;
+  } catch {
+    return null;
+  }
+}
+async function writeCache2(entry) {
+  try {
+    await fs4.mkdir(cacheDir(), { recursive: true });
+    await fs4.writeFile(cachePath(), JSON.stringify(entry), "utf8");
+  } catch {
+  }
+}
+async function fetchMinVersion() {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS2);
+  try {
+    const res = await fetch(UPDATE_MANIFEST_URL, { signal: controller.signal });
+    if (res.status === 404) return null;
+    if (!res.ok) return void 0;
+    const result = ManifestSchema.safeParse(await res.json());
+    return result.success ? result.data.minVersion : null;
+  } catch {
+    return void 0;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+async function getRequiredUpdate(installed = "0.15.0") {
+  const now = Date.now();
+  const cache = await readCache2();
+  let minVersion = cache?.minVersion ?? null;
+  const fresh = cache != null && now - cache.checkedAt < CHECK_TTL_MS;
+  const backingOff = cache?.failedAt != null && now - cache.failedAt < FAILURE_BACKOFF_MS2;
+  if (!fresh && !backingOff) {
+    const fetched = await fetchMinVersion();
+    if (fetched === void 0) {
+      await writeCache2({ checkedAt: cache?.checkedAt ?? 0, minVersion, failedAt: now });
+    } else {
+      minVersion = fetched;
+      await writeCache2({ checkedAt: now, minVersion });
+    }
+  }
+  if (!minVersion || !VERSION_RE.test(installed)) return null;
+  return compareVersions(installed, minVersion) < 0 ? minVersion : null;
+}
+
 // src/render/index.ts
-var CACHE_DIR2 = process.env.XDG_CACHE_HOME ? join2(process.env.XDG_CACHE_HOME, "festatusline") : join2(homedir3(), ".cache", "festatusline");
-var RATE_LIMITS_CACHE_PATH = join2(CACHE_DIR2, "rate_limits.json");
+var CACHE_DIR2 = process.env.XDG_CACHE_HOME ? join3(process.env.XDG_CACHE_HOME, "festatusline") : join3(homedir4(), ".cache", "festatusline");
+var RATE_LIMITS_CACHE_PATH = join3(CACHE_DIR2, "rate_limits.json");
 var RateLimitsCacheSchema = RateLimitsSchema;
 async function tryOrNull(fn) {
   try {
@@ -770,15 +875,15 @@ async function tryOrNull(fn) {
 }
 async function readRateLimitsCache() {
   return tryOrNull(async () => {
-    const raw = await fs4.readFile(RATE_LIMITS_CACHE_PATH, "utf8");
+    const raw = await fs5.readFile(RATE_LIMITS_CACHE_PATH, "utf8");
     const result = RateLimitsCacheSchema.safeParse(JSON.parse(raw));
     return result.success ? result.data : null;
   });
 }
 async function writeRateLimitsCache(rateLimits) {
   await tryOrNull(async () => {
-    await fs4.mkdir(CACHE_DIR2, { recursive: true });
-    await fs4.writeFile(RATE_LIMITS_CACHE_PATH, JSON.stringify(rateLimits), "utf8");
+    await fs5.mkdir(CACHE_DIR2, { recursive: true });
+    await fs5.writeFile(RATE_LIMITS_CACHE_PATH, JSON.stringify(rateLimits), "utf8");
   });
 }
 function toRateLimitPeriod(slot) {
@@ -832,14 +937,24 @@ async function loadTranscriptData(lines) {
 async function renderFromStdin() {
   const stdinPromise = readStdin();
   const settingsPromise = loadSettings();
-  const [stdin, settings, claudeSettings, transcriptData, codex, oauthSlots, cachedRateLimits] = await Promise.all([
+  const [
+    stdin,
+    settings,
+    claudeSettings,
+    transcriptData,
+    codex,
+    oauthSlots,
+    cachedRateLimits,
+    requiredUpdate
+  ] = await Promise.all([
     stdinPromise,
     settingsPromise,
     readClaudeSettings(),
     tryOrNull(() => settingsPromise.then((s) => loadTranscriptData(resolveLines(s)))),
     tryOrNull(getCodexSnapshot),
     tryOrNull(() => getOAuthUsageSlots(stdinPromise.then((payload) => payload.version))),
-    readRateLimitsCache()
+    readRateLimitsCache(),
+    tryOrNull(() => settingsPromise.then((s) => s.updateNotice ? getRequiredUpdate() : null))
   ]);
   const usage = transcriptData?.usage ?? null;
   const lastCacheCreation = transcriptData?.lastCacheCreation ?? null;
@@ -878,22 +993,30 @@ async function renderFromStdin() {
     cacheTtlMs
   };
   const output = renderAllLines(resolveLines(settings), ctx, settings.separator);
-  process.stdout.write(`${output}
+  const notice = requiredUpdate ? `${source_default.hex(theme.danger)(t2("update.required").replace("{version}", requiredUpdate))}
+` : "";
+  process.stdout.write(`${notice}${output}
 `);
 }
 
+// src/render/deadline.ts
+var RENDER_DEADLINE_MS = 15e3;
+function armRenderDeadline(ms = RENDER_DEADLINE_MS) {
+  setTimeout(() => process.exit(1), ms).unref();
+}
+
 // src/config/install.ts
-import fs6 from "fs";
+import fs7 from "fs";
 import path4 from "path";
 import { fileURLToPath } from "url";
 
 // src/config/launcher.ts
-import fs5 from "fs";
+import fs6 from "fs";
 import path3 from "path";
 function launcherPath() {
   return path3.join(path3.dirname(getConfigPath()), "statusline.mjs");
 }
-function launcherSource(fallbackCli) {
+function launcherSource(fallbackCli, deadlineMs = RENDER_DEADLINE_MS) {
   return `// festatusline statusline launcher, written by \`festatusline install\`. It looks up the
 // installed plugin version on every run, so a plugin update needs no settings.json edit.
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
@@ -904,6 +1027,11 @@ import { pathToFileURL } from 'node:url';
 const FALLBACK_CLI = ${JSON.stringify(fallbackCli)};
 const PLUGIN_ID = 'festatusline@festatusline';
 const pluginsDir = join(process.env.CLAUDE_CONFIG_DIR ?? join(homedir(), '.claude'), 'plugins');
+
+// A render still alive after this is stuck, and Claude Code stopped waiting long ago. Armed
+// here as well as in the CLI so it bounds whichever version runs below, older ones included.
+// unref: it never keeps a finished render alive. A TTY means someone opened the settings TUI.
+if (!process.stdin.isTTY) setTimeout(() => process.exit(1), ${deadlineMs}).unref();
 
 function existing(cli) {
   return existsSync(cli) ? cli : null;
@@ -949,12 +1077,22 @@ if (cli) {
 }
 `;
 }
+function launcherFallback(source) {
+  const match = /^const FALLBACK_CLI = (".*");$/m.exec(source);
+  if (!match?.[1]) return null;
+  try {
+    const value = JSON.parse(match[1]);
+    return typeof value === "string" ? value : null;
+  } catch {
+    return null;
+  }
+}
 async function writeLauncher(fallbackCli) {
   const target = launcherPath();
-  await fs5.promises.mkdir(path3.dirname(target), { recursive: true });
+  await fs6.promises.mkdir(path3.dirname(target), { recursive: true });
   const temp = `${target}.${process.pid}.tmp`;
-  await fs5.promises.writeFile(temp, launcherSource(fallbackCli), "utf8");
-  await fs5.promises.rename(temp, target);
+  await fs6.promises.writeFile(temp, launcherSource(fallbackCli), "utf8");
+  await fs6.promises.rename(temp, target);
   return `node ${JSON.stringify(target)}`;
 }
 
@@ -965,7 +1103,7 @@ function getClaudeSettingsPath() {
 }
 function fallbackCliPath() {
   const besideBundle = path4.join(path4.dirname(fileURLToPath(import.meta.url)), "cli.js");
-  if (fs6.existsSync(besideBundle)) return besideBundle;
+  if (fs7.existsSync(besideBundle)) return besideBundle;
   const invoked = process.argv[1] ? path4.resolve(process.argv[1]) : "";
   return invoked === launcherPath() ? "" : invoked;
 }
@@ -973,7 +1111,7 @@ async function installToClaude(force = false) {
   const settingsPath = getClaudeSettingsPath();
   let current = {};
   try {
-    const raw = await fs6.promises.readFile(settingsPath, "utf8");
+    const raw = await fs7.promises.readFile(settingsPath, "utf8");
     const parsed = ClaudeSettingsSchema2.safeParse(JSON.parse(raw));
     if (parsed.success) current = parsed.data;
   } catch {
@@ -989,7 +1127,7 @@ async function installToClaude(force = false) {
   }
   const backup = `${settingsPath}.bak`;
   if (Object.keys(current).length > 0) {
-    await fs6.promises.writeFile(backup, `${JSON.stringify(current, null, 2)}
+    await fs7.promises.writeFile(backup, `${JSON.stringify(current, null, 2)}
 `, "utf8");
   }
   const command = await writeLauncher(fallbackCliPath());
@@ -999,20 +1137,20 @@ async function installToClaude(force = false) {
     type: "command",
     command
   };
-  await fs6.promises.mkdir(path4.dirname(settingsPath), { recursive: true });
-  await fs6.promises.writeFile(settingsPath, `${JSON.stringify(current, null, 2)}
+  await fs7.promises.mkdir(path4.dirname(settingsPath), { recursive: true });
+  await fs7.promises.writeFile(settingsPath, `${JSON.stringify(current, null, 2)}
 `, "utf8");
   process.stdout.write(`${t("install.success")}
 `);
 }
 
 // src/config/doctor.ts
-import fs7 from "fs";
+import fs8 from "fs";
 import path5 from "path";
 import os from "os";
 async function exists(p) {
   try {
-    await fs7.promises.access(p);
+    await fs8.promises.access(p);
     return true;
   } catch {
     return false;
@@ -1035,7 +1173,7 @@ async function runDoctor() {
 
 // src/config/migrate.ts
 import { spawn } from "child_process";
-import fs8 from "fs";
+import fs9 from "fs";
 import path6 from "path";
 var VERSIONED_CLI_RE = /[\\/]plugins[\\/]cache[\\/]festatusline[\\/]festatusline[\\/][^\\/"']+[\\/]dist[\\/]cli\.js/;
 function isRecord(value) {
@@ -1047,7 +1185,7 @@ function pointsAtVersionedCli(command) {
 var MIGRATE_DELAY_MS = 5e3;
 async function readSettings(settingsPath) {
   try {
-    const parsed = JSON.parse(await fs8.promises.readFile(settingsPath, "utf8"));
+    const parsed = JSON.parse(await fs9.promises.readFile(settingsPath, "utf8"));
     return isRecord(parsed) ? parsed : null;
   } catch {
     return null;
@@ -1064,6 +1202,18 @@ async function scheduleMigration(cliPath) {
   }).unref();
   return true;
 }
+async function refreshLauncher() {
+  let current;
+  try {
+    current = await fs9.promises.readFile(launcherPath(), "utf8");
+  } catch {
+    return false;
+  }
+  const fallback = launcherFallback(current) ?? fallbackCliPath();
+  if (current === launcherSource(fallback)) return false;
+  await writeLauncher(fallback);
+  return true;
+}
 async function migrateStatusLine() {
   const settingsPath = getClaudeSettingsPath();
   const current = await readSettings(settingsPath);
@@ -1073,12 +1223,12 @@ async function migrateStatusLine() {
     ...current,
     statusLine: { refreshIntervalMs: 6e4, ...current.statusLine, type: "command", command }
   };
-  const target = await fs8.promises.realpath(settingsPath);
-  const { mode } = await fs8.promises.stat(target);
+  const target = await fs9.promises.realpath(settingsPath);
+  const { mode } = await fs9.promises.stat(target);
   const temp = path6.join(path6.dirname(target), `.settings.json.${process.pid}.tmp`);
-  await fs8.promises.writeFile(temp, `${JSON.stringify(next, null, 2)}
+  await fs9.promises.writeFile(temp, `${JSON.stringify(next, null, 2)}
 `, { mode });
-  await fs8.promises.rename(temp, target);
+  await fs9.promises.rename(temp, target);
   return true;
 }
 
@@ -1089,7 +1239,7 @@ function isLocale(v) {
 }
 var commands = {
   setup: async () => {
-    const { runSetupWizard } = await import("./setup-KLJZOR6C.js");
+    const { runSetupWizard } = await import("./setup-P6HDRKQ5.js");
     return runSetupWizard();
   },
   install: (args) => installToClaude(args.includes("--force")),
@@ -1102,6 +1252,7 @@ var commands = {
       await migrateStatusLine().catch(() => false);
       return;
     }
+    await refreshLauncher().catch(() => false);
     await scheduleMigration(process.argv[1] ?? "").catch(() => false);
   }
 };
@@ -1113,10 +1264,11 @@ async function dispatch(argv) {
     return;
   }
   if (!process.stdin.isTTY) {
+    armRenderDeadline();
     await renderFromStdin();
     return;
   }
-  const { runTui } = await import("./tui-73YEQNLM.js");
+  const { runTui } = await import("./tui-PZ7WLL2Z.js");
   await runTui();
 }
 async function main() {
@@ -1128,4 +1280,4 @@ async function main() {
 export {
   main
 };
-//# sourceMappingURL=main-PTLFBOG5.js.map
+//# sourceMappingURL=main-TQRCGCZQ.js.map

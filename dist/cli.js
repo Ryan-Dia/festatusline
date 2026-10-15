@@ -17,7 +17,7 @@ function tooOldMessage(nodeVersion) {
 // src/cli.ts
 var action = guardAction(process.version, process.argv[2], Boolean(process.stdin.isTTY));
 if (action === "run") {
-  const { main } = await import("./main-PTLFBOG5.js");
+  const { main } = await import("./main-TQRCGCZQ.js");
   await main().catch((err) => {
     process.stderr.write(`festatusline error: ${String(err)}
 `);

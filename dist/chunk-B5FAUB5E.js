@@ -12867,7 +12867,10 @@ var SettingsSchema = external_exports.object({
   separator: external_exports.string().default(" \u2502 "),
   // Parent folders shown above the current folder in the gitRepo widget. A top-level field
   // rather than widget config, since config lives in `lines` and writing that freezes the preset.
-  pathDepth: external_exports.number().int().min(0).max(3).default(0)
+  pathDepth: external_exports.number().int().min(0).max(3).default(0),
+  // A line above the status line when a required update is out (src/data/updateCheck.ts).
+  // Off also means no check against GitHub at all.
+  updateNotice: external_exports.boolean().default(true)
 });
 
 // src/config/load.ts
@@ -12953,6 +12956,7 @@ var ko = {
   "tui.setup.pathDepth1": "\uC0C1\uC704 1\uB2E8\uACC4\uAE4C\uC9C0",
   "tui.setup.pathDepth2": "\uC0C1\uC704 2\uB2E8\uACC4\uAE4C\uC9C0",
   "tui.setup.pathDepth3": "\uC0C1\uC704 3\uB2E8\uACC4\uAE4C\uC9C0",
+  "update.required": "\u26A0 festatusline {version} \uD544\uC218 \uC5C5\uB370\uC774\uD2B8 \xB7 /festatusline:update \uC2E4\uD589",
   "tui.lang.ko": "\uD55C\uAD6D\uC5B4",
   "tui.lang.en": "English",
   "tui.lang.zh": "\u4E2D\u6587",
@@ -13033,6 +13037,7 @@ var en = {
   "tui.setup.pathDepth1": "Up to 1 parent folder",
   "tui.setup.pathDepth2": "Up to 2 parent folders",
   "tui.setup.pathDepth3": "Up to 3 parent folders",
+  "update.required": "\u26A0 festatusline {version} required update \xB7 run /festatusline:update",
   "tui.lang.ko": "\uD55C\uAD6D\uC5B4",
   "tui.lang.en": "English",
   "tui.lang.zh": "\u4E2D\u6587",
@@ -13113,6 +13118,7 @@ var zh = {
   "tui.setup.pathDepth1": "\u5411\u4E0A 1 \u7EA7",
   "tui.setup.pathDepth2": "\u5411\u4E0A 2 \u7EA7",
   "tui.setup.pathDepth3": "\u5411\u4E0A 3 \u7EA7",
+  "update.required": "\u26A0 festatusline {version} \u5FC5\u8981\u66F4\u65B0 \xB7 \u8BF7\u8FD0\u884C /festatusline:update",
   "tui.lang.ko": "\uD55C\uAD6D\uC5B4",
   "tui.lang.en": "English",
   "tui.lang.zh": "\u4E2D\u6587",
@@ -14359,4 +14365,4 @@ export {
   ALL_WIDGETS,
   renderAllLines
 };
-//# sourceMappingURL=chunk-WUMAV2DH.js.map
+//# sourceMappingURL=chunk-B5FAUB5E.js.map

@@ -12,6 +12,56 @@ summarised under [Earlier](#earlier).
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-10-15
+
+### Added
+
+- A red line above the status line when a required update is out:
+  `⚠ festatusline 0.15.0 required update · run /festatusline:update` (ko/en/zh). Required
+  means `minVersion` in the repository's `update.json`, raised by hand only for a release
+  every user needs — 0.14.0 and earlier had a fix like that (stuck renders, below) with no
+  way to tell anyone still running them. It is a plain GET of that public file with no token,
+  at most every 6 hours, 1.5 s timeout, an hour's wait after a failure, cached in
+  `~/.cache/festatusline/update_check.json`. `"updateNotice": false` turns off the line and
+  the check. A separate file rather than a field in `marketplace.json`, whose schema Claude
+  Code validates. Only installs from this release on can show it.
+
+### Fixed
+
+- Statusline processes could pile up and outlive Claude Code. A render read stdin until EOF
+  with no time limit, so when the pipe's write end stayed open — Claude Code killed while
+  another process still held it, say — the render waited forever, re-parented to init. It
+  now goes ahead as soon as the payload is a complete JSON object (no prefix of one parses),
+  closes stdin, and gives up after 2 s if nothing arrives. Measured: a render whose stdin is
+  never closed went from never exiting to exiting in ~0.4 s; one whose parent was killed went
+  from a lingering orphan to exiting before it became one. Normal renders are unchanged
+  (median 134 ms → 133 ms, byte-identical output).
+- Every render now also has a 15 s deadline, armed in both the CLI and the launcher
+  (`~/.config/festatusline/statusline.mjs`). The launcher's copy bounds whichever CLI version
+  it runs, older ones included: with an old CLI behind the new launcher, the same stuck
+  renders end at ~15 s instead of never. The SessionStart hook rewrites a launcher left by an
+  older release, keeping its fallback CLI, since the launcher otherwise changes only when
+  `install` runs.
+
+## [0.14.1] - 2026-10-15
+
+### Fixed
+
+- Statusline processes could pile up and outlive Claude Code. A render read stdin until EOF
+  with no time limit, so when the pipe's write end stayed open — Claude Code killed while
+  another process still held it, say — the render waited forever, re-parented to init. It
+  now goes ahead as soon as the payload is a complete JSON object (no prefix of one parses),
+  closes stdin, and gives up after 2 s if nothing arrives. Measured: a render whose stdin is
+  never closed went from never exiting to exiting in ~0.4 s; one whose parent was killed went
+  from a lingering orphan to exiting before it became one. Normal renders are unchanged
+  (median 134 ms → 133 ms, byte-identical output).
+- Every render now also has a 15 s deadline, armed in both the CLI and the launcher
+  (`~/.config/festatusline/statusline.mjs`). The launcher's copy bounds whichever CLI version
+  it runs, older ones included: with an old CLI behind the new launcher, the same stuck
+  renders end at ~15 s instead of never. The SessionStart hook rewrites a launcher left by an
+  older release, keeping its fallback CLI, since the launcher otherwise changes only when
+  `install` runs.
+
 ## [0.14.0] - 2026-10-14
 
 ### Changed

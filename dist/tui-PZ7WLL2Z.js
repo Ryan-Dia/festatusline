@@ -3,7 +3,7 @@ import {
   LanguageSelect,
   PresetPreview,
   saveSettings
-} from "./chunk-WZK773VF.js";
+} from "./chunk-NQSNRSPF.js";
 import {
   ALL_WIDGETS,
   PRESETS,
@@ -15,7 +15,7 @@ import {
   setLocale,
   t,
   themes
-} from "./chunk-WUMAV2DH.js";
+} from "./chunk-B5FAUB5E.js";
 import "./chunk-2H7UOFLK.js";
 
 // src/tui/index.ts
@@ -314,4 +314,4 @@ async function runTui() {
 export {
   runTui
 };
-//# sourceMappingURL=tui-73YEQNLM.js.map
+//# sourceMappingURL=tui-PZ7WLL2Z.js.map
